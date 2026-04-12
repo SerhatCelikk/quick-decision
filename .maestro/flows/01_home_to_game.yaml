@@ -1,0 +1,16 @@
+# E2E: Home screen → start game flow
+# Requires: Expo dev build running on simulator/device
+# Run: maestro test .maestro/flows/01_home_to_game.yaml
+
+appId: com.anonymous.app
+---
+- launchApp
+- assertVisible: "Quick Decision"
+- assertVisible: "Play Now"
+- tapOn: "Play Now"
+# Game screen should load
+- assertVisible:
+    text: "Score"
+    enabled: true
+- assertVisible:
+    text: "Streak"

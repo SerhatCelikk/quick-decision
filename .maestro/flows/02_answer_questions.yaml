@@ -1,0 +1,25 @@
+# E2E: Answer all questions in a level and reach Level Completion screen
+# Requires: Expo dev build running on simulator/device + at least 5 questions in DB
+# Run: maestro test .maestro/flows/02_answer_questions.yaml
+
+appId: com.anonymous.app
+---
+- launchApp
+- tapOn: "Play Now"
+# Wait for questions to load
+- waitForAnimationToEnd
+- repeat:
+    times: 5
+    commands:
+      - waitForAnimationToEnd
+      # Tap the first answer option (A)
+      - tapOn:
+          index: 0
+          text: "A"
+      - waitForAnimationToEnd
+# Level completion screen should appear
+- assertVisible:
+    anyOf:
+      - text: "Level Complete!"
+      - text: "So Close!"
+- assertVisible: "Home"

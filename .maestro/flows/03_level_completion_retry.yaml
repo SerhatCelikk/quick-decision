@@ -1,0 +1,19 @@
+# E2E: Level completion — Try Again flow
+# Simulates failing a level and retrying.
+# Run: maestro test .maestro/flows/03_level_completion_retry.yaml
+
+appId: com.anonymous.app
+---
+- launchApp
+- tapOn: "Play Now"
+- waitForAnimationToEnd
+# Let the timer expire 5 times to simulate a fail
+- repeat:
+    times: 5
+    commands:
+      - waitForAnimationToEnd
+      - delay: 12000  # wait for 10s timer + feedback animation
+- assertVisible: "So Close!"
+- tapOn: "Try Again"
+# Should restart the game at the same level
+- assertVisible: "Score"

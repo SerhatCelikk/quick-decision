@@ -1,0 +1,26 @@
+# E2E: Navigate Home from Level Completion screen
+# Run: maestro test .maestro/flows/04_home_navigate_back.yaml
+
+appId: com.anonymous.app
+---
+- launchApp
+- tapOn: "Play Now"
+- waitForAnimationToEnd
+# Answer all questions (tap A each time)
+- repeat:
+    times: 5
+    commands:
+      - waitForAnimationToEnd
+      - tapOn:
+          index: 0
+          text: "A"
+      - waitForAnimationToEnd
+# On level completion, go Home
+- assertVisible:
+    anyOf:
+      - text: "Level Complete!"
+      - text: "So Close!"
+- tapOn: "Home"
+# Should be back at home screen
+- assertVisible: "Quick Decision"
+- assertVisible: "Play Now"
