@@ -128,8 +128,8 @@ describe('Timer expiry handling', () => {
   it('timer expiry counts as wrong answer (no score, streak reset)', () => {
     // timedOut=true → isCorrect=false → streak resets to 0
     const timedOut = true;
-    const choiceIndex = -1;
-    const currentCorrectIndex = 0;
+    const choiceIndex: number = -1;
+    const currentCorrectIndex: number = 0;
     const isCorrect = !timedOut && choiceIndex === currentCorrectIndex;
     expect(isCorrect).toBe(false);
   });
@@ -144,8 +144,8 @@ describe('Timer expiry handling', () => {
 
   it('wrong answer before timer ends counts as wrong', () => {
     const timedOut = false;
-    const choiceIndex = 0;
-    const currentCorrectIndex = 1;
+    const choiceIndex: number = 0;
+    const currentCorrectIndex: number = 1;
     const isCorrect = !timedOut && choiceIndex === currentCorrectIndex;
     expect(isCorrect).toBe(false);
   });

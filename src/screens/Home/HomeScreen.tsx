@@ -1,11 +1,11 @@
 import React from 'react';
 import { Text, StyleSheet, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { RootStackScreenProps } from '../../types';
+import type { TabScreenProps } from '../../types/navigation';
 import { useLevelProgress } from '../../hooks/useLevelProgress';
 import { COLORS, PASS_THRESHOLD } from '../../constants';
 
-type Props = RootStackScreenProps<'Main'>;
+type Props = TabScreenProps<'Home'>;
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { progress, loading } = useLevelProgress();
