@@ -7,6 +7,14 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/YOUR_EAS_PROJECT_ID",
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -14,7 +22,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.quickdecision.app"
+      "bundleIdentifier": "com.quickdecision.app",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,13 +31,20 @@
         "backgroundColor": "#0f172a"
       },
       "package": "com.quickdecision.app",
+      "versionCode": 1,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    },
     "plugins": [
+      "expo-updates",
       [
         "expo-build-properties",
         {
