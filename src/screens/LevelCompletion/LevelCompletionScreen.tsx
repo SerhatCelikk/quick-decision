@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import {
   Text,
   StyleSheet,
-  TouchableOpacity,
   View,
   Animated,
   ScrollView,
@@ -12,6 +11,7 @@ import type { RootStackScreenProps } from '../../types';
 import { COLORS, PASS_THRESHOLD, WORLD_THEMES, WORLDS } from '../../constants';
 import { EnergyBar } from '../../components/EnergyBar';
 import { StarRating } from '../../components/StarRating';
+import { DuoButton } from '../../components/common/DuoButton';
 
 type Props = RootStackScreenProps<'LevelCompletion'>;
 
@@ -20,6 +20,85 @@ function getWorldTheme(worldId: number) {
   return world ? WORLD_THEMES[world.key] : WORLD_THEMES.easy;
 }
 
+// ─── Confetti particle ────────────────────────────────────────────────────────
+const CONFETTI_CHARS = ['★', '●', '■', '▲', '◆'];
+const CONFETTI_COLORS = [
+  COLORS.brandGreen,
+  COLORS.brandBlue,
+  COLORS.brandYellow,
+  COLORS.brandPurple,
+  COLORS.brandOrange,
+  COLORS.brandRed,
+];
+
+const ConfettiPiece: React.FC<{
+  delay: number;
+  x: number;
+  color: string;
+  char: string;
+}> = ({ delay, x, color, char }) => {
+  const translateY = useRef(new Animated.Value(-20)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  const rotate = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.delay(delay),
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: 100, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: 320, duration: 1800, useNativeDriver: true }),
+        Animated.timing(rotate, { toValue: 1, duration: 1800, useNativeDriver: true }),
+      ]),
+      Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start();
+  }, [delay, translateY, opacity, rotate]);
+
+  const spin = rotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '720deg'] });
+
+  return (
+    <Animated.Text
+      style={{
+        position: 'absolute',
+        left: x,
+        top: 0,
+        fontSize: 16,
+        color,
+        transform: [{ translateY }, { rotate: spin }],
+        opacity,
+      }}
+    >
+      {char}
+    </Animated.Text>
+  );
+};
+
+// 30 particles per burst
+const CONFETTI_PIECES = Array.from({ length: 30 }, (_, i) => ({
+  id: i,
+  delay: Math.floor(Math.random() * 600),
+  x: Math.floor(Math.random() * 340),
+  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+  char: CONFETTI_CHARS[i % CONFETTI_CHARS.length],
+}));
+
+const Confetti: React.FC<{ active: boolean }> = ({ active }) => {
+  if (!active) return null;
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {CONFETTI_PIECES.map(p => (
+        <ConfettiPiece
+          key={p.id}
+          delay={p.delay}
+          x={p.x}
+          color={p.color}
+          char={p.char}
+        />
+      ))}
+    </View>
+  );
+};
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) => {
   const {
     worldId,
@@ -37,11 +116,11 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
   const theme = getWorldTheme(worldId);
   const accuracyPct = Math.round(accuracy * 100);
   const passThresholdPct = Math.round(PASS_THRESHOLD * 100);
+  const xpEarned = passed ? Math.round(100 * (1 + stars * 0.5)) : 0;
 
-  // Entry animations
   const cardScale = useRef(new Animated.Value(0.85)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
-  const confettiOpacity = useRef(new Animated.Value(0)).current;
+  const [showConfetti, setShowConfetti] = React.useState(false);
 
   useEffect(() => {
     Animated.parallel([
@@ -59,22 +138,15 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
     ]).start();
 
     if (passed) {
-      Animated.sequence([
-        Animated.delay(200),
-        Animated.timing(confettiOpacity, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.delay(1500),
-        Animated.timing(confettiOpacity, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      // Trigger confetti 200ms after card pops in, auto-hide after 2.5s
+      const showTimer = setTimeout(() => setShowConfetti(true), 200);
+      const hideTimer = setTimeout(() => setShowConfetti(false), 2700);
+      return () => {
+        clearTimeout(showTimer);
+        clearTimeout(hideTimer);
+      };
     }
-  }, [cardScale, cardOpacity, confettiOpacity, passed]);
+  }, [cardScale, cardOpacity, passed]);
 
   const handleNextLevel = () => {
     navigation.replace('Game', {
@@ -100,12 +172,8 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Confetti overlay */}
-      {passed && (
-        <Animated.View style={[styles.confettiOverlay, { opacity: confettiOpacity }]}>
-          <Text style={styles.confettiEmoji}>🎉 🎊 ✨ 🎉 🎊 ✨ 🎉</Text>
-        </Animated.View>
-      )}
+      {/* Confetti particle burst (§6.4) */}
+      <Confetti active={showConfetti} />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -123,7 +191,7 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
           </View>
 
           {/* Result title */}
-          <Text style={[styles.resultTitle, { color: passed ? theme.color : '#f97316' }]}>
+          <Text style={[styles.resultTitle, { color: passed ? theme.color : COLORS.brandOrange }]}>
             {passed ? 'Level Complete!' : 'So Close!'}
           </Text>
           <Text style={styles.resultSubtitle}>
@@ -132,10 +200,17 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
               : `Need ${passThresholdPct}% to pass — you got ${accuracyPct}%`}
           </Text>
 
-          {/* Stars */}
+          {/* Animated star reveal (§5.6, §6.4) */}
           {passed && (
             <View style={styles.starsRow}>
-              <StarRating stars={stars} size={40} animated />
+              <StarRating stars={stars} size={44} animated />
+            </View>
+          )}
+
+          {/* XP badge */}
+          {passed && xpEarned > 0 && (
+            <View style={[styles.xpBadge, { backgroundColor: COLORS.brandPurple }]}>
+              <Text style={styles.xpText}>+{xpEarned} XP earned</Text>
             </View>
           )}
 
@@ -146,7 +221,7 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
               <Text style={styles.statLabel}>Correct</Text>
             </View>
             <View style={[styles.statBox, styles.statBoxCenter]}>
-              <Text style={[styles.statValue, { color: passed ? theme.color : '#ef4444' }]}>
+              <Text style={[styles.statValue, { color: passed ? theme.color : COLORS.brandRed }]}>
                 {accuracyPct}%
               </Text>
               <Text style={styles.statLabel}>Accuracy</Text>
@@ -164,7 +239,7 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
                 styles.accuracyBarFill,
                 {
                   width: `${Math.min(accuracyPct, 100)}%` as `${number}%`,
-                  backgroundColor: passed ? theme.color : '#ef4444',
+                  backgroundColor: passed ? theme.color : COLORS.brandRed,
                 },
               ]}
             />
@@ -178,33 +253,14 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
             <EnergyBar hearts={energyRemaining} size={18} />
           </View>
 
-          {/* CTAs */}
+          {/* CTAs — DuoButton with 3D press (§5.1) */}
           <View style={styles.ctaContainer}>
             {passed ? (
-              <TouchableOpacity
-                style={[styles.primaryButton, { backgroundColor: theme.dimColor, borderColor: theme.color, borderWidth: 1 }]}
-                onPress={handleNextLevel}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.primaryButtonText, { color: theme.color }]}>Next Level →</Text>
-              </TouchableOpacity>
+              <DuoButton label="Next Level →" variant="primary" onPress={handleNextLevel} />
             ) : (
-              <TouchableOpacity
-                style={[styles.primaryButton, styles.retryButton]}
-                onPress={handleTryAgain}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.primaryButtonText}>Try Again</Text>
-              </TouchableOpacity>
+              <DuoButton label="Try Again" variant="danger" onPress={handleTryAgain} />
             )}
-
-            <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={handleWorldMap}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.secondaryButtonText}>🗺 World Map</Text>
-            </TouchableOpacity>
+            <DuoButton label="World Map" variant="secondary" onPress={handleWorldMap} />
           </View>
         </Animated.View>
       </ScrollView>
@@ -223,18 +279,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 24,
   },
-  confettiOverlay: {
-    position: 'absolute',
-    top: 60,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  confettiEmoji: {
-    fontSize: 28,
-    letterSpacing: 4,
-  },
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: 24,
@@ -246,7 +290,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 16,
     elevation: 10,
-    gap: 16,
+    gap: 14,
   },
 
   // World badge
@@ -284,6 +328,19 @@ const styles = StyleSheet.create({
   starsRow: {
     flexDirection: 'row',
     gap: 8,
+    marginVertical: 4,
+  },
+
+  // XP badge
+  xpBadge: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  xpText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
 
   // Stats
@@ -368,32 +425,5 @@ const styles = StyleSheet.create({
   ctaContainer: {
     width: '100%',
     gap: 10,
-  },
-  primaryButton: {
-    width: '100%',
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  retryButton: {
-    backgroundColor: '#92400e',
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  secondaryButtonText: {
-    color: COLORS.textMuted,
-    fontSize: 15,
-    fontWeight: '600',
   },
 });

@@ -1,34 +1,31 @@
-import React, { useEffect, useRef } from 'react';
+import React, { memo, useEffect, useRef } from 'react';
 import {
   Animated,
   StyleSheet,
   Text,
   TouchableOpacity,
+  View,
 } from 'react-native';
+import { COLORS } from '../../constants';
 
-type AnswerState = 'idle' | 'correct' | 'wrong';
+/**
+ * 4 answer states per design spec §5.2:
+ * - idle:     surface bg, gray border
+ * - selected: blue border + tinted bg (chosen but not yet revealed)
+ * - correct:  green border + tinted bg + checkmark icon
+ * - wrong:    red border + tinted bg + X icon + shake animation
+ */
+export type AnswerState = 'idle' | 'selected' | 'correct' | 'wrong';
 
 interface OptionButtonProps {
-  /** Label text displayed on the button */
   label: string;
-  /** Short prefix badge, e.g. "A" or "B" */
   prefix: string;
-  /** Current answer state for this button */
   answerState: AnswerState;
-  /** Whether the button is disabled (after an answer is selected) */
   disabled: boolean;
-  /** Called when the user taps this option */
   onPress: () => void;
 }
 
-/**
- * A single game answer option button.
- *
- * - Press scales down then back (tap feedback)
- * - Turns green/red based on answerState (correct/wrong)
- * - Shake animation on wrong answer
- */
-export const OptionButton: React.FC<OptionButtonProps> = ({
+export const OptionButton: React.FC<OptionButtonProps> = memo(({
   label,
   prefix,
   answerState,
@@ -40,7 +37,6 @@ export const OptionButton: React.FC<OptionButtonProps> = ({
 
   useEffect(() => {
     if (answerState === 'wrong') {
-      // Shake left-right on wrong answer
       Animated.sequence([
         Animated.timing(shakeAnim, { toValue: -8, duration: 60, useNativeDriver: true }),
         Animated.timing(shakeAnim, { toValue: 8, duration: 60, useNativeDriver: true }),
@@ -50,7 +46,6 @@ export const OptionButton: React.FC<OptionButtonProps> = ({
       ]).start();
     }
     if (answerState === 'correct') {
-      // Subtle bounce on correct
       Animated.sequence([
         Animated.timing(scaleAnim, { toValue: 1.04, duration: 100, useNativeDriver: true }),
         Animated.timing(scaleAnim, { toValue: 1, duration: 120, useNativeDriver: true }),
@@ -60,35 +55,35 @@ export const OptionButton: React.FC<OptionButtonProps> = ({
 
   const handlePressIn = () => {
     if (disabled) return;
-    Animated.timing(scaleAnim, {
-      toValue: 0.94,
-      duration: 80,
-      useNativeDriver: true,
-    }).start();
+    Animated.timing(scaleAnim, { toValue: 0.97, duration: 80, useNativeDriver: true }).start();
   };
 
   const handlePressOut = () => {
     if (disabled) return;
-    Animated.timing(scaleAnim, {
-      toValue: 1,
-      duration: 120,
-      useNativeDriver: true,
-    }).start();
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 400, friction: 20 }).start();
   };
 
-  const containerStyle =
-    answerState === 'correct'
-      ? styles.correct
-      : answerState === 'wrong'
-      ? styles.wrong
-      : styles.idle;
+  const isCorrect = answerState === 'correct';
+  const isWrong = answerState === 'wrong';
+  const isSelected = answerState === 'selected';
 
-  const prefixStyle =
-    answerState === 'correct'
-      ? styles.prefixCorrect
-      : answerState === 'wrong'
-      ? styles.prefixWrong
-      : styles.prefixIdle;
+  const containerStyle = isCorrect
+    ? styles.correct
+    : isWrong
+    ? styles.wrong
+    : isSelected
+    ? styles.selected
+    : styles.idle;
+
+  const prefixBg = isCorrect
+    ? COLORS.brandGreen
+    : isWrong
+    ? COLORS.brandRed
+    : isSelected
+    ? COLORS.brandBlue
+    : COLORS.border;
+
+  const prefixColor = answerState === 'idle' ? COLORS.textMuted : '#FFFFFF';
 
   return (
     <Animated.View
@@ -108,12 +103,20 @@ export const OptionButton: React.FC<OptionButtonProps> = ({
         accessibilityLabel={`Option ${prefix}: ${label}`}
         accessibilityState={{ disabled }}
       >
-        <Text style={[styles.prefix, prefixStyle]}>{prefix}</Text>
-        <Text style={styles.label}>{label}</Text>
+        <View style={[styles.prefixBadge, { backgroundColor: prefixBg }]}>
+          <Text style={[styles.prefixText, { color: prefixColor }]}>{prefix}</Text>
+        </View>
+        <Text style={styles.label} numberOfLines={3}>{label}</Text>
+        {isCorrect && (
+          <Text style={[styles.stateIcon, { color: COLORS.brandGreen }]}>✓</Text>
+        )}
+        {isWrong && (
+          <Text style={[styles.stateIcon, { color: COLORS.brandRed }]}>✗</Text>
+        )}
       </TouchableOpacity>
     </Animated.View>
   );
-};
+}) as React.FC<OptionButtonProps>;
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -123,50 +126,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     width: '100%',
-    borderRadius: 14,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     borderWidth: 2,
+    minHeight: 64,
   },
   idle: {
-    backgroundColor: '#1e293b',
-    borderColor: '#334155',
+    backgroundColor: COLORS.surface,
+    borderColor: COLORS.border,
+  },
+  selected: {
+    backgroundColor: COLORS.selectedBg,
+    borderColor: COLORS.selectedBorder,
+    borderWidth: 3,
   },
   correct: {
-    backgroundColor: '#14532d',
-    borderColor: '#22c55e',
+    backgroundColor: COLORS.correctBg,
+    borderColor: COLORS.correctBorder,
+    borderWidth: 3,
   },
   wrong: {
-    backgroundColor: '#450a0a',
-    borderColor: '#ef4444',
+    backgroundColor: COLORS.wrongBg,
+    borderColor: COLORS.wrongBorder,
+    borderWidth: 3,
   },
-  prefix: {
+  prefixBadge: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    textAlign: 'center',
-    lineHeight: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  prefixText: {
     fontSize: 14,
     fontWeight: 'bold',
-    marginRight: 14,
-    overflow: 'hidden',
-  },
-  prefixIdle: {
-    backgroundColor: '#334155',
-    color: '#94a3b8',
-  },
-  prefixCorrect: {
-    backgroundColor: '#15803d',
-    color: '#bbf7d0',
-  },
-  prefixWrong: {
-    backgroundColor: '#7f1d1d',
-    color: '#fca5a5',
   },
   label: {
     flex: 1,
-    fontSize: 17,
-    fontWeight: '500',
-    color: '#f8fafc',
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  stateIcon: {
+    marginLeft: 8,
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

@@ -14,9 +14,11 @@ import { getLevelConfig, COLORS, WORLD_THEMES, WORLDS } from '../../constants';
 import { fetchQuestionsForLevel, submitLevelAttempt } from '../../services/gameService';
 import { useEnergy } from '../../hooks/useEnergy';
 import { EnergyBar } from '../../components/EnergyBar';
+import { OptionButton } from '../../components/game/OptionButton';
+import { FactReveal } from '../../components/game/FactReveal';
 
 type AnswerState = 'idle' | 'correct' | 'wrong';
-type GamePhase = 'loading' | 'playing' | 'submitting' | 'no_energy';
+type GamePhase = 'loading' | 'playing' | 'fact_reveal' | 'submitting' | 'no_energy';
 
 type Props = RootStackScreenProps<'Game'>;
 
@@ -143,7 +145,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
   const advanceQuestion = useCallback(
     (latestCorrectCount: number) => {
       if (isLastQuestion) {
-        setTimeout(() => finishGame(latestCorrectCount), 800);
+        finishGame(latestCorrectCount);
         return;
       }
 
@@ -156,6 +158,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
         setTimeLeft(timerDuration);
         setAnswerState('idle');
         setSelectedIndex(null);
+        setPhase('playing');
         isAnsweredRef.current = false;
         choiceScaleAnims.forEach(a => a.setValue(1));
         timerBarAnim.setValue(1);
@@ -167,8 +170,12 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
         }).start();
       });
     },
-    [isLastQuestion, fadeAnim, timerBarAnim, choiceScaleAnims, finishGame, timerDuration]
+    [isLastQuestion, fadeAnim, timerBarAnim, choiceScaleAnims, finishGame, timerDuration, setPhase]
   );
+
+  const handleContinue = useCallback(() => {
+    advanceQuestion(correctCount);
+  }, [advanceQuestion, correctCount]);
 
   const handleAnswer = useCallback(
     (choiceIndex: number, timedOut: boolean = false) => {
@@ -192,7 +199,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
         loseHeart();
       }
 
-      if (!timedOut) {
+      if (!timedOut && choiceIndex >= 0) {
         Animated.sequence([
           Animated.timing(choiceScaleAnims[choiceIndex], {
             toValue: 0.94,
@@ -207,9 +214,9 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
         ]).start();
       }
 
-      setTimeout(() => advanceQuestion(newCorrectCount), 900);
+      setPhase('fact_reveal');
     },
-    [currentQuestion, streak, correctCount, stopTimer, advanceQuestion, choiceScaleAnims, loseHeart]
+    [currentQuestion, streak, correctCount, stopTimer, choiceScaleAnims, loseHeart, setPhase]
   );
 
   // Timer per question
@@ -364,35 +371,35 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
         <Text style={styles.questionText}>{currentQuestion.text}</Text>
       </Animated.View>
 
-      {/* Choices */}
+      {/* Choices — Duolingo-style OptionButton (§5.2) */}
       <Animated.View style={[styles.choicesContainer, { opacity: fadeAnim }]}>
-        {currentQuestion.options.map((option, index) => (
-          <Animated.View
-            key={index}
-            style={{ transform: [{ scale: choiceScaleAnims[index] }], width: '100%' }}
-          >
-            <TouchableOpacity
-              style={[styles.choiceButton, getChoiceStyle(index)]}
-              onPress={() => handleAnswer(index)}
+        {currentQuestion.options.map((option, index) => {
+          let state: 'idle' | 'correct' | 'wrong' = 'idle';
+          if (answerState !== 'idle') {
+            if (index === currentQuestion.correctIndex) state = 'correct';
+            else if (index === selectedIndex) state = 'wrong';
+          }
+          return (
+            <OptionButton
+              key={index}
+              label={option}
+              prefix={String.fromCharCode(65 + index)}
+              answerState={state}
               disabled={answerState !== 'idle'}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.choiceLabel}>{String.fromCharCode(65 + index)}</Text>
-              <Text style={styles.choiceText}>{option}</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        ))}
+              onPress={() => handleAnswer(index)}
+            />
+          );
+        })}
       </Animated.View>
 
-      {/* Feedback banner */}
-      {answerState !== 'idle' && (
-        <View style={[styles.feedbackBanner, answerState === 'correct' ? styles.feedbackCorrect : styles.feedbackWrong]}>
-          <Text style={styles.feedbackText}>
-            {answerState === 'correct'
-              ? streak > 1 ? `🔥 Streak x${streak}!` : '✓ Correct!'
-              : selectedIndex === null ? "⏱ Time's up!" : '✗ Wrong'}
-          </Text>
-        </View>
+      {/* Duolingo slide-up feedback banner (§6.3) */}
+      {phase === 'fact_reveal' && answerState !== 'idle' && (
+        <FactReveal
+          answerCorrect={answerState === 'correct'}
+          timedOut={selectedIndex === null && answerState === 'wrong'}
+          streak={streak}
+          onContinue={handleContinue}
+        />
       )}
     </SafeAreaView>
   );

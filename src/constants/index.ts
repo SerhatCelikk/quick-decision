@@ -17,6 +17,24 @@ export const COLORS = {
   danger: '#ef4444',
   warning: '#f97316',
   yellow: '#eab308',
+
+  // ─── Duolingo brand palette (CHO-76) ────────────────────────────────────────
+  brandGreen: '#58CC02',
+  brandGreenDark: '#4CAD00',
+  brandBlue: '#1CB0F6',
+  brandPurple: '#CE82FF',
+  brandOrange: '#FF9600',
+  brandRed: '#FF4B4B',
+  brandRedDark: '#CC3B3B',
+  brandYellow: '#FFD900',
+
+  // Answer card states
+  correctBg: '#052e16',
+  correctBorder: '#22c55e',
+  wrongBg: '#450a0a',
+  wrongBorder: '#ef4444',
+  selectedBg: '#0c2a3a',
+  selectedBorder: '#1CB0F6',
 } as const;
 
 // ─── World themes ─────────────────────────────────────────────────────────────
