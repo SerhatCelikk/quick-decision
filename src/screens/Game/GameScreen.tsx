@@ -6,115 +6,98 @@ import {
   Animated,
   View,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { RootStackScreenProps } from '../../types';
 import type { Question } from '../../types';
+import {
+  fetchQuestionsForLevel,
+  fetchUserProgress,
+  fetchLevelConfig,
+  submitScore,
+  submitLevelAttempt,
+  type LevelConfig,
+  type LevelAttemptResult,
+} from '../../services/gameService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const TIMER_DURATION = 10; // seconds
 const POINTS_PER_CORRECT = 100;
-const STREAK_BONUS_MULTIPLIER = 0.5; // +50% per streak level
-
-// Mock questions — replace with Supabase fetch once CHO-19 is complete
-const MOCK_QUESTIONS: Question[] = [
-  {
-    id: '1',
-    text: 'Which planet is closest to the Sun?',
-    options: ['Mercury', 'Venus'],
-    correctIndex: 0,
-    categoryId: 'general',
-    difficulty: 'easy',
-  },
-  {
-    id: '2',
-    text: 'How many sides does a hexagon have?',
-    options: ['5', '6'],
-    correctIndex: 1,
-    categoryId: 'general',
-    difficulty: 'easy',
-  },
-  {
-    id: '3',
-    text: 'What is the chemical symbol for Gold?',
-    options: ['Au', 'Ag'],
-    correctIndex: 0,
-    categoryId: 'general',
-    difficulty: 'medium',
-  },
-  {
-    id: '4',
-    text: 'Who painted the Mona Lisa?',
-    options: ['Michelangelo', 'Leonardo da Vinci'],
-    correctIndex: 1,
-    categoryId: 'general',
-    difficulty: 'easy',
-  },
-  {
-    id: '5',
-    text: 'Is the Great Wall of China visible from space?',
-    options: ['Yes', 'No'],
-    correctIndex: 1,
-    categoryId: 'general',
-    difficulty: 'medium',
-  },
-  {
-    id: '6',
-    text: 'Which is the largest ocean on Earth?',
-    options: ['Pacific', 'Atlantic'],
-    correctIndex: 0,
-    categoryId: 'general',
-    difficulty: 'easy',
-  },
-  {
-    id: '7',
-    text: 'Does sound travel faster in water than in air?',
-    options: ['Yes', 'No'],
-    correctIndex: 0,
-    categoryId: 'general',
-    difficulty: 'medium',
-  },
-  {
-    id: '8',
-    text: 'What is the hardest natural substance on Earth?',
-    options: ['Diamond', 'Quartz'],
-    correctIndex: 0,
-    categoryId: 'general',
-    difficulty: 'easy',
-  },
-];
+const STREAK_BONUS_MULTIPLIER = 0.5;
 
 type AnswerState = 'idle' | 'correct' | 'wrong';
-type GamePhase = 'playing' | 'finished';
+type GamePhase = 'loading' | 'error' | 'playing' | 'finished';
 
 type Props = RootStackScreenProps<'Game'>;
 
 export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
   const { categoryId } = route.params;
 
-  const questions = MOCK_QUESTIONS.filter(q => q.categoryId === categoryId || categoryId === 'general');
+  // ─── Setup state ─────────────────────────────────────────────────────────
+  const [phase, setPhase] = useState<GamePhase>('loading');
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [levelConfig, setLevelConfig] = useState<LevelConfig | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
+  // ─── Game state ───────────────────────────────────────────────────────────
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(TIMER_DURATION);
+  const [timeLeft, setTimeLeft] = useState(10);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [maxStreak, setMaxStreak] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [answerState, setAnswerState] = useState<AnswerState>('idle');
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [phase, setPhase] = useState<GamePhase>('playing');
+
+  // ─── Post-game state ──────────────────────────────────────────────────────
+  const [attemptResult, setAttemptResult] = useState<LevelAttemptResult | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const timerBarAnim = useRef(new Animated.Value(1)).current;
-  const choiceScaleAnims = useRef([
-    new Animated.Value(1),
-    new Animated.Value(1),
-  ]).current;
+  const choiceScaleAnims = useRef([new Animated.Value(1), new Animated.Value(1)]).current;
 
   const timerBarAnimRef = useRef<Animated.CompositeAnimation | null>(null);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isAnsweredRef = useRef(false);
 
+  // ─── Load questions on mount ─────────────────────────────────────────────
+  const loadGame = useCallback(async () => {
+    setPhase('loading');
+    setLoadError(null);
+    setCurrentIndex(0);
+    setScore(0);
+    setStreak(0);
+    setMaxStreak(0);
+    setCorrectCount(0);
+    setAnswerState('idle');
+    setSelectedIndex(null);
+    setAttemptResult(null);
+    isAnsweredRef.current = false;
+
+    try {
+      // Fetch user progress and level config in parallel
+      const [progress] = await Promise.all([fetchUserProgress()]);
+      const levelNumber = progress?.current_level ?? 1;
+      const config = await fetchLevelConfig(levelNumber);
+      setLevelConfig(config);
+      setTimeLeft(config.timerSeconds);
+
+      const qs = await fetchQuestionsForLevel(categoryId, config);
+      setQuestions(qs);
+      setPhase('playing');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load questions';
+      setLoadError(msg);
+      setPhase('error');
+    }
+  }, [categoryId]);
+
+  useEffect(() => {
+    loadGame();
+  }, [loadGame]);
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+  const timerDuration = levelConfig?.timerSeconds ?? 10;
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex >= questions.length - 1;
 
@@ -123,9 +106,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
-    if (timerBarAnimRef.current) {
-      timerBarAnimRef.current.stop();
-    }
+    timerBarAnimRef.current?.stop();
   }, []);
 
   const advanceQuestion = useCallback(() => {
@@ -134,13 +115,9 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
 
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
+    Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
       setCurrentIndex(prev => prev + 1);
-      setTimeLeft(TIMER_DURATION);
+      setTimeLeft(timerDuration);
       setAnswerState('idle');
       setSelectedIndex(null);
       isAnsweredRef.current = false;
@@ -148,16 +125,12 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
       choiceScaleAnims[1].setValue(1);
       timerBarAnim.setValue(1);
 
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
+      Animated.timing(fadeAnim, { toValue: 1, duration: 200, useNativeDriver: true }).start();
     });
-  }, [isLastQuestion, fadeAnim, timerBarAnim, choiceScaleAnims]);
+  }, [isLastQuestion, fadeAnim, timerBarAnim, choiceScaleAnims, timerDuration]);
 
   const handleAnswer = useCallback(
-    (choiceIndex: number, timedOut: boolean = false) => {
+    (choiceIndex: number, timedOut = false) => {
       if (isAnsweredRef.current) return;
       isAnsweredRef.current = true;
       stopTimer();
@@ -178,19 +151,10 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
         setStreak(0);
       }
 
-      // Animate chosen button
       if (!timedOut) {
         Animated.sequence([
-          Animated.timing(choiceScaleAnims[choiceIndex], {
-            toValue: 0.94,
-            duration: 80,
-            useNativeDriver: true,
-          }),
-          Animated.timing(choiceScaleAnims[choiceIndex], {
-            toValue: 1,
-            duration: 120,
-            useNativeDriver: true,
-          }),
+          Animated.timing(choiceScaleAnims[choiceIndex], { toValue: 0.94, duration: 80, useNativeDriver: true }),
+          Animated.timing(choiceScaleAnims[choiceIndex], { toValue: 1, duration: 120, useNativeDriver: true }),
         ]).start();
       }
 
@@ -199,12 +163,12 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
     [currentQuestion, streak, stopTimer, advanceQuestion, choiceScaleAnims]
   );
 
-  // Start countdown timer
+  // ─── Timer per question ───────────────────────────────────────────────────
   useEffect(() => {
     if (phase !== 'playing') return;
 
     isAnsweredRef.current = false;
-    setTimeLeft(TIMER_DURATION);
+    setTimeLeft(timerDuration);
     timerBarAnim.setValue(1);
 
     timerIntervalRef.current = setInterval(() => {
@@ -221,21 +185,49 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
 
     timerBarAnimRef.current = Animated.timing(timerBarAnim, {
       toValue: 0,
-      duration: TIMER_DURATION * 1000,
+      duration: timerDuration * 1000,
       useNativeDriver: false,
     });
     timerBarAnimRef.current.start();
 
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-      if (timerBarAnimRef.current) timerBarAnimRef.current.stop();
+      timerBarAnimRef.current?.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, phase]);
 
+  // ─── Submit results when finished ────────────────────────────────────────
+  useEffect(() => {
+    if (phase !== 'finished' || !levelConfig) return;
+
+    const total = questions.length;
+    const correct = correctCount;
+
+    // Non-blocking submissions
+    submitScore({
+      score,
+      streak: maxStreak,
+      categoryId: categoryId === 'general' ? null : categoryId,
+      questionsAnswered: total,
+      questionsCorrect: correct,
+    }).catch(() => null);
+
+    submitLevelAttempt({
+      levelNumber: levelConfig.levelNumber,
+      questionsCorrect: correct,
+      questionsTotal: total,
+    })
+      .then(result => setAttemptResult(result))
+      .catch(() => null);
+  // Only trigger once when phase changes to finished
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  // ─── Styles helpers ───────────────────────────────────────────────────────
   const getChoiceStyle = (index: number) => {
     if (answerState === 'idle') return styles.choiceDefault;
-    const isCorrect = index === currentQuestion.correctIndex;
+    const isCorrect = index === currentQuestion?.correctIndex;
     const isSelected = index === selectedIndex;
     if (isCorrect) return styles.choiceCorrect;
     if (isSelected && !isCorrect) return styles.choiceWrong;
@@ -247,12 +239,60 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
     outputRange: ['#ef4444', '#f97316', '#22c55e'],
   });
 
+  // ─── Render: loading ─────────────────────────────────────────────────────
+  if (phase === 'loading') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>Loading questions…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ─── Render: error ────────────────────────────────────────────────────────
+  if (phase === 'error') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <Text style={styles.errorTitle}>Couldn't load questions</Text>
+          <Text style={styles.errorBody}>{loadError}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadGame}>
+            <Text style={styles.retryText}>Try Again</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.backLink}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ─── Render: finished ────────────────────────────────────────────────────
   if (phase === 'finished') {
-    const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
+    const accuracy = questions.length > 0
+      ? Math.round((correctCount / questions.length) * 100)
+      : 0;
+
     return (
       <SafeAreaView style={styles.container}>
         <Animated.View style={[styles.finishedCard, { opacity: fadeAnim }]}>
           <Text style={styles.finishedTitle}>Game Over!</Text>
+
+          {attemptResult && (
+            <View style={[
+              styles.levelResultBanner,
+              attemptResult.passed ? styles.levelPassed : styles.levelFailed,
+            ]}>
+              <Text style={styles.levelResultText}>
+                {attemptResult.passed
+                  ? `Level ${levelConfig?.levelNumber} cleared! → Level ${attemptResult.next_level}`
+                  : `Level ${levelConfig?.levelNumber} not passed (${Math.round(attemptResult.accuracy * 100)}% — need 75%)`}
+              </Text>
+            </View>
+          )}
+
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{score}</Text>
@@ -271,14 +311,19 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
               <Text style={styles.statLabel}>Best Streak</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.playAgainButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.playAgainText}>Done</Text>
+
+          <TouchableOpacity style={styles.playAgainButton} onPress={loadGame}>
+            <Text style={styles.playAgainText}>Play Again</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.doneButton} onPress={() => navigation.goBack()}>
+            <Text style={styles.doneText}>Done</Text>
           </TouchableOpacity>
         </Animated.View>
       </SafeAreaView>
     );
   }
 
+  // ─── Render: playing ──────────────────────────────────────────────────────
   if (!currentQuestion) return null;
 
   return (
@@ -306,10 +351,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
           style={[
             styles.timerBar,
             {
-              width: timerBarAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['0%', '100%'],
-              }),
+              width: timerBarAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
               backgroundColor: timerColor,
             },
           ]}
@@ -319,6 +361,9 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
 
       {/* Question */}
       <Animated.View style={[styles.questionCard, { opacity: fadeAnim }]}>
+        {levelConfig && (
+          <Text style={styles.levelBadge}>Level {levelConfig.levelNumber}</Text>
+        )}
         <Text style={styles.questionText}>{currentQuestion.text}</Text>
       </Animated.View>
 
@@ -344,11 +389,14 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
 
       {/* Feedback banner */}
       {answerState !== 'idle' && (
-        <View style={[styles.feedbackBanner, answerState === 'correct' ? styles.feedbackCorrect : styles.feedbackWrong]}>
+        <View style={[
+          styles.feedbackBanner,
+          answerState === 'correct' ? styles.feedbackCorrect : styles.feedbackWrong,
+        ]}>
           <Text style={styles.feedbackText}>
             {answerState === 'correct'
               ? streak > 1 ? `🔥 Streak x${streak}!` : '✓ Correct!'
-              : selectedIndex === null ? '⏱ Time\'s up!' : '✗ Wrong'}
+              : selectedIndex === null ? "⏱ Time's up!" : '✗ Wrong'}
           </Text>
         </View>
       )}
@@ -362,6 +410,47 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f172a',
     paddingHorizontal: 20,
   },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    color: '#94a3b8',
+    fontSize: 16,
+    marginTop: 12,
+  },
+  errorTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#f8fafc',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorBody: {
+    fontSize: 14,
+    color: '#94a3b8',
+    textAlign: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 16,
+  },
+  retryButton: {
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 40,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  retryText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  backLink: {
+    color: '#64748b',
+    fontSize: 14,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -369,45 +458,19 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 12,
   },
-  scoreBox: {
-    alignItems: 'center',
-  },
-  scoreLabel: {
-    fontSize: 12,
-    color: '#94a3b8',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  scoreValue: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#f8fafc',
-  },
+  scoreBox: { alignItems: 'center' },
+  scoreLabel: { fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
+  scoreValue: { fontSize: 22, fontWeight: 'bold', color: '#f8fafc' },
   progressBox: {
     backgroundColor: '#1e293b',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
   },
-  progressText: {
-    fontSize: 14,
-    color: '#94a3b8',
-    fontWeight: '600',
-  },
-  streakBox: {
-    alignItems: 'center',
-  },
-  streakLabel: {
-    fontSize: 12,
-    color: '#94a3b8',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  streakValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#f97316',
-  },
+  progressText: { fontSize: 14, color: '#94a3b8', fontWeight: '600' },
+  streakBox: { alignItems: 'center' },
+  streakLabel: { fontSize: 12, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
+  streakValue: { fontSize: 18, fontWeight: 'bold', color: '#f97316' },
   timerTrack: {
     height: 6,
     backgroundColor: '#1e293b',
@@ -415,15 +478,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 6,
   },
-  timerBar: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  timerText: {
+  timerBar: { height: '100%', borderRadius: 3 },
+  timerText: { textAlign: 'center', fontSize: 13, color: '#94a3b8', marginBottom: 28 },
+  levelBadge: {
+    fontSize: 11,
+    color: '#6366f1',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 10,
     textAlign: 'center',
-    fontSize: 13,
-    color: '#94a3b8',
-    marginBottom: 28,
   },
   questionCard: {
     backgroundColor: '#1e293b',
@@ -445,10 +509,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 32,
   },
-  choicesContainer: {
-    gap: 14,
-    alignItems: 'center',
-  },
+  choicesContainer: { gap: 14, alignItems: 'center' },
   choiceButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -458,18 +519,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderWidth: 2,
   },
-  choiceDefault: {
-    backgroundColor: '#1e293b',
-    borderColor: '#334155',
-  },
-  choiceCorrect: {
-    backgroundColor: '#14532d',
-    borderColor: '#22c55e',
-  },
-  choiceWrong: {
-    backgroundColor: '#450a0a',
-    borderColor: '#ef4444',
-  },
+  choiceDefault: { backgroundColor: '#1e293b', borderColor: '#334155' },
+  choiceCorrect: { backgroundColor: '#14532d', borderColor: '#22c55e' },
+  choiceWrong: { backgroundColor: '#450a0a', borderColor: '#ef4444' },
   choiceLabel: {
     width: 32,
     height: 32,
@@ -483,12 +535,7 @@ const styles = StyleSheet.create({
     marginRight: 14,
     overflow: 'hidden',
   },
-  choiceText: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '500',
-    color: '#f8fafc',
-  },
+  choiceText: { flex: 1, fontSize: 17, fontWeight: '500', color: '#f8fafc' },
   feedbackBanner: {
     position: 'absolute',
     bottom: 40,
@@ -498,18 +545,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
   },
-  feedbackCorrect: {
-    backgroundColor: '#15803d',
-  },
-  feedbackWrong: {
-    backgroundColor: '#b91c1c',
-  },
-  feedbackText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  // Finished screen
+  feedbackCorrect: { backgroundColor: '#15803d' },
+  feedbackWrong: { backgroundColor: '#b91c1c' },
+  feedbackText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  // Finished
   finishedCard: {
     flex: 1,
     justifyContent: 'center',
@@ -520,14 +559,30 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
     color: '#f8fafc',
-    marginBottom: 40,
+    marginBottom: 20,
+  },
+  levelResultBanner: {
+    width: '100%',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  levelPassed: { backgroundColor: '#14532d' },
+  levelFailed: { backgroundColor: '#450a0a' },
+  levelResultText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
     gap: 20,
-    marginBottom: 48,
+    marginBottom: 32,
     width: '100%',
   },
   statItem: {
@@ -537,18 +592,8 @@ const styles = StyleSheet.create({
     width: (SCREEN_WIDTH - 80) / 2,
     alignItems: 'center',
   },
-  statValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#6366f1',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 13,
-    color: '#94a3b8',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  statValue: { fontSize: 28, fontWeight: 'bold', color: '#6366f1', marginBottom: 4 },
+  statLabel: { fontSize: 13, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
   playAgainButton: {
     backgroundColor: '#6366f1',
     paddingHorizontal: 48,
@@ -556,10 +601,13 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     width: '100%',
     alignItems: 'center',
+    marginBottom: 12,
   },
-  playAgainText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
+  playAgainText: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  doneButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    width: '100%',
   },
+  doneText: { color: '#64748b', fontSize: 16 },
 });
