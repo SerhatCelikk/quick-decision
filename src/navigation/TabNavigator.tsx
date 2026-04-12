@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { HomeScreen } from '../screens/Home/HomeScreen';
+import { WorldMapScreen } from '../screens/WorldMap/WorldMapScreen';
 import { LeaderboardScreen } from '../screens/Leaderboard/LeaderboardScreen';
 import { ProfileScreen } from '../screens/Profile/ProfileScreen';
 import type { TabParamList } from '../types';
@@ -29,11 +29,11 @@ export const TabNavigator: React.FC = () => {
       }}
     >
       <Tab.Screen
-        name="Home"
-        component={HomeScreen}
+        name="WorldMap"
+        component={WorldMapScreen}
         options={{
           tabBarLabel: 'Play',
-          tabBarIcon: ({ color }) => <TabIcon emoji="🎮" color={color} />,
+          tabBarIcon: ({ color }) => <TabIcon emoji="🌍" color={color} />,
         }}
       />
       <Tab.Screen

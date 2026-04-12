@@ -5,7 +5,9 @@ import type { TabScreenProps } from '../../types/navigation';
 import { useLevelProgress } from '../../hooks/useLevelProgress';
 import { COLORS, PASS_THRESHOLD } from '../../constants';
 
-type Props = TabScreenProps<'Home'>;
+// HomeScreen is no longer registered in the navigator — replaced by WorldMapScreen.
+// Kept for reference; type updated to match current TabParamList.
+type Props = TabScreenProps<'WorldMap'>;
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { progress, loading } = useLevelProgress();
@@ -14,7 +16,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const highestUnlocked = progress?.highest_level_unlocked ?? 1;
 
   const handleStartGame = () => {
-    navigation.navigate('Game', { categoryId: 'general', levelNumber: currentLevel });
+    navigation.navigate('Game', {
+      worldId: 1,
+      worldLevelNumber: currentLevel,
+      levelNumber: currentLevel,
+      categoryId: 'general',
+    });
   };
 
   const passThresholdPct = Math.round(PASS_THRESHOLD * 100);

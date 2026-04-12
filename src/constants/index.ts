@@ -12,7 +12,47 @@ export const COLORS = {
   primary: '#6366f1',
   text: '#f8fafc',
   textMuted: '#94a3b8',
+  // Additional semantic colors
+  success: '#22c55e',
+  danger: '#ef4444',
+  warning: '#f97316',
+  yellow: '#eab308',
 } as const;
+
+// ─── World themes ─────────────────────────────────────────────────────────────
+export const WORLD_THEMES = {
+  easy: {
+    name: 'Meadow',
+    emoji: '🌿',
+    color: '#22c55e',
+    dimColor: '#166534',
+    tint: '#052e16',
+  },
+  medium: {
+    name: 'Volcano',
+    emoji: '🌋',
+    color: '#f97316',
+    dimColor: '#9a3412',
+    tint: '#431407',
+  },
+  hard: {
+    name: 'Galaxy',
+    emoji: '🌌',
+    color: '#a78bfa',
+    dimColor: '#5b21b6',
+    tint: '#2e1065',
+  },
+} as const;
+
+export type WorldKey = keyof typeof WORLD_THEMES;
+
+export const WORLDS: Array<{ worldId: number; key: WorldKey; unlockAfterLevel: number }> = [
+  { worldId: 1, key: 'easy',   unlockAfterLevel: 0  },
+  { worldId: 2, key: 'medium', unlockAfterLevel: 10 },
+  { worldId: 3, key: 'hard',   unlockAfterLevel: 20 },
+];
+
+export const LEVELS_PER_WORLD = 20;
 
 export interface LevelConfigEntry {
   level: number;
@@ -46,3 +86,6 @@ export function getLevelConfig(level: number): LevelConfigEntry {
 }
 
 export const PASS_THRESHOLD = 0.75;
+
+export const MAX_HEARTS = 5;
+export const HEART_REGEN_MS = 30 * 60 * 1000; // 30 min per heart

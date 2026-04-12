@@ -10,17 +10,34 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { RootStackScreenProps } from '../../types';
 import type { Question } from '../../types';
-import { getLevelConfig, COLORS } from '../../constants';
+import { getLevelConfig, COLORS, WORLD_THEMES, WORLDS } from '../../constants';
 import { fetchQuestionsForLevel, submitLevelAttempt } from '../../services/gameService';
+import { useEnergy } from '../../hooks/useEnergy';
+import { EnergyBar } from '../../components/EnergyBar';
 
 type AnswerState = 'idle' | 'correct' | 'wrong';
-type GamePhase = 'loading' | 'playing' | 'submitting';
+type GamePhase = 'loading' | 'playing' | 'submitting' | 'no_energy';
 
 type Props = RootStackScreenProps<'Game'>;
 
+function getWorldTheme(worldId: number) {
+  const world = WORLDS.find(w => w.worldId === worldId);
+  return world ? WORLD_THEMES[world.key] : WORLD_THEMES.easy;
+}
+
+function getStars(accuracy: number): 0 | 1 | 2 | 3 {
+  if (accuracy >= 1.0) return 3;
+  if (accuracy >= 0.9) return 2;
+  if (accuracy >= 0.75) return 1;
+  return 0;
+}
+
 export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { categoryId, levelNumber = 1 } = route.params;
+  const { worldId, worldLevelNumber, levelNumber, categoryId } = route.params;
   const levelConfig = getLevelConfig(levelNumber);
+  const theme = getWorldTheme(worldId);
+
+  const { hearts, maxHearts, secondsUntilRegen, loseHeart, refillHearts } = useEnergy();
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [phase, setPhase] = useState<GamePhase>('loading');
@@ -36,7 +53,6 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const timerBarAnim = useRef(new Animated.Value(1)).current;
-  // Support up to 4 options (always 2 currently, but future-proof)
   const choiceScaleAnims = useRef([
     new Animated.Value(1),
     new Animated.Value(1),
@@ -52,16 +68,21 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
   const isLastQuestion = currentIndex >= questions.length - 1;
   const timerDuration = levelConfig.timerSeconds;
 
-  // Load questions on mount
+  // Check energy on mount — show no-energy screen if empty
   useEffect(() => {
-    let cancelled = false;
+    if (hearts <= 0) {
+      setPhase('no_energy');
+      return;
+    }
+
     setPhase('loading');
     setLoadError(null);
+    let cancelled = false;
     fetchQuestionsForLevel(categoryId, {
       levelNumber,
       questionCount: levelConfig.questionCount,
       timerSeconds: levelConfig.timerSeconds,
-      difficulty: levelNumber <= 5 ? 'easy' : levelNumber <= 10 ? 'medium' : 'hard',
+      difficulty: levelNumber <= 20 ? 'easy' : levelNumber <= 40 ? 'medium' : 'hard',
     })
       .then(qs => {
         if (!cancelled) {
@@ -72,6 +93,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
       .catch(() => {
         if (!cancelled) {
           setLoadError('Failed to load questions. Check your connection and try again.');
+          setPhase('loading');
         }
       });
     return () => { cancelled = true; };
@@ -92,27 +114,30 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
     async (finalCorrect: number) => {
       setPhase('submitting');
       const total = questions.length;
-
       const result = await submitLevelAttempt({
         levelNumber,
         questionsCorrect: finalCorrect,
         questionsTotal: total,
       });
-
       const accuracy = total > 0 ? finalCorrect / total : 0;
       const passed = accuracy >= 0.75;
       const nextLevel = result?.next_level ?? (passed ? levelNumber + 1 : levelNumber);
+      const stars = getStars(accuracy);
 
       navigation.replace('LevelCompletion', {
+        worldId,
+        worldLevelNumber,
         levelNumber,
         correct: finalCorrect,
         total,
         passed,
         accuracy,
+        stars,
         nextLevel,
+        energyRemaining: hearts,
       });
     },
-    [questions.length, levelNumber, navigation]
+    [questions.length, levelNumber, worldId, worldLevelNumber, hearts, navigation]
   );
 
   const advanceQuestion = useCallback(
@@ -132,7 +157,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
         setAnswerState('idle');
         setSelectedIndex(null);
         isAnsweredRef.current = false;
-        choiceScaleAnims.forEach(anim => anim.setValue(1));
+        choiceScaleAnims.forEach(a => a.setValue(1));
         timerBarAnim.setValue(1);
 
         Animated.timing(fadeAnim, {
@@ -152,7 +177,6 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
       stopTimer();
 
       const isCorrect = !timedOut && choiceIndex === currentQuestion.correctIndex;
-
       setSelectedIndex(timedOut ? null : choiceIndex);
       setAnswerState(isCorrect ? 'correct' : 'wrong');
 
@@ -165,6 +189,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
         setCorrectCount(newCorrectCount);
       } else {
         setStreak(0);
+        loseHeart();
       }
 
       if (!timedOut) {
@@ -184,10 +209,10 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
 
       setTimeout(() => advanceQuestion(newCorrectCount), 900);
     },
-    [currentQuestion, streak, correctCount, stopTimer, advanceQuestion, choiceScaleAnims]
+    [currentQuestion, streak, correctCount, stopTimer, advanceQuestion, choiceScaleAnims, loseHeart]
   );
 
-  // Timer effect
+  // Timer per question
   useEffect(() => {
     if (phase !== 'playing' || questions.length === 0) return;
 
@@ -218,7 +243,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       if (timerBarAnimRef.current) timerBarAnimRef.current.stop();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex, phase, questions.length]);
 
   const getChoiceStyle = (index: number) => {
@@ -232,10 +257,38 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const timerColor = timerBarAnim.interpolate({
     inputRange: [0, 0.3, 1],
-    outputRange: ['#ef4444', '#f97316', '#22c55e'],
+    outputRange: ['#ef4444', '#f97316', theme.color],
   });
 
-  // Loading / error state
+  // No energy gate
+  if (phase === 'no_energy') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centeredState}>
+          <EnergyBar hearts={0} maxHearts={maxHearts} size={30} />
+          <Text style={styles.noEnergyTitle}>Out of Hearts!</Text>
+          <Text style={styles.noEnergyBody}>
+            Watch an ad to refill your hearts and keep playing.
+          </Text>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: '#7c3aed' }]}
+            onPress={() => {
+              // TODO: wire real rewarded ad (CHO-77 follow-up)
+              refillHearts();
+              setPhase('loading');
+            }}
+          >
+            <Text style={styles.actionBtnText}>📺 Watch Ad to Refill</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Text style={styles.backBtnText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Loading / error
   if (phase === 'loading' || loadError) {
     return (
       <SafeAreaView style={styles.container}>
@@ -249,8 +302,8 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
             </>
           ) : (
             <>
-              <ActivityIndicator size="large" color={COLORS.primary} />
-              <Text style={styles.loadingText}>Loading Level {levelNumber}…</Text>
+              <ActivityIndicator size="large" color={theme.color} />
+              <Text style={styles.loadingText}>Loading Level {worldLevelNumber}…</Text>
             </>
           )}
         </View>
@@ -258,12 +311,11 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
-  // Submitting state
   if (phase === 'submitting') {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centeredState}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <ActivityIndicator size="large" color={theme.color} />
           <Text style={styles.loadingText}>Saving results…</Text>
         </View>
       </SafeAreaView>
@@ -278,16 +330,15 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
       <View style={styles.header}>
         <View style={styles.scoreBox}>
           <Text style={styles.scoreLabel}>Score</Text>
-          <Text style={styles.scoreValue}>{score}</Text>
+          <Text style={[styles.scoreValue, { color: theme.color }]}>{score}</Text>
         </View>
         <View style={styles.progressBox}>
           <Text style={styles.progressText}>
             {currentIndex + 1} / {questions.length}
           </Text>
         </View>
-        <View style={styles.streakBox}>
-          <Text style={styles.streakLabel}>Streak</Text>
-          <Text style={styles.streakValue}>{streak > 0 ? `🔥 ${streak}` : '—'}</Text>
+        <View style={styles.heartsBox}>
+          <EnergyBar hearts={hearts} maxHearts={maxHearts} size={16} />
         </View>
       </View>
 
@@ -309,7 +360,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
       <Text style={styles.timerText}>{timeLeft}s</Text>
 
       {/* Question */}
-      <Animated.View style={[styles.questionCard, { opacity: fadeAnim }]}>
+      <Animated.View style={[styles.questionCard, { opacity: fadeAnim, borderColor: theme.color }]}>
         <Text style={styles.questionText}>{currentQuestion.text}</Text>
       </Animated.View>
 
@@ -358,6 +409,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 16,
+    paddingHorizontal: 24,
   },
   loadingText: {
     color: COLORS.textMuted,
@@ -370,6 +422,36 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 22,
+  },
+  noEnergyTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  noEnergyBody: {
+    fontSize: 15,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  actionBtn: {
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  actionBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  backBtn: {
+    paddingVertical: 12,
+  },
+  backBtnText: {
+    color: COLORS.textMuted,
+    fontSize: 15,
   },
   goBackButton: {
     backgroundColor: COLORS.primary,
@@ -401,7 +483,6 @@ const styles = StyleSheet.create({
   scoreValue: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: COLORS.text,
   },
   progressBox: {
     backgroundColor: COLORS.surface,
@@ -414,19 +495,8 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     fontWeight: '600',
   },
-  streakBox: {
-    alignItems: 'center',
-  },
-  streakLabel: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  streakValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#f97316',
+  heartsBox: {
+    alignItems: 'flex-end',
   },
   timerTrack: {
     height: 6,
@@ -452,6 +522,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     minHeight: 140,
     justifyContent: 'center',
+    borderWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

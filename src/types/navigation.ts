@@ -5,20 +5,25 @@ import type { CompositeScreenProps } from '@react-navigation/native';
 // Root stack param list
 export type RootStackParamList = {
   Main: undefined;
-  Game: { categoryId: string; levelNumber?: number };
+  LevelMap: { worldId: number; worldName: string; worldColor: string };
+  Game: { worldId: number; worldLevelNumber: number; levelNumber: number; categoryId: string };
   LevelCompletion: {
+    worldId: number;
+    worldLevelNumber: number;
     levelNumber: number;
     correct: number;
     total: number;
     passed: boolean;
     accuracy: number;
+    stars: 0 | 1 | 2 | 3;
     nextLevel: number;
+    energyRemaining: number;
   };
 };
 
-// Bottom tab param list
+// Bottom tab param list — Home tab now renders WorldMapScreen
 export type TabParamList = {
-  Home: undefined;
+  WorldMap: undefined;
   Leaderboard: undefined;
   Profile: undefined;
 };

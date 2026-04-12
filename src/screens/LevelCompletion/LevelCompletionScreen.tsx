@@ -5,20 +5,38 @@ import {
   TouchableOpacity,
   View,
   Animated,
-  Dimensions,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { RootStackScreenProps } from '../../types';
-import { COLORS, PASS_THRESHOLD } from '../../constants';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+import { COLORS, PASS_THRESHOLD, WORLD_THEMES, WORLDS } from '../../constants';
+import { EnergyBar } from '../../components/EnergyBar';
+import { StarRating } from '../../components/StarRating';
 
 type Props = RootStackScreenProps<'LevelCompletion'>;
 
-export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { levelNumber, correct, total, passed, accuracy, nextLevel } = route.params;
+function getWorldTheme(worldId: number) {
+  const world = WORLDS.find(w => w.worldId === worldId);
+  return world ? WORLD_THEMES[world.key] : WORLD_THEMES.easy;
+}
 
+export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) => {
+  const {
+    worldId,
+    worldLevelNumber,
+    levelNumber,
+    correct,
+    total,
+    passed,
+    accuracy,
+    stars,
+    nextLevel,
+    energyRemaining,
+  } = route.params;
+
+  const theme = getWorldTheme(worldId);
   const accuracyPct = Math.round(accuracy * 100);
+  const passThresholdPct = Math.round(PASS_THRESHOLD * 100);
 
   // Entry animations
   const cardScale = useRef(new Animated.Value(0.85)).current;
@@ -60,130 +78,136 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
 
   const handleNextLevel = () => {
     navigation.replace('Game', {
-      categoryId: 'general',
+      worldId,
+      worldLevelNumber: worldLevelNumber + 1,
       levelNumber: nextLevel,
+      categoryId: 'general',
     });
   };
 
   const handleTryAgain = () => {
     navigation.replace('Game', {
+      worldId,
+      worldLevelNumber,
+      levelNumber,
       categoryId: 'general',
-      levelNumber: levelNumber,
     });
   };
 
-  const handleHome = () => {
+  const handleWorldMap = () => {
     navigation.navigate('Main');
   };
 
-  const passThresholdPct = Math.round(PASS_THRESHOLD * 100);
-
   return (
     <SafeAreaView style={styles.container}>
-      {/* Confetti overlay for pass state */}
+      {/* Confetti overlay */}
       {passed && (
         <Animated.View style={[styles.confettiOverlay, { opacity: confettiOpacity }]}>
           <Text style={styles.confettiEmoji}>🎉 🎊 ✨ 🎉 🎊 ✨ 🎉</Text>
         </Animated.View>
       )}
 
-      <Animated.View
-        style={[
-          styles.card,
-          { transform: [{ scale: cardScale }], opacity: cardOpacity },
-        ]}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Level badge */}
-        <View style={styles.levelBadge}>
-          <Text style={styles.levelBadgeText}>Level {levelNumber}</Text>
-        </View>
-
-        {/* Pass / Fail header */}
-        <Text style={[styles.resultTitle, passed ? styles.passTitle : styles.failTitle]}>
-          {passed ? 'Level Complete!' : 'So Close!'}
-        </Text>
-        <Text style={styles.resultSubtitle}>
-          {passed
-            ? 'You crushed it — next level unlocked'
-            : `Need ${passThresholdPct}% to pass — you got ${accuracyPct}%`}
-        </Text>
-
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>
-              {correct} / {total}
+        <Animated.View
+          style={[styles.card, { transform: [{ scale: cardScale }], opacity: cardOpacity }]}
+        >
+          {/* World + level badge */}
+          <View style={[styles.worldBadge, { backgroundColor: theme.tint, borderColor: theme.color }]}>
+            <Text style={styles.worldEmoji}>{theme.emoji}</Text>
+            <Text style={[styles.worldBadgeText, { color: theme.color }]}>
+              {theme.name} · Level {worldLevelNumber}
             </Text>
-            <Text style={styles.statLabel}>Correct</Text>
           </View>
 
-          <View style={[styles.statBox, styles.statBoxCenter]}>
-            <Text
-              style={[
-                styles.statValue,
-                passed ? styles.passAccuracy : styles.failAccuracy,
-              ]}
-            >
-              {accuracyPct}%
-            </Text>
-            <Text style={styles.statLabel}>Accuracy</Text>
-          </View>
+          {/* Result title */}
+          <Text style={[styles.resultTitle, { color: passed ? theme.color : '#f97316' }]}>
+            {passed ? 'Level Complete!' : 'So Close!'}
+          </Text>
+          <Text style={styles.resultSubtitle}>
+            {passed
+              ? 'You crushed it — next level unlocked!'
+              : `Need ${passThresholdPct}% to pass — you got ${accuracyPct}%`}
+          </Text>
 
-          <View style={styles.statBox}>
-            <Text style={styles.statValue}>
-              {passed ? `Lv ${nextLevel}` : `Lv ${levelNumber}`}
-            </Text>
-            <Text style={styles.statLabel}>{passed ? 'Next' : 'Retry'}</Text>
-          </View>
-        </View>
-
-        {/* Accuracy bar */}
-        <View style={styles.accuracyBarTrack}>
-          <View
-            style={[
-              styles.accuracyBarFill,
-              {
-                width: `${Math.min(accuracyPct, 100)}%` as `${number}%`,
-                backgroundColor: passed ? '#22c55e' : '#ef4444',
-              },
-            ]}
-          />
-          {/* Pass threshold marker */}
-          <View style={[styles.thresholdMarker, { left: `${passThresholdPct}%` as `${number}%` }]} />
-        </View>
-        <Text style={styles.accuracyBarLabel}>
-          Pass threshold: {passThresholdPct}%
-        </Text>
-
-        {/* CTAs */}
-        <View style={styles.ctaContainer}>
-          {passed ? (
-            <TouchableOpacity
-              style={[styles.primaryButton, styles.passButton]}
-              onPress={handleNextLevel}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryButtonText}>Next Level →</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.primaryButton, styles.retryButton]}
-              onPress={handleTryAgain}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryButtonText}>Try Again</Text>
-            </TouchableOpacity>
+          {/* Stars */}
+          {passed && (
+            <View style={styles.starsRow}>
+              <StarRating stars={stars} size={40} animated />
+            </View>
           )}
 
-          <TouchableOpacity
-            style={styles.homeButton}
-            onPress={handleHome}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.homeButtonText}>Home</Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
+          {/* Stats */}
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{correct}/{total}</Text>
+              <Text style={styles.statLabel}>Correct</Text>
+            </View>
+            <View style={[styles.statBox, styles.statBoxCenter]}>
+              <Text style={[styles.statValue, { color: passed ? theme.color : '#ef4444' }]}>
+                {accuracyPct}%
+              </Text>
+              <Text style={styles.statLabel}>Accuracy</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statValue}>{passed ? `Lv ${nextLevel}` : `Lv ${worldLevelNumber}`}</Text>
+              <Text style={styles.statLabel}>{passed ? 'Next' : 'Retry'}</Text>
+            </View>
+          </View>
+
+          {/* Accuracy bar */}
+          <View style={styles.accuracyBarTrack}>
+            <View
+              style={[
+                styles.accuracyBarFill,
+                {
+                  width: `${Math.min(accuracyPct, 100)}%` as `${number}%`,
+                  backgroundColor: passed ? theme.color : '#ef4444',
+                },
+              ]}
+            />
+            <View style={[styles.thresholdMarker, { left: `${passThresholdPct}%` as `${number}%` }]} />
+          </View>
+          <Text style={styles.accuracyBarLabel}>Pass threshold: {passThresholdPct}%</Text>
+
+          {/* Energy remaining */}
+          <View style={styles.energyRow}>
+            <Text style={styles.energyLabel}>Hearts remaining</Text>
+            <EnergyBar hearts={energyRemaining} size={18} />
+          </View>
+
+          {/* CTAs */}
+          <View style={styles.ctaContainer}>
+            {passed ? (
+              <TouchableOpacity
+                style={[styles.primaryButton, { backgroundColor: theme.dimColor, borderColor: theme.color, borderWidth: 1 }]}
+                onPress={handleNextLevel}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.primaryButtonText, { color: theme.color }]}>Next Level →</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.primaryButton, styles.retryButton]}
+                onPress={handleTryAgain}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.primaryButtonText}>Try Again</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleWorldMap}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.secondaryButtonText}>🗺 World Map</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -192,8 +216,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
+    paddingVertical: 24,
   },
   confettiOverlay: {
     position: 'absolute',
@@ -210,7 +238,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: 24,
-    padding: 28,
+    padding: 24,
     alignItems: 'center',
     width: '100%',
     shadowColor: '#000',
@@ -218,51 +246,57 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 16,
     elevation: 10,
+    gap: 16,
   },
-  levelBadge: {
-    backgroundColor: '#312e81',
-    borderRadius: 20,
-    paddingHorizontal: 16,
+
+  // World badge
+  worldBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    marginBottom: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    gap: 6,
   },
-  levelBadgeText: {
-    fontSize: 14,
+  worldEmoji: {
+    fontSize: 18,
+  },
+  worldBadgeText: {
+    fontSize: 13,
     fontWeight: '700',
-    color: '#a5b4fc',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
   },
+
+  // Title
   resultTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    fontSize: 30,
+    fontWeight: '800',
     textAlign: 'center',
-  },
-  passTitle: {
-    color: '#22c55e',
-  },
-  failTitle: {
-    color: '#f97316',
   },
   resultSubtitle: {
     fontSize: 14,
     color: COLORS.textMuted,
     textAlign: 'center',
-    marginBottom: 32,
     lineHeight: 20,
   },
+
+  // Stars
+  starsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+
+  // Stats
   statsRow: {
     flexDirection: 'row',
     width: '100%',
-    marginBottom: 24,
-    gap: 12,
+    gap: 10,
   },
   statBox: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: COLORS.background,
     borderRadius: 14,
-    paddingVertical: 16,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   statBoxCenter: {
@@ -270,16 +304,10 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   statValue: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: COLORS.text,
     marginBottom: 4,
-  },
-  passAccuracy: {
-    color: '#22c55e',
-  },
-  failAccuracy: {
-    color: '#ef4444',
   },
   statLabel: {
     fontSize: 11,
@@ -287,13 +315,14 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+
+  // Accuracy bar
   accuracyBarTrack: {
     width: '100%',
     height: 8,
-    backgroundColor: '#0f172a',
+    backgroundColor: COLORS.background,
     borderRadius: 4,
     overflow: 'visible',
-    marginBottom: 6,
     position: 'relative',
   },
   accuracyBarFill: {
@@ -308,7 +337,7 @@ const styles = StyleSheet.create({
     top: -4,
     width: 2,
     height: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: COLORS.text,
     borderRadius: 1,
     marginLeft: -1,
   },
@@ -316,11 +345,29 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.textMuted,
     alignSelf: 'flex-start',
-    marginBottom: 32,
   },
+
+  // Energy row
+  energyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  energyLabel: {
+    fontSize: 13,
+    color: COLORS.textMuted,
+    fontWeight: '600',
+  },
+
+  // CTAs
   ctaContainer: {
     width: '100%',
-    gap: 12,
+    gap: 10,
   },
   primaryButton: {
     width: '100%',
@@ -328,18 +375,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
   },
-  passButton: {
-    backgroundColor: '#15803d',
-  },
   retryButton: {
-    backgroundColor: '#b45309',
+    backgroundColor: '#92400e',
   },
   primaryButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
   },
-  homeButton: {
+  secondaryButton: {
     width: '100%',
     paddingVertical: 14,
     borderRadius: 14,
@@ -347,9 +391,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  homeButtonText: {
+  secondaryButtonText: {
     color: COLORS.textMuted,
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
