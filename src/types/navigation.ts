@@ -19,12 +19,16 @@ export type RootStackParamList = {
     nextLevel: number;
     energyRemaining: number;
   };
+  Friends: undefined;
+  Challenges: undefined;
+  ShareCard: undefined;
 };
 
 // Bottom tab param list — Home tab now renders WorldMapScreen
 export type TabParamList = {
   WorldMap: undefined;
   Leaderboard: undefined;
+  Social: undefined;
   Profile: undefined;
 };
 

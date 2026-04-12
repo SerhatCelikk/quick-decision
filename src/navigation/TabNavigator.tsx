@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { WorldMapScreen } from '../screens/WorldMap/WorldMapScreen';
 import { LeaderboardScreen } from '../screens/Leaderboard/LeaderboardScreen';
 import { ProfileScreen } from '../screens/Profile/ProfileScreen';
+import { SocialScreen } from '../screens/Social/SocialScreen';
 import type { TabParamList } from '../types';
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -42,6 +43,14 @@ export const TabNavigator: React.FC = () => {
         options={{
           tabBarLabel: 'Leaderboard',
           tabBarIcon: ({ color }) => <TabIcon emoji="🏆" color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Social"
+        component={SocialScreen}
+        options={{
+          tabBarLabel: 'Social',
+          tabBarIcon: ({ color }) => <TabIcon emoji="👥" color={color} />,
         }}
       />
       <Tab.Screen

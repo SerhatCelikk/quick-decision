@@ -5,6 +5,9 @@ import { TabNavigator } from './TabNavigator';
 import { GameScreen } from '../screens/Game/GameScreen';
 import { LevelCompletionScreen } from '../screens/LevelCompletion/LevelCompletionScreen';
 import { LevelMapScreen } from '../screens/LevelMap/LevelMapScreen';
+import { FriendsScreen } from '../screens/Social/FriendsScreen';
+import { ChallengesScreen } from '../screens/Social/ChallengesScreen';
+import { ShareCardScreen } from '../screens/Social/ShareCardScreen';
 import type { RootStackParamList } from '../types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -28,6 +31,21 @@ export const RootNavigator: React.FC = () => {
           name="LevelCompletion"
           component={LevelCompletionScreen}
           options={{ presentation: 'modal', headerShown: false }}
+        />
+        <Stack.Screen
+          name="Friends"
+          component={FriendsScreen}
+          options={{ animation: 'slide_from_right', headerShown: true, title: 'Friends' }}
+        />
+        <Stack.Screen
+          name="Challenges"
+          component={ChallengesScreen}
+          options={{ animation: 'slide_from_right', headerShown: true, title: 'Challenges' }}
+        />
+        <Stack.Screen
+          name="ShareCard"
+          component={ShareCardScreen}
+          options={{ animation: 'slide_from_right', headerShown: true, title: 'Share Card' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

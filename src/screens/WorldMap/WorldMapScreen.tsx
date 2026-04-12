@@ -7,6 +7,7 @@ import { useLevelProgress } from '../../hooks/useLevelProgress';
 import { useEnergy } from '../../hooks/useEnergy';
 import { EnergyBar } from '../../components/EnergyBar';
 import { WorldCard } from '../../components/WorldCard';
+import { DailyChallengeBanner } from '../../components/DailyChallengeBanner';
 
 type Props = TabScreenProps<'WorldMap'>;
 
@@ -87,6 +88,9 @@ export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Daily challenge banner */}
+        <DailyChallengeBanner />
+
         {WORLDS.map((world, i) => {
           const theme = WORLD_THEMES[world.key];
           const { completed, isLocked, totalStars, maxStars } = getWorldProgress(world.worldId);

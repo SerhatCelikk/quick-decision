@@ -261,6 +261,181 @@ export interface Database {
           }
         ];
       };
+      share_codes: {
+        Row: {
+          id: string;
+          user_id: string;
+          code: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          code: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          code?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'share_codes_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      friendships: {
+        Row: {
+          id: string;
+          user_id: string;
+          friend_id: string;
+          status: 'pending' | 'accepted';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          friend_id: string;
+          status?: 'pending' | 'accepted';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          friend_id?: string;
+          status?: 'pending' | 'accepted';
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'friendships_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'friendships_friend_id_fkey';
+            columns: ['friend_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      challenges: {
+        Row: {
+          id: string;
+          challenger_id: string;
+          challenged_id: string;
+          level_id: number;
+          challenger_score: number;
+          challenged_score: number | null;
+          status: 'pending' | 'completed' | 'expired';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          challenger_id: string;
+          challenged_id: string;
+          level_id: number;
+          challenger_score: number;
+          challenged_score?: number | null;
+          status?: 'pending' | 'completed' | 'expired';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          challenger_id?: string;
+          challenged_id?: string;
+          level_id?: number;
+          challenger_score?: number;
+          challenged_score?: number | null;
+          status?: 'pending' | 'completed' | 'expired';
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'challenges_challenger_id_fkey';
+            columns: ['challenger_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'challenges_challenged_id_fkey';
+            columns: ['challenged_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      daily_challenges: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          level_id: number;
+          target_score: number;
+          participants: number | null;
+          expires_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description: string;
+          level_id: number;
+          target_score: number;
+          participants?: number | null;
+          expires_at: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string;
+          level_id?: number;
+          target_score?: number;
+          participants?: number | null;
+          expires_at?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      level_progress: {
+        Row: {
+          id: string;
+          user_id: string;
+          current_level: number;
+          highest_level_unlocked: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          current_level?: number;
+          highest_level_unlocked?: number;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          current_level?: number;
+          highest_level_unlocked?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'level_progress_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
