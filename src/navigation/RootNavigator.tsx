@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabNavigator } from './TabNavigator';
 import { GameScreen } from '../screens/Game/GameScreen';
+import { LevelCompletionScreen } from '../screens/LevelCompletion/LevelCompletionScreen';
 import type { RootStackParamList } from '../types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -16,6 +17,11 @@ export const RootNavigator: React.FC = () => {
           name="Game"
           component={GameScreen}
           options={{ presentation: 'modal', headerShown: true, title: 'Game' }}
+        />
+        <Stack.Screen
+          name="LevelCompletion"
+          component={LevelCompletionScreen}
+          options={{ presentation: 'modal', headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -4,7 +4,15 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 // Root stack param list
 export type RootStackParamList = {
   Main: undefined;
-  Game: { categoryId: string };
+  Game: { categoryId: string; levelNumber?: number };
+  LevelCompletion: {
+    levelNumber: number;
+    correct: number;
+    total: number;
+    passed: boolean;
+    accuracy: number;
+    nextLevel: number;
+  };
 };
 
 // Bottom tab param list
