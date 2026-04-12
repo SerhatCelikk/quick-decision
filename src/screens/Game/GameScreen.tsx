@@ -36,7 +36,10 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const timerBarAnim = useRef(new Animated.Value(1)).current;
+  // Support up to 4 options (always 2 currently, but future-proof)
   const choiceScaleAnims = useRef([
+    new Animated.Value(1),
+    new Animated.Value(1),
     new Animated.Value(1),
     new Animated.Value(1),
   ]).current;
@@ -129,8 +132,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
         setAnswerState('idle');
         setSelectedIndex(null);
         isAnsweredRef.current = false;
-        choiceScaleAnims[0].setValue(1);
-        choiceScaleAnims[1].setValue(1);
+        choiceScaleAnims.forEach(anim => anim.setValue(1));
         timerBarAnim.setValue(1);
 
         Animated.timing(fadeAnim, {
@@ -324,7 +326,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
               disabled={answerState !== 'idle'}
               activeOpacity={0.85}
             >
-              <Text style={styles.choiceLabel}>{index === 0 ? 'A' : 'B'}</Text>
+              <Text style={styles.choiceLabel}>{String.fromCharCode(65 + index)}</Text>
               <Text style={styles.choiceText}>{option}</Text>
             </TouchableOpacity>
           </Animated.View>
