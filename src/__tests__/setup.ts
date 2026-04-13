@@ -41,9 +41,12 @@ jest.mock('expo-constants', () => ({
   default: {
     expoConfig: {
       extra: {
-        SUPABASE_URL: 'https://test.supabase.co',
-        SUPABASE_ANON_KEY: 'test-anon-key',
+        eas: { projectId: 'test-project-id' },
       },
     },
   },
 }));
+
+// Provide test Supabase credentials via env vars
+process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';

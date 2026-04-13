@@ -39,6 +39,17 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "updates": {
+      "url": "https://u.expo.dev/REPLACE_WITH_PROJECT_ID"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_PROJECT_ID"
+      }
+    },
     "plugins": [
       [
         "expo-build-properties",
