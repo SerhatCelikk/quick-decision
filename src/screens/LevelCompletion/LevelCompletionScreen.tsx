@@ -12,6 +12,7 @@ import { COLORS, PASS_THRESHOLD, WORLD_THEMES, WORLDS } from '../../constants';
 import { EnergyBar } from '../../components/EnergyBar';
 import { StarRating } from '../../components/StarRating';
 import { DuoButton } from '../../components/common/DuoButton';
+import { useInAppReview } from '../../hooks/useInAppReview';
 
 type Props = RootStackScreenProps<'LevelCompletion'>;
 
@@ -116,6 +117,11 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
   const theme = getWorldTheme(worldId);
   const accuracyPct = Math.round(accuracy * 100);
   const passThresholdPct = Math.round(PASS_THRESHOLD * 100);
+  const { maybeRequestReview } = useInAppReview();
+
+  useEffect(() => {
+    if (passed) maybeRequestReview();
+  }, [passed, maybeRequestReview]);
   const xpEarned = passed ? Math.round(100 * (1 + stars * 0.5)) : 0;
 
   const cardScale = useRef(new Animated.Value(0.85)).current;

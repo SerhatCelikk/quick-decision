@@ -5,6 +5,7 @@ import { WorldMapScreen } from '../screens/WorldMap/WorldMapScreen';
 import { LeaderboardScreen } from '../screens/Leaderboard/LeaderboardScreen';
 import { ProfileScreen } from '../screens/Profile/ProfileScreen';
 import { SocialScreen } from '../screens/Social/SocialScreen';
+import { useI18n } from '../i18n';
 import type { TabParamList } from '../types';
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -14,6 +15,7 @@ const TabIcon = ({ emoji, color }: { emoji: string; color: string }) => (
 );
 
 export const TabNavigator: React.FC = () => {
+  const { t } = useI18n();
   return (
     <Tab.Navigator
       screenOptions={{
@@ -33,7 +35,7 @@ export const TabNavigator: React.FC = () => {
         name="WorldMap"
         component={WorldMapScreen}
         options={{
-          tabBarLabel: 'Play',
+          tabBarLabel: t('play'),
           tabBarIcon: ({ color }) => <TabIcon emoji="🌍" color={color} />,
         }}
       />
@@ -41,7 +43,7 @@ export const TabNavigator: React.FC = () => {
         name="Leaderboard"
         component={LeaderboardScreen}
         options={{
-          tabBarLabel: 'Leaderboard',
+          tabBarLabel: t('leaderboard'),
           tabBarIcon: ({ color }) => <TabIcon emoji="🏆" color={color} />,
         }}
       />
@@ -49,7 +51,7 @@ export const TabNavigator: React.FC = () => {
         name="Social"
         component={SocialScreen}
         options={{
-          tabBarLabel: 'Social',
+          tabBarLabel: t('social'),
           tabBarIcon: ({ color }) => <TabIcon emoji="👥" color={color} />,
         }}
       />
@@ -57,7 +59,7 @@ export const TabNavigator: React.FC = () => {
         name="Profile"
         component={ProfileScreen}
         options={{
-          tabBarLabel: 'Profile',
+          tabBarLabel: t('profile'),
           tabBarIcon: ({ color }) => <TabIcon emoji="👤" color={color} />,
         }}
       />

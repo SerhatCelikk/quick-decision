@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Text, StyleSheet, View, ActivityIndicator, ScrollView } from 'react-native';
+import { Text, StyleSheet, View, ActivityIndicator, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../services/supabase';
 import { useLevelProgress } from '../../hooks/useLevelProgress';
 import { COLORS } from '../../constants';
+import { useI18n } from '../../i18n';
+import type { TabScreenProps } from '../../types';
 
 interface UserStats {
   totalAttempts: number;
@@ -12,7 +14,10 @@ interface UserStats {
   totalScore: number;
 }
 
-export const ProfileScreen: React.FC = () => {
+type Props = TabScreenProps<'Profile'>;
+
+export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
+  const { t, language, setLanguage } = useI18n();
   const { progress, loading: progressLoading } = useLevelProgress();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -141,9 +146,12 @@ export const ProfileScreen: React.FC = () => {
               </View>
             </View>
 
-            {/* Achievements placeholder */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Achievements</Text>
+            {/* Achievements */}
+            <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Achievements')}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.cardTitle}>{t('achievements')}</Text>
+                <Text style={{ color: COLORS.primary, fontSize: 13, fontWeight: '600' }}>View all ›</Text>
+              </View>
               {highestUnlocked >= 5 && (
                 <View style={styles.achievementRow}>
                   <Text style={styles.achievementEmoji}>⭐</Text>
@@ -163,9 +171,40 @@ export const ProfileScreen: React.FC = () => {
                 </View>
               )}
               {highestUnlocked < 5 && (stats?.bestStreak ?? 0) < 5 && (stats?.totalAttempts ?? 0) < 10 && (
-                <Text style={styles.noAchievements}>Keep playing to earn achievements!</Text>
+                <Text style={styles.noAchievements}>{t('noAchievementsYet')}</Text>
               )}
+            </TouchableOpacity>
+
+            {/* Language */}
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>{t('language')}</Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TouchableOpacity
+                  style={[styles.langButton, language === 'en' && styles.langButtonActive]}
+                  onPress={() => setLanguage('en')}
+                >
+                  <Text style={[styles.langText, language === 'en' && { color: COLORS.primary }]}>
+                    🇬🇧  {t('english')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.langButton, language === 'tr' && styles.langButtonActive]}
+                  onPress={() => setLanguage('tr')}
+                >
+                  <Text style={[styles.langText, language === 'tr' && { color: COLORS.primary }]}>
+                    🇹🇷  {t('turkish')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
+
+            {/* Premium / Referral links */}
+            <TouchableOpacity style={styles.premiumButton} onPress={() => navigation.navigate('Paywall', {})}>
+              <Text style={styles.premiumButtonText}>👑  {t('premiumUpgrade')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.referralButton} onPress={() => navigation.navigate('Referral')}>
+              <Text style={styles.referralButtonText}>🤝  {t('referral')}</Text>
+            </TouchableOpacity>
           </>
         )}
       </ScrollView>
@@ -270,5 +309,51 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     textAlign: 'center',
     paddingVertical: 8,
+  },
+  langButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+  },
+  langButtonActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary + '20',
+  },
+  langText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+  },
+  premiumButton: {
+    backgroundColor: '#2d1f00',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#ffd70060',
+  },
+  premiumButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffd700',
+  },
+  referralButton: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  referralButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
   },
 });

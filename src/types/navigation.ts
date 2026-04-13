@@ -22,6 +22,15 @@ export type RootStackParamList = {
   Friends: undefined;
   Challenges: undefined;
   ShareCard: undefined;
+  // v1.1 screens
+  Achievements: undefined;
+  SeasonalEvent: { eventId: string; eventTitle: string };
+  Paywall: { source?: string };
+  MultiplayerLobby: undefined;
+  Matchmaking: undefined;
+  LiveBattle: { matchId: string; opponentUsername: string };
+  BattleResults: { matchId: string; won: boolean; myScore: number; opponentScore: number; opponentUsername: string };
+  Referral: undefined;
 };
 
 // Bottom tab param list — Home tab now renders WorldMapScreen

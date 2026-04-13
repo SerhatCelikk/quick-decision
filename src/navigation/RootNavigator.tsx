@@ -8,6 +8,15 @@ import { LevelMapScreen } from '../screens/LevelMap/LevelMapScreen';
 import { FriendsScreen } from '../screens/Social/FriendsScreen';
 import { ChallengesScreen } from '../screens/Social/ChallengesScreen';
 import { ShareCardScreen } from '../screens/Social/ShareCardScreen';
+// v1.1 screens
+import { AchievementsScreen } from '../screens/Achievements/AchievementsScreen';
+import { SeasonalEventScreen } from '../screens/SeasonalEvent/SeasonalEventScreen';
+import { PaywallScreen } from '../screens/Premium/PaywallScreen';
+import { MultiplayerLobbyScreen } from '../screens/Multiplayer/MultiplayerLobbyScreen';
+import { MatchmakingScreen } from '../screens/Multiplayer/MatchmakingScreen';
+import { LiveBattleScreen } from '../screens/Multiplayer/LiveBattleScreen';
+import { BattleResultsScreen } from '../screens/Multiplayer/BattleResultsScreen';
+import { ReferralScreen } from '../screens/Referral/ReferralScreen';
 import type { RootStackParamList } from '../types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -46,6 +55,47 @@ export const RootNavigator: React.FC = () => {
           name="ShareCard"
           component={ShareCardScreen}
           options={{ animation: 'slide_from_right', headerShown: true, title: 'Share Card' }}
+        />
+        {/* v1.1 screens */}
+        <Stack.Screen
+          name="Achievements"
+          component={AchievementsScreen}
+          options={{ animation: 'slide_from_right', headerShown: true, title: 'Achievements' }}
+        />
+        <Stack.Screen
+          name="SeasonalEvent"
+          component={SeasonalEventScreen}
+          options={{ animation: 'slide_from_right', headerShown: true, title: 'Spring Event' }}
+        />
+        <Stack.Screen
+          name="Paywall"
+          component={PaywallScreen}
+          options={{ presentation: 'modal', headerShown: true, title: 'Go Premium' }}
+        />
+        <Stack.Screen
+          name="MultiplayerLobby"
+          component={MultiplayerLobbyScreen}
+          options={{ animation: 'slide_from_right', headerShown: true, title: 'Multiplayer' }}
+        />
+        <Stack.Screen
+          name="Matchmaking"
+          component={MatchmakingScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="LiveBattle"
+          component={LiveBattleScreen}
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="BattleResults"
+          component={BattleResultsScreen}
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="Referral"
+          component={ReferralScreen}
+          options={{ animation: 'slide_from_right', headerShown: true, title: 'Refer Friends' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -436,6 +436,178 @@ export interface Database {
           }
         ];
       };
+      // v1.1 tables
+      user_badges: {
+        Row: {
+          id: string;
+          user_id: string;
+          badge_key: string;
+          unlocked_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          badge_key: string;
+          unlocked_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          badge_key?: string;
+          unlocked_at?: string;
+        };
+        Relationships: [];
+      };
+      seasonal_event_progress: {
+        Row: {
+          id: string;
+          user_id: string;
+          event_key: string;
+          questions_answered: number;
+          correct_answers: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          event_key: string;
+          questions_answered?: number;
+          correct_answers?: number;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          event_key?: string;
+          questions_answered?: number;
+          correct_answers?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      multiplayer_stats: {
+        Row: {
+          id: string;
+          user_id: string;
+          elo: number;
+          wins: number;
+          losses: number;
+          win_streak: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          elo?: number;
+          wins?: number;
+          losses?: number;
+          win_streak?: number;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          elo?: number;
+          wins?: number;
+          losses?: number;
+          win_streak?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      multiplayer_matches: {
+        Row: {
+          id: string;
+          user_id: string;
+          opponent_id: string;
+          opponent_username: string;
+          result: 'win' | 'loss' | 'draw';
+          elo_change: number;
+          my_score: number;
+          opponent_score: number;
+          completed_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          opponent_id: string;
+          opponent_username: string;
+          result: 'win' | 'loss' | 'draw';
+          elo_change?: number;
+          my_score?: number;
+          opponent_score?: number;
+          completed_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          opponent_id?: string;
+          opponent_username?: string;
+          result?: 'win' | 'loss' | 'draw';
+          elo_change?: number;
+          my_score?: number;
+          opponent_score?: number;
+          completed_at?: string;
+        };
+        Relationships: [];
+      };
+      battle_questions: {
+        Row: {
+          id: string;
+          match_id: string;
+          text: string;
+          options: string[];
+          correct_index: number;
+          sort_order: number;
+        };
+        Insert: {
+          id?: string;
+          match_id: string;
+          text: string;
+          options: string[];
+          correct_index: number;
+          sort_order?: number;
+        };
+        Update: {
+          id?: string;
+          match_id?: string;
+          text?: string;
+          options?: string[];
+          correct_index?: number;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
+      referrals: {
+        Row: {
+          id: string;
+          user_id: string;
+          code: string;
+          successful_referrals: number;
+          pending_referrals: number;
+          coins_earned: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          code: string;
+          successful_referrals?: number;
+          pending_referrals?: number;
+          coins_earned?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          code?: string;
+          successful_referrals?: number;
+          pending_referrals?: number;
+          coins_earned?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -457,6 +629,14 @@ export interface Database {
           current_level: number;
           highest_level_unlocked: number;
         };
+      };
+      join_matchmaking: {
+        Args: { p_user_id: string };
+        Returns: null;
+      };
+      leave_matchmaking: {
+        Args: { p_user_id: string };
+        Returns: null;
       };
     };
     Enums: {

@@ -8,6 +8,7 @@ import { useEnergy } from '../../hooks/useEnergy';
 import { EnergyBar } from '../../components/EnergyBar';
 import { WorldCard } from '../../components/WorldCard';
 import { DailyChallengeBanner } from '../../components/DailyChallengeBanner';
+import { SeasonalEventBanner } from '../../components/SeasonalEventBanner';
 
 type Props = TabScreenProps<'WorldMap'>;
 
@@ -88,6 +89,14 @@ export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Seasonal event banner */}
+        <SeasonalEventBanner
+          onPress={() => navigation.navigate('SeasonalEvent', {
+            eventId: 'spring_2026',
+            eventTitle: 'Spring Knowledge Sprint',
+          })}
+        />
+
         {/* Daily challenge banner */}
         <DailyChallengeBanner />
 

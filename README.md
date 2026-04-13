@@ -2,6 +2,17 @@
 
 A fast-paced two-choice trivia game built with React Native Expo + Supabase.
 
+## v1.1 Features
+
+- **🏆 Achievements & Badges** — 15 unlockable badges for gameplay milestones, multiplayer wins, referrals, seasonal events, and premium membership. Badge gallery in Profile → Achievements.
+- **🌸 Seasonal Events** — Spring Knowledge Sprint (April 2026): 30 spring-themed questions with milestone badges and an event leaderboard. Event banner on home screen.
+- **👑 Premium Subscription** — Paywall screen with monthly ($4.99) and yearly ($35.99) plans. Removes ads, unlocks unlimited energy, exclusive badges, and early access. Ready for StoreKit 2 / Play Billing activation.
+- **⚔️ Real-time Multiplayer** — Matchmaking lobby with ELO rating (Bronze/Silver/Gold/Diamond ranks), Quick Match, live battle against a random opponent (10 questions, 8s each), real-time score sync via Supabase Realtime, and results with ELO change.
+- **🤝 Referral System** — Unique referral codes for every user. Share via native share sheet. 50 coin reward for both referrer and referee on successful join.
+- **🇹🇷 i18n — Turkish & English** — Full Turkish translation across all screens. Language selector in Profile tab, persisted across sessions.
+- **⭐ In-App Review** — Triggers native App Store / Play Store review prompt after 5 successful level completions (expo-store-review, added to next EAS build).
+- **💀 Loading & Error States** — `LoadingSkeleton` shimmer component and `ErrorView` with retry used across all new v1.1 screens.
+
 ## Getting Started
 
 ```bash
