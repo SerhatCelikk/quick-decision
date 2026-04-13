@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   StyleSheet,
@@ -8,9 +8,10 @@ import {
   StyleProp,
   ViewStyle,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../../constants';
 
-export type DuoButtonVariant = 'primary' | 'secondary' | 'danger';
+export type DuoButtonVariant = 'primary' | 'secondary' | 'danger' | 'gold' | 'ghost';
 
 interface DuoButtonProps {
   label: string;
@@ -18,116 +19,124 @@ interface DuoButtonProps {
   onPress: () => void;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
+  icon?: React.ReactNode;
+  /** If true, adds a subtle breathing pulse (for primary CTAs on home screen) */
+  breathe?: boolean;
 }
 
-const VARIANT_STYLES: Record<
+const VARIANT_CONFIG: Record<
   DuoButtonVariant,
-  { bg: string; shadow: string; text: string; border?: string }
+  { gradient: readonly [string, string] | null; bg: string; shadow: string; text: string; border?: string }
 > = {
-  primary: {
-    bg: COLORS.brandGreen,
-    shadow: COLORS.brandGreenDark,
-    text: '#FFFFFF',
-  },
-  secondary: {
-    bg: COLORS.surface,
-    shadow: COLORS.border,
-    text: COLORS.text,
-    border: COLORS.border,
-  },
-  danger: {
-    bg: COLORS.brandRed,
-    shadow: COLORS.brandRedDark,
-    text: '#FFFFFF',
-  },
+  primary:   { gradient: ['#FF4C5E', '#FF7A40'], bg: COLORS.primary, shadow: COLORS.primaryDark, text: '#FFFFFF' },
+  secondary: { gradient: null, bg: COLORS.surface2, shadow: COLORS.border, text: COLORS.text, border: COLORS.border },
+  danger:    { gradient: ['#CC0030', '#FF1744'], bg: COLORS.danger, shadow: '#8B001C', text: '#FFFFFF' },
+  gold:      { gradient: ['#CC9F00', '#FFD700'], bg: COLORS.gold, shadow: COLORS.goldDark, text: '#1A1200' },
+  ghost:     { gradient: null, bg: 'transparent', shadow: 'transparent', text: COLORS.textSecondary, border: COLORS.border },
 };
 
-/**
- * Duolingo-style 3D-press button (§5.1).
- * The bottom shadow collapses from 4px to 2px and the button shifts
- * down 2px on press, giving the signature Duolingo push feel.
- */
 export const DuoButton: React.FC<DuoButtonProps> = ({
-  label,
-  variant = 'primary',
-  onPress,
-  disabled = false,
-  style,
+  label, variant = 'primary', onPress, disabled = false, style, icon, breathe = false,
 }) => {
   const pressAnim = useRef(new Animated.Value(0)).current;
-  const v = VARIANT_STYLES[variant];
+  const breatheAnim = useRef(new Animated.Value(1)).current;
+  const v = VARIANT_CONFIG[variant];
+
+  useEffect(() => {
+    if (!breathe || disabled) return;
+    const a = Animated.loop(
+      Animated.sequence([
+        Animated.timing(breatheAnim, { toValue: 1.03, duration: 1000, useNativeDriver: true }),
+        Animated.timing(breatheAnim, { toValue: 1.0, duration: 1000, useNativeDriver: true }),
+      ])
+    );
+    a.start();
+    return () => a.stop();
+  }, [breathe, disabled]);
 
   const handlePressIn = () => {
     if (disabled) return;
-    Animated.timing(pressAnim, { toValue: 1, duration: 80, useNativeDriver: true }).start();
+    Animated.timing(pressAnim, { toValue: 1, duration: 70, useNativeDriver: true }).start();
   };
-
   const handlePressOut = () => {
     if (disabled) return;
-    Animated.spring(pressAnim, {
-      toValue: 0,
-      useNativeDriver: true,
-      tension: 400,
-      friction: 20,
-    }).start();
+    Animated.spring(pressAnim, { toValue: 0, tension: 400, friction: 20, useNativeDriver: true }).start();
   };
 
-  // Translates down 2px on press (shadow collapses from 4px to 2px)
-  const translateY = pressAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 2] });
+  const translateY = pressAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 4] });
+
+  const content = (
+    <View style={styles.innerRow}>
+      {icon && <View style={styles.iconWrap}>{icon}</View>}
+      <Text style={[styles.label, { color: disabled ? COLORS.textMuted : v.text }]}>{label}</Text>
+    </View>
+  );
 
   return (
-    <View
-      style={[
-        styles.shadowContainer,
-        { backgroundColor: disabled ? COLORS.border : v.shadow },
-        style,
-      ]}
-    >
-      <Animated.View style={{ transform: [{ translateY }] }}>
-        <TouchableOpacity
-          style={[
-            styles.button,
-            {
-              backgroundColor: disabled ? COLORS.surface : v.bg,
-              borderColor: v.border ?? 'transparent',
-              borderWidth: v.border ? 2 : 0,
-            },
-          ]}
-          onPress={onPress}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          disabled={disabled}
-          activeOpacity={1}
-          accessibilityRole="button"
-        >
-          <Text
+    <Animated.View style={{ transform: [{ scale: breatheAnim }] }}>
+      <View
+        style={[
+          styles.shadowContainer,
+          {
+            backgroundColor: disabled ? COLORS.border : v.shadow,
+            borderColor: v.border ?? 'transparent',
+            borderWidth: v.border ? 1.5 : 0,
+            borderRadius: 16,
+          },
+          style,
+        ]}
+      >
+        <Animated.View style={{ transform: [{ translateY }] }}>
+          <TouchableOpacity
+            onPress={onPress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            disabled={disabled}
+            activeOpacity={1}
+            accessibilityRole="button"
             style={[
-              styles.label,
-              { color: disabled ? COLORS.textMuted : v.text },
+              styles.buttonBase,
+              {
+                backgroundColor: disabled ? COLORS.surface2 : v.bg,
+                borderColor: v.border ?? 'transparent',
+                borderWidth: v.border ? 1.5 : 0,
+              },
             ]}
           >
-            {label}
-          </Text>
-        </TouchableOpacity>
-      </Animated.View>
-    </View>
+            {v.gradient && !disabled ? (
+              <LinearGradient colors={v.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.gradient}>
+                {/* Shine overlay */}
+                <View style={styles.shine} pointerEvents="none" />
+                {content}
+              </LinearGradient>
+            ) : (
+              content
+            )}
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  shadowContainer: {
+  shadowContainer: { paddingBottom: 4 },
+  buttonBase: {
+    height: 56,
     borderRadius: 14,
-    paddingBottom: 4, // provides the "depth" below the button
-  },
-  button: {
-    height: 52,
-    borderRadius: 14,
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '700',
+  gradient: {
+    flex: 1, width: '100%', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24,
+    position: 'relative',
   },
+  shine: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: '55%',
+    backgroundColor: 'rgba(255,255,255,0.12)', borderTopLeftRadius: 14, borderTopRightRadius: 14,
+  },
+  innerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 24 },
+  iconWrap: { marginRight: 2 },
+  label: { fontSize: 17, fontWeight: '800', letterSpacing: 0.2 },
 });

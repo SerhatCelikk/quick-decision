@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import {
   Animated,
+  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,159 +9,360 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import type { RootStackScreenProps } from '../../types/navigation';
-import { COLORS, LEVELS_PER_WORLD } from '../../constants';
+import { COLORS, LEVELS_PER_WORLD, WORLD_THEMES, WORLDS } from '../../constants';
 import { useLevelProgress } from '../../hooks/useLevelProgress';
 import { LevelNode, type LevelNodeState } from '../../components/LevelNode';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 type Props = RootStackScreenProps<'LevelMap'>;
+const { width: W } = Dimensions.get('window');
+const CENTER = W / 2;
 
-const STAGGER_MS = 50;
+// Snake path: 6-point zigzag cycle
+const X_OFFSETS = [-90, -40, 20, 80, 20, -40];
 
-function getLevelState(
-  worldLevelNumber: number,
-  currentWorldLevel: number,
-  highestWorldUnlocked: number
-): LevelNodeState {
-  if (worldLevelNumber < currentWorldLevel) return 'completed';
-  if (worldLevelNumber === currentWorldLevel) return 'current';
-  if (worldLevelNumber <= highestWorldUnlocked) return 'unlocked';
+// Per-slot height estimate for auto-scroll (node 72 + connector 44 + padding)
+const SLOT_HEIGHT = 128;
+const MILESTONE_HEIGHT = 44;
+
+function getLevelState(wln: number, cur: number, high: number): LevelNodeState {
+  if (wln < cur) return 'completed';
+  if (wln === cur) return 'current';
+  if (wln <= high) return 'unlocked';
   return 'locked';
 }
-
-function getMockStars(worldLevelNumber: number, currentWorldLevel: number): 0 | 1 | 2 | 3 {
-  if (worldLevelNumber >= currentWorldLevel) return 0;
-  const mod = worldLevelNumber % 3;
-  if (mod === 0) return 3;
-  if (mod === 1) return 1;
-  return 2;
+function getMockStars(wln: number, cur: number): 0 | 1 | 2 | 3 {
+  if (wln >= cur) return 0;
+  return ([3, 1, 2, 3, 2, 1][wln % 6]) as 0 | 1 | 2 | 3;
+}
+function getWorldTheme(worldId: number) {
+  const w = WORLDS.find(w => w.worldId === worldId);
+  return w ? WORLD_THEMES[w.key] : WORLD_THEMES.easy;
 }
 
-// Alternating winding path offsets
-function sideOffset(index: number): number {
-  return index % 2 === 0 ? -36 : 36;
-}
+// ─── Path dots between two node centres ──────────────────────────────────────
+const PathConnector: React.FC<{
+  fromX: number;
+  toX: number;
+  completed: boolean;
+  color: string;
+}> = ({ fromX, toX, completed, color }) => {
+  const count = 6;
+  return (
+    <View style={{ height: 44, width: '100%', position: 'relative' }}>
+      {Array.from({ length: count }, (_, i) => {
+        const t = (i + 0.5) / count;
+        const x = CENTER + fromX + (toX - fromX) * t;
+        return (
+          <View
+            key={i}
+            style={[
+              dot.d,
+              { left: x - 4, backgroundColor: completed ? color : COLORS.border },
+            ]}
+          />
+        );
+      })}
+    </View>
+  );
+};
+const dot = StyleSheet.create({ d: { position: 'absolute', width: 8, height: 8, borderRadius: 4, top: 18 } });
 
+// ─── Background twinkle star ──────────────────────────────────────────────────
+const BgStar: React.FC<{ x: number; y: number; size: number; color: string; delay: number }> = ({
+  x, y, size, color, delay,
+}) => {
+  const op = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(op, { toValue: 0.4, duration: 2200, useNativeDriver: true }),
+        Animated.timing(op, { toValue: 0.06, duration: 2200, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [delay]);
+  return (
+    <Animated.View pointerEvents="none" style={{ position: 'absolute', left: x, top: y, opacity: op }}>
+      <Ionicons name="star" size={size} color={color} />
+    </Animated.View>
+  );
+};
+
+// ─── Floating gem decoration ──────────────────────────────────────────────────
+const FloatingGem: React.FC<{ x: number; y: number; color: string; delay: number }> = ({
+  x, y, color, delay,
+}) => {
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const opAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(floatAnim, { toValue: -8, duration: 1800, useNativeDriver: true }),
+          Animated.timing(floatAnim, { toValue: 0, duration: 1800, useNativeDriver: true }),
+        ])
+      ),
+      Animated.timing(opAnim, { toValue: 0.6, duration: 800, delay, useNativeDriver: true }),
+    ]).start();
+  }, [delay]);
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{ position: 'absolute', left: x, top: y, opacity: opAnim, transform: [{ translateY: floatAnim }] }}
+    >
+      <Ionicons name="diamond" size={14} color={color} />
+    </Animated.View>
+  );
+};
+
+const BG_STARS = Array.from({ length: 20 }, (_, i) => ({
+  id: i, x: (i * 137 + 20) % (W - 30), y: (i * 113 + 40) % 1400,
+  size: 5 + (i % 4) * 3, delay: i * 180,
+}));
+
+const GEM_POSITIONS = [
+  { x: 18, y: 180, delay: 0 }, { x: W - 34, y: 320, delay: 600 },
+  { x: 24, y: 500, delay: 300 }, { x: W - 28, y: 640, delay: 900 },
+  { x: 16, y: 860, delay: 150 }, { x: W - 32, y: 1000, delay: 750 },
+  { x: 22, y: 1180, delay: 450 }, { x: W - 26, y: 1320, delay: 1050 },
+];
+
+// ─── Milestone header (shown above certain levels) ────────────────────────────
+const MilestoneHeader: React.FC<{ label: string; emoji: string; color: string }> = ({ label, emoji, color }) => (
+  <View style={ms.wrap}>
+    <View style={[ms.line, { backgroundColor: color + '44' }]} />
+    <View style={[ms.badge, { backgroundColor: color + '1A', borderColor: color + '55' }]}>
+      <Text style={ms.emoji}>{emoji}</Text>
+      <Text style={[ms.text, { color }]}>{label}</Text>
+    </View>
+    <View style={[ms.line, { backgroundColor: color + '44' }]} />
+  </View>
+);
+const ms = StyleSheet.create({
+  wrap: { flexDirection: 'row', alignItems: 'center', gap: 8, width: '88%', marginVertical: 8 },
+  line: { flex: 1, height: 1 },
+  badge: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  emoji: { fontSize: 13 },
+  text: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+});
+
+// Milestones shown ABOVE the corresponding level number in reversed (top-to-bottom = high-to-low) layout
+const MILESTONES: Record<number, { label: string; emoji: string }> = {
+  16: { label: 'Almost There', emoji: '🔥' },
+  11: { label: 'Halfway',      emoji: '⚡' },
+  6:  { label: 'Warming Up',   emoji: '💪' },
+  1:  { label: 'Start Here',   emoji: '🚀' },
+};
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
   const { worldId, worldName, worldColor } = route.params;
   const { progress } = useLevelProgress();
   const reduceMotion = useReducedMotion();
+  const theme = getWorldTheme(worldId);
+  const scrollRef = useRef<ScrollView>(null);
 
   const globalCurrent = progress?.current_level ?? 1;
   const globalHighest = progress?.highest_level_unlocked ?? 1;
-
   const worldStart = (worldId - 1) * LEVELS_PER_WORLD + 1;
   const currentWorldLevel = Math.max(1, Math.min(globalCurrent - worldStart + 1, LEVELS_PER_WORLD + 1));
   const highestWorldUnlocked = Math.max(0, Math.min(globalHighest - worldStart + 1, LEVELS_PER_WORLD));
 
-  // Staggered fade+slide animations
+  // Staggered entrance — animate in display order (top-to-bottom)
   const nodeAnims = useRef(
     Array.from({ length: LEVELS_PER_WORLD }, () => ({
       opacity: new Animated.Value(0),
-      translateX: new Animated.Value(0),
+      scale: new Animated.Value(0.6),
     }))
   ).current;
 
   useEffect(() => {
-    if (reduceMotion) {
-      // Snap all nodes visible immediately — no translate or stagger
-      nodeAnims.forEach(a => {
-        a.opacity.setValue(1);
-        a.translateX.setValue(0);
-      });
-      return;
-    }
-    nodeAnims.forEach((a, i) => a.translateX.setValue(sideOffset(i)));
-    const anims = nodeAnims.map((a, i) =>
-      Animated.parallel([
-        Animated.timing(a.opacity, { toValue: 1, duration: 280, delay: i * STAGGER_MS, useNativeDriver: true }),
-        Animated.timing(a.translateX, { toValue: 0, duration: 280, delay: i * STAGGER_MS, useNativeDriver: true }),
-      ])
-    );
-    Animated.stagger(STAGGER_MS, anims).start();
+    if (reduceMotion) { nodeAnims.forEach(a => { a.opacity.setValue(1); a.scale.setValue(1); }); return; }
+    Animated.stagger(
+      30,
+      nodeAnims.map(a =>
+        Animated.parallel([
+          Animated.timing(a.opacity, { toValue: 1, duration: 280, useNativeDriver: true }),
+          Animated.spring(a.scale, { toValue: 1, tension: 100, friction: 8, useNativeDriver: true }),
+        ])
+      )
+    ).start();
   }, [reduceMotion]);
 
-  const handleNodePress = useCallback(
-    (worldLevelNumber: number) => {
-      const levelNumber = worldStart + worldLevelNumber - 1;
-      navigation.navigate('Game', { worldId, worldLevelNumber, levelNumber, categoryId: 'general' });
-    },
-    [navigation, worldId, worldStart]
-  );
+  // Auto-scroll to current level after layout
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!scrollRef.current) return;
+      // displayLevels: reversed array, index 0 = level 20, index (LEVELS_PER_WORLD-1) = level 1
+      // currentWorldLevel is at displayIndex = LEVELS_PER_WORLD - currentWorldLevel
+      const displayIndex = LEVELS_PER_WORLD - currentWorldLevel;
+      // Estimate Y position: trophy header ~140px + each slot ~SLOT_HEIGHT + milestones
+      const milestonesAbove = Object.keys(MILESTONES)
+        .map(Number)
+        .filter(lvl => lvl > currentWorldLevel).length;
+      const estimatedY = 140 + displayIndex * SLOT_HEIGHT + milestonesAbove * MILESTONE_HEIGHT;
+      // Scroll so current node is in the middle of the screen
+      const scrollY = Math.max(0, estimatedY - 250);
+      scrollRef.current.scrollTo({ y: scrollY, animated: !reduceMotion });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [currentWorldLevel, reduceMotion]);
 
-  const levels = Array.from({ length: LEVELS_PER_WORLD }, (_, i) => {
-    const wln = i + 1;
-    return {
+  const handleNodePress = useCallback((wln: number) => {
+    navigation.navigate('Game', {
+      worldId,
       worldLevelNumber: wln,
-      state: getLevelState(wln, currentWorldLevel, highestWorldUnlocked),
-      stars: getMockStars(wln, currentWorldLevel),
-    };
-  });
+      levelNumber: worldStart + wln - 1,
+      categoryId: 'general',
+    });
+  }, [navigation, worldId, worldStart]);
 
-  // Find dim color from world (passed as color, derive dim by darkening mentally — use a static map)
-  // Since we only pass worldColor, use it directly for node color/dimColor
-  const nodeDimColor = `${worldColor}33`; // 20% alpha background approximation via hex
+  // Level data (ascending 1..20)
+  const levels = Array.from({ length: LEVELS_PER_WORLD }, (_, i) => ({
+    wln: i + 1,
+    state: getLevelState(i + 1, currentWorldLevel, highestWorldUnlocked),
+    stars: getMockStars(i + 1, currentWorldLevel),
+    offsetX: X_OFFSETS[i % X_OFFSETS.length],
+  }));
+
+  // Display order: reversed — level 20 first (top), level 1 last (bottom)
+  const displayLevels = [...levels].reverse();
+
+  const completed = levels.filter(l => l.state === 'completed').length;
+  const pct = Math.round((completed / LEVELS_PER_WORLD) * 100);
 
   return (
     <SafeAreaView testID="level-map-screen" style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* ── Header ── */}
+      <LinearGradient
+        colors={[theme.dimColor, COLORS.background]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.header}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Text style={[styles.backIcon, { color: worldColor }]}>←</Text>
+          <View style={styles.backCircle}>
+            <Ionicons name="chevron-back" size={22} color={COLORS.text} />
+          </View>
         </TouchableOpacity>
-        <Text style={[styles.title, { color: worldColor }]}>{worldName}</Text>
-        <View style={[styles.levelBadge, { borderColor: worldColor }]}>
-          <Text style={[styles.levelBadgeText, { color: worldColor }]}>Lv {currentWorldLevel}</Text>
+
+        <View style={styles.headerCenter}>
+          <View style={styles.headerTitleRow}>
+            <Ionicons name={theme.icon as any} size={20} color={theme.color} />
+            <Text style={[styles.worldTitle, { color: theme.color }]}>{worldName}</Text>
+          </View>
+          <Text style={styles.worldSubtitle}>{completed} / {LEVELS_PER_WORLD} completed</Text>
         </View>
-      </View>
+
+        {/* Progress pill */}
+        <View style={styles.pctPill}>
+          <View style={[styles.pctFill, { width: `${pct}%` as `${number}%`, backgroundColor: theme.color }]} />
+          <Text style={[styles.pctText, { color: theme.color }]}>{pct}%</Text>
+        </View>
+      </LinearGradient>
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.mapContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.pathColumn}>
-          {levels.map(({ worldLevelNumber, state, stars }, index) => (
-            <View key={worldLevelNumber} style={styles.nodeRow}>
-              {/* Connector line between nodes */}
-              {index > 0 && (
-                <View
+        {/* Background decoration */}
+        {BG_STARS.map(s => (
+          <BgStar key={s.id} {...s} color={theme.color} />
+        ))}
+        {GEM_POSITIONS.map((g, i) => (
+          <FloatingGem key={i} {...g} color={theme.color} />
+        ))}
+
+        {/* ── Trophy (goal) at the top ── */}
+        <View style={styles.worldTop}>
+          <LinearGradient
+            colors={[theme.dimColor, theme.dimColor + '00']}
+            style={styles.worldTopGrad}
+          >
+            <View style={[styles.trophyWrap, { borderColor: theme.color + '66', backgroundColor: theme.dimColor }]}>
+              <Ionicons name="trophy" size={40} color={theme.color} />
+            </View>
+            <Text style={[styles.worldTopTitle, { color: theme.color }]}>World Complete!</Text>
+            <Text style={styles.worldTopSub}>Finish all {LEVELS_PER_WORLD} levels to claim the trophy</Text>
+          </LinearGradient>
+        </View>
+
+        {/* ── Level path (reversed: 20→1 top to bottom) ── */}
+        <View style={styles.pathWrap}>
+          {displayLevels.map(({ wln, state, stars, offsetX }, displayIndex) => {
+            // The previous item in display order (higher level number)
+            const prevDisplay = displayIndex > 0 ? displayLevels[displayIndex - 1] : null;
+            // Connector is completed if this (lower) level AND the one above it are both completed
+            const connectorCompleted = prevDisplay
+              ? prevDisplay.state === 'completed' && state === 'completed'
+              : false;
+
+            const milestone = MILESTONES[wln];
+            // Animation index: stagger from top to bottom as displayed
+            const animIndex = displayIndex;
+
+            return (
+              <View key={wln} style={styles.nodeSlot}>
+                {/* Milestone label above this level */}
+                {milestone && (
+                  <MilestoneHeader label={milestone.label} emoji={milestone.emoji} color={theme.color} />
+                )}
+
+                {/* Path connector from previous (above) to this node */}
+                {prevDisplay && (
+                  <PathConnector
+                    fromX={prevDisplay.offsetX}
+                    toX={offsetX}
+                    completed={connectorCompleted}
+                    color={theme.color}
+                  />
+                )}
+
+                {/* Level node */}
+                <Animated.View
                   style={[
-                    styles.connector,
+                    styles.nodeWrap,
+                    { marginLeft: offsetX },
                     {
-                      backgroundColor:
-                        state === 'locked' ? COLORS.border : worldColor,
+                      opacity: nodeAnims[animIndex]?.opacity ?? new Animated.Value(1),
+                      transform: [{ scale: nodeAnims[animIndex]?.scale ?? new Animated.Value(1) }],
                     },
                   ]}
-                />
-              )}
+                >
+                  <LevelNode
+                    levelNumber={wln}
+                    state={state}
+                    stars={stars}
+                    color={theme.color}
+                    dimColor={theme.dimColor}
+                    gradient={theme.nodeGradient}
+                    onPress={() => handleNodePress(wln)}
+                  />
+                </Animated.View>
+              </View>
+            );
+          })}
+        </View>
 
-              <Animated.View
-                style={[
-                  styles.nodeWrap,
-                  { marginLeft: sideOffset(index) },
-                  {
-                    opacity: nodeAnims[index].opacity,
-                    transform: [{ translateX: nodeAnims[index].translateX }],
-                  },
-                ]}
-              >
-                <LevelNode
-                  levelNumber={worldLevelNumber}
-                  state={state}
-                  stars={stars}
-                  color={worldColor}
-                  dimColor={nodeDimColor}
-                  onPress={() => handleNodePress(worldLevelNumber)}
-                />
-              </Animated.View>
-            </View>
-          ))}
+        {/* ── "Start" marker at the very bottom ── */}
+        <View style={styles.worldBottom}>
+          <View style={[styles.bottomLine, { backgroundColor: theme.color + '44' }]} />
+          <View style={[styles.bottomBadge, { borderColor: theme.color + '55', backgroundColor: theme.color + '18' }]}>
+            <Ionicons name="flag" size={16} color={theme.color} />
+            <Text style={[styles.bottomText, { color: theme.color }]}>Beginning</Text>
+          </View>
+          <View style={[styles.bottomLine, { backgroundColor: theme.color + '44' }]} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -168,60 +370,60 @@ export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    gap: 10,
+    paddingVertical: 14,
+    gap: 12,
   },
-  backBtn: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
+  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  backCircle: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: COLORS.surface2,
+    borderWidth: 1, borderColor: COLORS.border,
+    justifyContent: 'center', alignItems: 'center',
   },
-  backIcon: {
-    fontSize: 24,
-    fontWeight: '700',
+  headerCenter: { flex: 1, gap: 2 },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  worldTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
+  worldSubtitle: { fontSize: 12, color: COLORS.textMuted, fontWeight: '500' },
+  pctPill: {
+    width: 56, height: 26, borderRadius: 13,
+    backgroundColor: COLORS.surface2, overflow: 'hidden',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: COLORS.border,
   },
-  title: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  levelBadge: {
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  levelBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  mapContent: {
-    paddingVertical: 24,
-    alignItems: 'center',
-  },
-  pathColumn: {
-    alignItems: 'center',
-    width: '100%',
-  },
-  nodeRow: {
-    alignItems: 'center',
-  },
-  connector: {
-    width: 3,
-    height: 24,
-    borderRadius: 2,
-    marginVertical: -2,
-  },
+  pctFill: { position: 'absolute', left: 0, top: 0, height: '100%', opacity: 0.3 },
+  pctText: { fontSize: 11, fontWeight: '800', zIndex: 1 },
+
+  mapContent: { paddingBottom: 50, paddingTop: 8, alignItems: 'center' },
+  pathWrap: { alignItems: 'center', width: '100%' },
+  nodeSlot: { alignItems: 'center', width: '100%' },
   nodeWrap: {},
+
+  // Trophy at top
+  worldTop: { alignItems: 'center', width: '80%', marginBottom: 8 },
+  worldTopGrad: { alignItems: 'center', padding: 20, borderRadius: 24, gap: 8, width: '100%' },
+  trophyWrap: {
+    width: 76, height: 76, borderRadius: 38,
+    borderWidth: 2, justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
+  },
+  worldTopTitle: { fontSize: 18, fontWeight: '800' },
+  worldTopSub: { fontSize: 12, color: COLORS.textMuted, textAlign: 'center', lineHeight: 17 },
+
+  // "Beginning" at bottom
+  worldBottom: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    width: '80%', marginTop: 16, marginBottom: 10,
+  },
+  bottomLine: { flex: 1, height: 1 },
+  bottomBadge: {
+    borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+  },
+  bottomText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
 });

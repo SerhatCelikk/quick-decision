@@ -1,13 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import type { RootStackScreenProps } from '../../types';
 import { supabase } from '../../services/supabase';
 import { COLORS } from '../../constants';
@@ -15,23 +12,15 @@ import { useI18n } from '../../i18n';
 
 type Props = RootStackScreenProps<'SeasonalEvent'>;
 
-interface Milestone {
-  questionsRequired: number;
-  reward: string;
-  completed: boolean;
-}
+interface Milestone { questionsRequired: number; reward: string; icon: string; iconColor: string; completed: boolean }
 
-const SPRING_MILESTONES: Milestone[] = [
-  { questionsRequired: 5,  reward: '🌱 Seedling Badge',    completed: false },
-  { questionsRequired: 15, reward: '🌸 Blossom Badge',     completed: false },
-  { questionsRequired: 30, reward: '🌿 Spring Scholar Badge', completed: false },
+const SPRING_MILESTONES: Omit<Milestone, 'completed'>[] = [
+  { questionsRequired: 5,  reward: 'Seedling Badge',      icon: 'leaf',    iconColor: '#00C060' },
+  { questionsRequired: 15, reward: 'Blossom Badge',       icon: 'flower',  iconColor: '#FF6D9D' },
+  { questionsRequired: 30, reward: 'Spring Scholar Badge', icon: 'sparkles', iconColor: '#FFD700' },
 ];
 
-interface EventProgress {
-  questionsAnswered: number;
-  correctAnswers: number;
-  rank: number | null;
-}
+interface EventProgress { questionsAnswered: number; correctAnswers: number; rank: number | null }
 
 export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
   const { eventTitle } = route.params;
@@ -41,28 +30,19 @@ export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
   const [error, setError] = useState(false);
 
   const loadProgress = useCallback(async () => {
-    setLoading(true);
-    setError(false);
+    setLoading(true); setError(false);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data } = await supabase
           .from('seasonal_event_progress')
           .select('questions_answered, correct_answers')
-          .eq('user_id', user.id)
-          .eq('event_key', 'spring_2026')
-          .single();
-
-        setProgress({
-          questionsAnswered: data?.questions_answered ?? 0,
-          correctAnswers: data?.correct_answers ?? 0,
-          rank: null,
-        });
+          .eq('user_id', user.id).eq('event_key', 'spring_2026').single();
+        setProgress({ questionsAnswered: data?.questions_answered ?? 0, correctAnswers: data?.correct_answers ?? 0, rank: null });
       } else {
         setProgress({ questionsAnswered: 0, correctAnswers: 0, rank: null });
       }
     } catch {
-      // Table may not exist yet — show zero progress
       setProgress({ questionsAnswered: 0, correctAnswers: 0, rank: null });
     } finally {
       setLoading(false);
@@ -72,36 +52,35 @@ export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
   useEffect(() => { loadProgress(); }, [loadProgress]);
 
   const answered = progress?.questionsAnswered ?? 0;
-  const milestones = SPRING_MILESTONES.map((m) => ({
-    ...m,
-    completed: answered >= m.questionsRequired,
-  }));
-
-  const nextMilestone = milestones.find((m) => !m.completed);
-  const pct = nextMilestone
-    ? Math.min(100, Math.round((answered / nextMilestone.questionsRequired) * 100))
-    : 100;
+  const milestones: Milestone[] = SPRING_MILESTONES.map(m => ({ ...m, completed: answered >= m.questionsRequired }));
+  const nextMilestone = milestones.find(m => !m.completed);
+  const pct = nextMilestone ? Math.min(100, Math.round((answered / nextMilestone.questionsRequired) * 100)) : 100;
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.heroContainer}>
-          <Text style={styles.heroEmoji}>🌸</Text>
+
+        {/* Hero */}
+        <LinearGradient colors={['#00200E', '#001A0A']} style={styles.hero}>
+          <View style={styles.heroIconWrap}>
+            <Ionicons name="leaf" size={36} color="#00C060" />
+          </View>
           <Text style={styles.heroTitle}>{eventTitle}</Text>
           <Text style={styles.heroSubtitle}>Answer spring-themed questions to earn exclusive badges</Text>
           <View style={styles.endsRow}>
+            <Ionicons name="time" size={12} color="#00C060" />
             <Text style={styles.endsText}>{t('eventEnds')}: April 30, 2026</Text>
           </View>
-        </View>
+        </LinearGradient>
 
-        {/* Progress */}
+        {/* Progress card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{t('eventProgress')}</Text>
           {loading ? (
-            <ActivityIndicator color={COLORS.primary} />
+            <ActivityIndicator color={COLORS.success} />
           ) : error ? (
-            <TouchableOpacity onPress={loadProgress}>
+            <TouchableOpacity onPress={loadProgress} style={styles.errorWrap}>
+              <Ionicons name="refresh-circle" size={24} color={COLORS.textMuted} />
               <Text style={styles.errorText}>{t('errorRetry')}</Text>
             </TouchableOpacity>
           ) : (
@@ -109,28 +88,32 @@ export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
               <View style={styles.statsRow}>
                 <View style={styles.statBox}>
                   <Text style={styles.statValue}>{answered}</Text>
-                  <Text style={styles.statLabel}>Questions</Text>
+                  <Text style={styles.statLabel}>{t('questionsLabel')}</Text>
                 </View>
+                <View style={styles.statDivider} />
                 <View style={styles.statBox}>
-                  <Text style={[styles.statValue, { color: COLORS.success }]}>
-                    {progress?.correctAnswers ?? 0}
-                  </Text>
-                  <Text style={styles.statLabel}>Correct</Text>
+                  <Text style={[styles.statValue, { color: COLORS.success }]}>{progress?.correctAnswers ?? 0}</Text>
+                  <Text style={styles.statLabel}>{t('correctLabel')}</Text>
                 </View>
-                {progress?.rank !== null && (
-                  <View style={styles.statBox}>
-                    <Text style={[styles.statValue, { color: COLORS.yellow }]}>
-                      #{progress?.rank}
-                    </Text>
-                    <Text style={styles.statLabel}>{t('rank')}</Text>
-                  </View>
+                {progress?.rank !== null && progress?.rank !== undefined && (
+                  <>
+                    <View style={styles.statDivider} />
+                    <View style={styles.statBox}>
+                      <Text style={[styles.statValue, { color: COLORS.gold }]}>#{progress.rank}</Text>
+                      <Text style={styles.statLabel}>{t('rank')}</Text>
+                    </View>
+                  </>
                 )}
               </View>
 
               {nextMilestone && (
                 <>
                   <View style={styles.progressBarBg}>
-                    <View style={[styles.progressBarFill, { width: `${pct}%` as `${number}%` }]} />
+                    <LinearGradient
+                      colors={['#00C060', '#00E676']}
+                      start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                      style={[styles.progressBarFill, { width: `${pct}%` as `${number}%` }]}
+                    />
                   </View>
                   <Text style={styles.progressLabel}>
                     {answered} / {nextMilestone.questionsRequired} to next milestone ({pct}%)
@@ -143,31 +126,42 @@ export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
 
         {/* Milestones */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Milestones</Text>
+          <Text style={styles.cardTitle}>{t('milestones')}</Text>
           {milestones.map((m, i) => (
-            <View key={i} style={[styles.milestone, m.completed && styles.milestoneCompleted]}>
-              <Text style={styles.milestoneEmoji}>{m.completed ? '✅' : '⬜'}</Text>
+            <View key={i} style={[styles.milestone, i < milestones.length - 1 && styles.milestoneBorder]}>
+              <View style={[
+                styles.milestoneIcon,
+                m.completed
+                  ? { backgroundColor: m.iconColor + '22', borderColor: m.iconColor + '55' }
+                  : { backgroundColor: COLORS.border + '50', borderColor: COLORS.border },
+              ]}>
+                {m.completed
+                  ? <Ionicons name={m.icon as any} size={20} color={m.iconColor} />
+                  : <Ionicons name="lock-closed" size={16} color={COLORS.textMuted} />
+                }
+              </View>
               <View style={styles.milestoneText}>
                 <Text style={[styles.milestoneName, m.completed && { color: COLORS.success }]}>
                   {m.reward}
                 </Text>
-                <Text style={styles.milestoneReq}>
-                  Answer {m.questionsRequired} questions
-                </Text>
+                <Text style={styles.milestoneReq}>Answer {m.questionsRequired} questions</Text>
               </View>
+              {m.completed && (
+                <Ionicons name="checkmark-circle" size={22} color={COLORS.success} />
+              )}
             </View>
           ))}
         </View>
 
         {/* How to participate */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>How to Participate</Text>
-          <Text style={styles.howTo}>
-            Play any game mode during the Spring Knowledge Sprint event. Spring-themed questions are
-            automatically included in your game sessions. Your answers count towards event progress
-            as long as the event is active.
+        <View style={styles.infoCard}>
+          <Ionicons name="information-circle" size={16} color={COLORS.timerSafe} />
+          <Text style={styles.infoText}>
+            Play any game mode during the event. Spring-themed questions are automatically
+            included and count toward your progress while the event is active.
           </Text>
         </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -175,81 +169,59 @@ export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  scroll: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32 },
-  heroContainer: {
-    alignItems: 'center',
-    paddingVertical: 28,
-    backgroundColor: '#0d1f0a',
-    borderRadius: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#22c55e40',
+  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32, gap: 14 },
+
+  hero: {
+    alignItems: 'center', borderRadius: 22, padding: 28, gap: 8,
+    borderWidth: 1, borderColor: '#00C06033',
   },
-  heroEmoji: { fontSize: 56, marginBottom: 8 },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    textAlign: 'center',
-    marginBottom: 6,
+  heroIconWrap: {
+    width: 68, height: 68, borderRadius: 20, borderWidth: 1,
+    borderColor: '#00C06055', backgroundColor: '#00C06020',
+    justifyContent: 'center', alignItems: 'center',
   },
-  heroSubtitle: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
+  heroTitle: { fontSize: 20, fontWeight: '900', color: COLORS.text, textAlign: 'center' },
+  heroSubtitle: { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', lineHeight: 19, paddingHorizontal: 10 },
   endsRow: {
-    backgroundColor: '#164e1a',
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 100,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#00C06020', paddingHorizontal: 14, paddingVertical: 5, borderRadius: 100,
+    borderWidth: 1, borderColor: '#00C06033',
   },
-  endsText: { fontSize: 12, color: '#4ade80', fontWeight: '600' },
+  endsText: { fontSize: 12, color: '#00C060', fontWeight: '700' },
+
   card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    backgroundColor: COLORS.surface, borderRadius: 18, padding: 18,
+    borderWidth: 1, borderColor: COLORS.border, gap: 12,
   },
-  cardTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 16,
-  },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 16 },
-  statBox: { alignItems: 'center' },
-  statValue: { fontSize: 28, fontWeight: 'bold', color: COLORS.text },
-  statLabel: { fontSize: 12, color: COLORS.textMuted, marginTop: 4 },
-  progressBarBg: {
-    height: 10,
-    backgroundColor: COLORS.border,
-    borderRadius: 5,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#22c55e',
-    borderRadius: 5,
-  },
+  cardTitle: { fontSize: 10, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.2 },
+
+  statsRow: { flexDirection: 'row', alignItems: 'center' },
+  statBox: { flex: 1, alignItems: 'center', gap: 4 },
+  statDivider: { width: 1, height: 40, backgroundColor: COLORS.border },
+  statValue: { fontSize: 28, fontWeight: '900', color: COLORS.text },
+  statLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  progressBarBg: { height: 10, backgroundColor: COLORS.surface2, borderRadius: 5, overflow: 'hidden' },
+  progressBarFill: { height: '100%', borderRadius: 5 },
   progressLabel: { fontSize: 12, color: COLORS.textMuted, textAlign: 'center' },
-  milestone: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+
+  milestone: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  milestoneBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  milestoneIcon: {
+    width: 44, height: 44, borderRadius: 13, borderWidth: 1,
+    justifyContent: 'center', alignItems: 'center',
   },
-  milestoneCompleted: { opacity: 0.8 },
-  milestoneEmoji: { fontSize: 20, marginRight: 12 },
   milestoneText: { flex: 1 },
-  milestoneName: { fontSize: 14, fontWeight: '600', color: COLORS.text },
-  milestoneReq: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
-  errorText: { color: COLORS.textMuted, textAlign: 'center', fontSize: 14 },
-  howTo: { fontSize: 14, color: COLORS.textMuted, lineHeight: 22 },
+  milestoneName: { fontSize: 14, fontWeight: '700', color: COLORS.text },
+  milestoneReq: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
+
+  errorWrap: { alignItems: 'center', gap: 8, paddingVertical: 8 },
+  errorText: { color: COLORS.textMuted, fontSize: 14 },
+
+  infoCard: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    backgroundColor: COLORS.surface, borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: COLORS.timerSafe + '30',
+  },
+  infoText: { flex: 1, fontSize: 13, color: COLORS.textMuted, lineHeight: 19 },
 });

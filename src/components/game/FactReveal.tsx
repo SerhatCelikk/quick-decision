@@ -1,180 +1,162 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
 import { DuoButton } from '../common/DuoButton';
 
 interface FactRevealProps {
-  /** Optional fun fact to display below the verdict */
   fact?: string | null;
-  /** Whether the player's answer was correct */
   answerCorrect: boolean;
-  /** Whether the question timed out (no choice made) */
   timedOut: boolean;
-  /** Current streak count — shown as bonus label when > 1 */
   streak: number;
-  /** Called when the player taps Continue */
   onContinue: () => void;
 }
 
-/**
- * Duolingo-style feedback banner (§6.3).
- *
- * Slides up from the bottom with a spring animation (300ms overshoot).
- * - Correct: green tinted bg, checkmark icon, "+XP" badge
- * - Wrong:   red tinted bg, X icon, encouraging subtitle
- * Tap "Continue" slides the banner back down as the next question slides in.
- */
 export const FactReveal: React.FC<FactRevealProps> = ({
-  fact,
-  answerCorrect,
-  timedOut,
-  streak,
-  onContinue,
+  fact, answerCorrect, timedOut, streak, onContinue,
 }) => {
-  const slideAnim = useRef(new Animated.Value(80)).current;
+  const slideAnim  = useRef(new Animated.Value(140)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 70,
-        friction: 10,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [slideAnim, opacityAnim]);
+  const iconScale  = useRef(new Animated.Value(0.3)).current;
+  const iconRotate = useRef(new Animated.Value(0)).current;
 
   const isCorrect = answerCorrect && !timedOut;
-  const bgColor = isCorrect ? COLORS.correctBg : COLORS.wrongBg;
-  const borderColor = isCorrect ? COLORS.brandGreen : COLORS.brandRed;
-  const iconText = isCorrect ? '✓' : '✗';
-  const iconColor = isCorrect ? COLORS.brandGreen : COLORS.brandRed;
-  const xpEarned = isCorrect ? 10 * Math.min(streak, 3) : 0;
+  const xpEarned = isCorrect ? 10 * Math.min(streak, 5) : 0;
 
-  const resultLabel = timedOut
-    ? "Time's up!"
+  useEffect(() => {
+    // Panel slides up
+    Animated.parallel([
+      Animated.spring(slideAnim, { toValue: 0, tension: 65, friction: 11, useNativeDriver: true }),
+      Animated.timing(opacityAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
+    ]).start();
+
+    // Icon pops in
+    Animated.sequence([
+      Animated.delay(120),
+      Animated.parallel([
+        Animated.spring(iconScale, { toValue: 1, tension: 200, friction: 7, useNativeDriver: true }),
+        Animated.timing(iconRotate, { toValue: 1, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      ]),
+    ]).start();
+  }, []);
+
+  const spin = iconRotate.interpolate({ inputRange: [0, 1], outputRange: ['-30deg', '0deg'] });
+
+  const resultLabel = timedOut ? "Time's Up!"
     : isCorrect
-    ? streak > 1
-      ? `Streak ×${streak}!`
-      : 'Correct!'
-    : 'Oops!';
+    ? streak > 1 ? `${streak}x Streak!` : 'Correct!'
+    : 'Wrong!';
+
+  const topIcon = isCorrect ? 'checkmark-circle' : timedOut ? 'time' : 'close-circle';
+  const iconColor = isCorrect ? COLORS.success : timedOut ? COLORS.warning : COLORS.danger;
+
+  const bgColors: readonly [string, string] = isCorrect
+    ? ['#00291A', '#001A10']
+    : ['#2A0010', '#1A0008'];
+
+  const accentColor = isCorrect ? '#10B981' : '#F43F5E';
 
   return (
     <Animated.View
       style={[
         styles.container,
-        {
-          backgroundColor: bgColor,
-          borderTopColor: borderColor,
-          transform: [{ translateY: slideAnim }],
-          opacity: opacityAnim,
-        },
+        { transform: [{ translateY: slideAnim }], opacity: opacityAnim, borderTopColor: accentColor },
       ]}
     >
-      {/* Verdict row */}
-      <View style={styles.headerRow}>
-        <Text style={[styles.verdictIcon, { color: iconColor }]}>{iconText}</Text>
-        <Text style={[styles.resultLabel, { color: iconColor }]}>{resultLabel}</Text>
-        {xpEarned > 0 && (
-          <View style={[styles.xpBadge, { backgroundColor: COLORS.brandPurple }]}>
-            <Text style={styles.xpText}>+{xpEarned} XP</Text>
+      <LinearGradient colors={bgColors} style={styles.gradient}>
+        {/* Verdict row */}
+        <View style={styles.verdictRow}>
+          <Animated.View style={{ transform: [{ scale: iconScale }, { rotate: spin }] }}>
+            <View style={[styles.iconCircle, { backgroundColor: iconColor + '22', borderColor: iconColor + '55' }]}>
+              <Ionicons name={topIcon as any} size={36} color={iconColor} />
+            </View>
+          </Animated.View>
+
+          <View style={styles.verdictText}>
+            <Text style={[styles.verdict, { color: iconColor }]}>{resultLabel}</Text>
+            {!isCorrect && (
+              <Text style={styles.encouragement}>
+                {timedOut ? 'Answer faster next time!' : 'Keep going — you\'ve got this!'}
+              </Text>
+            )}
+            {isCorrect && streak > 1 && (
+              <View style={styles.streakDots}>
+                {Array.from({ length: Math.min(streak, 5) }).map((_, i) => (
+                  <View key={i} style={[styles.streakDot, { backgroundColor: COLORS.streak }]} />
+                ))}
+                {streak > 5 && <Text style={styles.streakExtra}>+{streak - 5}</Text>}
+              </View>
+            )}
           </View>
-        )}
-      </View>
 
-      {/* Optional fact */}
-      {fact ? (
-        <View style={[styles.factBox, { borderColor }]}>
-          <Text style={styles.factHeading}>Did you know?</Text>
-          <Text style={styles.factText}>{fact}</Text>
+          {/* XP badge */}
+          {xpEarned > 0 && (
+            <View style={styles.xpBadge}>
+              <Ionicons name="flash" size={12} color="#FFD700" />
+              <Text style={styles.xpText}>+{xpEarned}</Text>
+            </View>
+          )}
         </View>
-      ) : !isCorrect ? (
-        <Text style={styles.encouragement}>Keep going — you've got this!</Text>
-      ) : null}
 
-      {/* Continue button */}
-      <DuoButton
-        label="Continue"
-        variant={isCorrect ? 'primary' : 'danger'}
-        onPress={onContinue}
-      />
+        {/* Fun fact */}
+        {fact ? (
+          <View style={[styles.factBox, { borderColor: accentColor + '44' }]}>
+            <View style={styles.factHeader}>
+              <Ionicons name="bulb" size={13} color="#F59E0B" />
+              <Text style={styles.factTitle}>Did you know?</Text>
+            </View>
+            <Text style={styles.factBody}>{fact}</Text>
+          </View>
+        ) : !isCorrect ? (
+          <View style={[styles.factBox, { borderColor: COLORS.border }]}>
+            <View style={styles.factHeader}>
+              <Ionicons name="information-circle" size={13} color={COLORS.textMuted} />
+              <Text style={styles.factTitle}>Tip</Text>
+            </View>
+            <Text style={styles.factBody}>Read each option carefully — some are very close!</Text>
+          </View>
+        ) : null}
+
+        {/* Continue button */}
+        <DuoButton
+          label="Continue"
+          variant={isCorrect ? 'primary' : 'danger'}
+          onPress={onContinue}
+        />
+      </LinearGradient>
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    borderTopWidth: 3,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 20,
-    paddingHorizontal: 24,
-    paddingBottom: 36,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 12,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    borderTopWidth: 2, borderTopLeftRadius: 26, borderTopRightRadius: 26,
+    overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.5, shadowRadius: 20, elevation: 16,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
-  },
-  verdictIcon: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  resultLabel: {
-    fontSize: 20,
-    fontWeight: '700',
-    flex: 1,
-  },
+  gradient: { paddingTop: 22, paddingHorizontal: 20, paddingBottom: 38, gap: 16 },
+
+  verdictRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconCircle: { width: 62, height: 62, borderRadius: 31, borderWidth: 1, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  verdictText: { flex: 1, gap: 4 },
+  verdict: { fontSize: 22, fontWeight: '900' },
+  encouragement: { fontSize: 13, color: COLORS.textSecondary },
+  streakDots: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+  streakDot: { width: 10, height: 10, borderRadius: 5 },
+  streakExtra: { fontSize: 11, fontWeight: '800', color: COLORS.streak },
+
   xpBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#CC7A00', paddingHorizontal: 10, paddingVertical: 6,
+    borderRadius: 20, flexShrink: 0,
+    shadowColor: '#FFD700', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 3,
   },
-  xpText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  factBox: {
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
-  factHeading: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-  factText: {
-    fontSize: 14,
-    color: COLORS.text,
-    lineHeight: 20,
-  },
-  encouragement: {
-    fontSize: 14,
-    color: COLORS.brandRed,
-    marginBottom: 16,
-    fontWeight: '500',
-  },
+  xpText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+
+  factBox: { borderWidth: 1, borderRadius: 14, padding: 14, backgroundColor: 'rgba(0,0,0,0.25)', gap: 6 },
+  factHeader: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  factTitle: { fontSize: 10, fontWeight: '800', color: '#F59E0B', textTransform: 'uppercase', letterSpacing: 0.8 },
+  factBody: { fontSize: 14, color: COLORS.text, lineHeight: 20 },
 });

@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Text, StyleSheet, View, ActivityIndicator, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  Text, StyleSheet, View, ActivityIndicator, ScrollView, TouchableOpacity,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { useLevelProgress } from '../../hooks/useLevelProgress';
 import { COLORS } from '../../constants';
@@ -16,6 +20,18 @@ interface UserStats {
 
 type Props = TabScreenProps<'Profile'>;
 
+const StatCard: React.FC<{
+  icon: string; iconColor: string; value: string; label: string;
+}> = ({ icon, iconColor, value, label }) => (
+  <View style={styles.statCard}>
+    <View style={[styles.statIconWrap, { backgroundColor: iconColor + '22', borderColor: iconColor + '44' }]}>
+      <Ionicons name={icon as any} size={20} color={iconColor} />
+    </View>
+    <Text style={styles.statValue}>{value}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
+  </View>
+);
+
 export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { t, language, setLanguage } = useI18n();
   const { progress, loading: progressLoading } = useLevelProgress();
@@ -25,54 +41,33 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   useEffect(() => {
     let cancelled = false;
-
-    async function loadStats() {
+    async function load() {
       setStatsLoading(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
-
         if (user && !cancelled) {
-          // Fetch username
-          const { data: userData } = await supabase
-            .from('users')
-            .select('username')
-            .eq('id', user.id)
-            .single();
-          if (!cancelled && userData) setUsername(userData.username);
-
-          // Fetch level attempt stats
-          const { data: attempts } = await supabase
-            .from('level_attempts')
-            .select('passed')
-            .eq('user_id', user.id);
-
-          // Fetch best streak and total score
-          const { data: scores } = await supabase
-            .from('scores')
-            .select('score, streak')
-            .eq('user_id', user.id);
-
+          const { data: ud } = await supabase.from('users').select('username').eq('id', user.id).single();
+          if (!cancelled && ud) setUsername(ud.username);
+          const { data: attempts } = await supabase.from('level_attempts').select('passed').eq('user_id', user.id);
+          const { data: scores } = await supabase.from('scores').select('score, streak').eq('user_id', user.id);
           if (!cancelled) {
-            const totalAttempts = attempts?.length ?? 0;
-            const totalPassed = attempts?.filter(a => a.passed).length ?? 0;
-            const bestStreak = scores?.reduce((max, s) => Math.max(max, s.streak ?? 0), 0) ?? 0;
-            const totalScore = scores?.reduce((sum, s) => sum + (s.score ?? 0), 0) ?? 0;
-            setStats({ totalAttempts, totalPassed, bestStreak, totalScore });
+            setStats({
+              totalAttempts: attempts?.length ?? 0,
+              totalPassed: attempts?.filter(a => a.passed).length ?? 0,
+              bestStreak: scores?.reduce((m, s) => Math.max(m, s.streak ?? 0), 0) ?? 0,
+              totalScore: scores?.reduce((s, r) => s + (r.score ?? 0), 0) ?? 0,
+            });
           }
         } else if (!cancelled) {
-          // Guest user — show defaults
           setStats({ totalAttempts: 0, totalPassed: 0, bestStreak: 0, totalScore: 0 });
         }
       } catch {
-        if (!cancelled) {
-          setStats({ totalAttempts: 0, totalPassed: 0, bestStreak: 0, totalScore: 0 });
-        }
+        if (!cancelled) setStats({ totalAttempts: 0, totalPassed: 0, bestStreak: 0, totalScore: 0 });
       } finally {
         if (!cancelled) setStatsLoading(false);
       }
     }
-
-    loadStats();
+    load();
     return () => { cancelled = true; };
   }, []);
 
@@ -80,130 +75,119 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const currentLevel = progress?.current_level ?? 1;
   const highestUnlocked = progress?.highest_level_unlocked ?? 1;
   const passRate = stats && stats.totalAttempts > 0
-    ? Math.round((stats.totalPassed / stats.totalAttempts) * 100)
-    : 0;
+    ? Math.round((stats.totalPassed / stats.totalAttempts) * 100) : 0;
+  const initials = (username ?? 'P').slice(0, 2).toUpperCase();
 
   return (
-    <SafeAreaView testID="profile-screen" style={styles.container}>
+    <SafeAreaView testID="profile-screen" style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Avatar + Name */}
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarEmoji}>👤</Text>
-          </View>
+
+        {/* ── Hero header ── */}
+        <LinearGradient
+          colors={[COLORS.primaryGlow, 'transparent']}
+          style={styles.heroGradient}
+          pointerEvents="none"
+        />
+        <View style={styles.hero}>
+          {/* Avatar */}
+          <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.avatarGrad}>
+            <Text style={styles.avatarInitials}>{initials}</Text>
+          </LinearGradient>
           <Text style={styles.username}>{username ?? 'Player'}</Text>
-          <Text style={styles.subtitle}>Quick Decision Player</Text>
+          <View style={styles.levelBadge}>
+            <Ionicons name="flash" size={13} color={COLORS.gold} />
+            <Text style={styles.levelBadgeText}>Level {currentLevel}</Text>
+          </View>
         </View>
 
         {loading ? (
-          <ActivityIndicator color={COLORS.primary} style={{ marginTop: 32 }} />
+          <ActivityIndicator color={COLORS.primary} style={{ marginTop: 40 }} />
         ) : (
           <>
-            {/* Level Progress Card */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Level Progress</Text>
-              <View style={styles.statRow}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{currentLevel}</Text>
-                  <Text style={styles.statLabel}>Current Level</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{highestUnlocked}</Text>
-                  <Text style={styles.statLabel}>Highest Unlocked</Text>
-                </View>
+            {/* ── Stats grid ── */}
+            <View style={styles.statsSection}>
+              <Text style={styles.sectionLabel}>{t('yourStats')}</Text>
+              <View style={styles.statsGrid}>
+                <StatCard icon="trophy"          iconColor={COLORS.gold}    value={`${currentLevel}`}                    label={t('level')} />
+                <StatCard icon="checkmark-circle" iconColor={COLORS.success}  value={`${passRate}%`}                       label={t('passRate')} />
+                <StatCard icon="flame"            iconColor={COLORS.streak}   value={`${stats?.bestStreak ?? 0}`}           label={t('bestStreak')} />
+                <StatCard icon="star"             iconColor={COLORS.accent}   value={(stats?.totalScore ?? 0).toLocaleString()} label={t('totalScore')} />
+                <StatCard icon="game-controller"  iconColor={COLORS.primary}  value={`${stats?.totalAttempts ?? 0}`}       label={t('gamesPlayed')} />
+                <StatCard icon="rocket"           iconColor={COLORS.brandPurple} value={`${highestUnlocked}`}              label={t('highestLevel')} />
               </View>
             </View>
 
-            {/* Game Stats Card */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Game Stats</Text>
-              <View style={styles.statRow}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{stats?.totalAttempts ?? 0}</Text>
-                  <Text style={styles.statLabel}>Attempts</Text>
+            {/* ── Achievements shortcut ── */}
+            <TouchableOpacity
+              style={styles.achievementsCard}
+              onPress={() => navigation.navigate('Achievements')}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#1D1840', '#271F58']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={styles.achievementsGrad}
+              >
+                <View style={styles.achievementsLeft}>
+                  <View style={[styles.achIcon, { backgroundColor: COLORS.gold + '22', borderColor: COLORS.gold + '44' }]}>
+                    <Ionicons name="medal" size={24} color={COLORS.gold} />
+                  </View>
+                  <View>
+                    <Text style={styles.achTitle}>{t('achievements')}</Text>
+                    <Text style={styles.achSub}>
+                      {highestUnlocked >= 5 ? t('earnedBadges') : t('startEarningBadges')}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: '#22c55e' }]}>{passRate}%</Text>
-                  <Text style={styles.statLabel}>Pass Rate</Text>
-                </View>
-              </View>
-              <View style={[styles.statRow, { marginTop: 16 }]}>
-                <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: '#f97316' }]}>
-                    {stats?.bestStreak ?? 0}🔥
-                  </Text>
-                  <Text style={styles.statLabel}>Best Streak</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: '#a5b4fc' }]}>
-                    {(stats?.totalScore ?? 0).toLocaleString()}
-                  </Text>
-                  <Text style={styles.statLabel}>Total Score</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Achievements */}
-            <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('Achievements')}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={styles.cardTitle}>{t('achievements')}</Text>
-                <Text style={{ color: COLORS.primary, fontSize: 13, fontWeight: '600' }}>View all ›</Text>
-              </View>
-              {highestUnlocked >= 5 && (
-                <View style={styles.achievementRow}>
-                  <Text style={styles.achievementEmoji}>⭐</Text>
-                  <Text style={styles.achievementText}>Reached Level 5</Text>
-                </View>
-              )}
-              {(stats?.bestStreak ?? 0) >= 5 && (
-                <View style={styles.achievementRow}>
-                  <Text style={styles.achievementEmoji}>🔥</Text>
-                  <Text style={styles.achievementText}>5x Streak Master</Text>
-                </View>
-              )}
-              {(stats?.totalAttempts ?? 0) >= 10 && (
-                <View style={styles.achievementRow}>
-                  <Text style={styles.achievementEmoji}>🎯</Text>
-                  <Text style={styles.achievementText}>10 Games Played</Text>
-                </View>
-              )}
-              {highestUnlocked < 5 && (stats?.bestStreak ?? 0) < 5 && (stats?.totalAttempts ?? 0) < 10 && (
-                <Text style={styles.noAchievements}>{t('noAchievementsYet')}</Text>
-              )}
+                <Ionicons name="chevron-forward" size={20} color={COLORS.gold + '88'} />
+              </LinearGradient>
             </TouchableOpacity>
 
-            {/* Language */}
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>{t('language')}</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <TouchableOpacity
-                  style={[styles.langButton, language === 'en' && styles.langButtonActive]}
-                  onPress={() => setLanguage('en')}
-                >
-                  <Text style={[styles.langText, language === 'en' && { color: COLORS.primary }]}>
-                    🇬🇧  {t('english')}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.langButton, language === 'tr' && styles.langButtonActive]}
-                  onPress={() => setLanguage('tr')}
-                >
-                  <Text style={[styles.langText, language === 'tr' && { color: COLORS.primary }]}>
-                    🇹🇷  {t('turkish')}
-                  </Text>
-                </TouchableOpacity>
+            {/* ── Language ── */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>{t('language').toUpperCase()}</Text>
+              <View style={styles.langRow}>
+                {(['en', 'tr'] as const).map(lang => (
+                  <TouchableOpacity
+                    key={lang}
+                    style={[styles.langBtn, language === lang && styles.langBtnActive]}
+                    onPress={() => setLanguage(lang)}
+                  >
+                    <Text style={styles.langFlag}>{lang === 'en' ? '🇬🇧' : '🇹🇷'}</Text>
+                    <Text style={[styles.langText, language === lang && { color: COLORS.primary }]}>
+                      {lang === 'en' ? t('english') : t('turkish')}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
 
-            {/* Premium / Referral links */}
-            <TouchableOpacity style={styles.premiumButton} onPress={() => navigation.navigate('Paywall', {})}>
-              <Text style={styles.premiumButtonText}>👑  {t('premiumUpgrade')}</Text>
+            {/* ── Premium ── */}
+            <TouchableOpacity onPress={() => navigation.navigate('Paywall', {})} activeOpacity={0.88}>
+              <LinearGradient
+                colors={['#2A1A00', '#3D2800']}
+                style={styles.premiumCard}
+              >
+                <View style={[styles.premiumIcon, { backgroundColor: COLORS.gold + '22', borderColor: COLORS.gold + '44' }]}>
+                  <Ionicons name="diamond" size={22} color={COLORS.gold} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.premiumTitle}>{t('premiumUpgrade')}</Text>
+                  <Text style={styles.premiumSub}>{t('unlimitedHeartsNoAds')}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.gold + '88'} />
+              </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.referralButton} onPress={() => navigation.navigate('Referral')}>
-              <Text style={styles.referralButtonText}>🤝  {t('referral')}</Text>
+
+            {/* ── Referral ── */}
+            <TouchableOpacity
+              style={styles.referralCard}
+              onPress={() => navigation.navigate('Referral')}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="people" size={20} color={COLORS.accent} />
+              <Text style={styles.referralText}>{t('referral')}</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
             </TouchableOpacity>
           </>
         )}
@@ -213,147 +197,70 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
+  container: { flex: 1, backgroundColor: COLORS.background },
+  heroGradient: { position: 'absolute', top: 0, left: 0, right: 0, height: 220 },
+  scroll: { paddingBottom: 40 },
+
+  hero: { alignItems: 'center', paddingTop: 24, paddingBottom: 24, gap: 8 },
+  avatarGrad: {
+    width: 88, height: 88, borderRadius: 44,
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.5, shadowRadius: 14, elevation: 8,
   },
-  scroll: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 32,
+  avatarInitials: { fontSize: 32, fontWeight: '900', color: '#fff' },
+  username: { fontSize: 24, fontWeight: '900', color: COLORS.text, letterSpacing: -0.5 },
+  levelBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: COLORS.surface2, paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 20, borderWidth: 1, borderColor: COLORS.gold + '44',
   },
-  avatarContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
+  levelBadgeText: { fontSize: 13, fontWeight: '800', color: COLORS.gold },
+
+  statsSection: { paddingHorizontal: 16, marginBottom: 14 },
+  sectionLabel: {
+    fontSize: 10, fontWeight: '800', color: COLORS.textMuted,
+    letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10,
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  statCard: {
+    width: '30.5%', backgroundColor: COLORS.surface, borderRadius: 16,
+    padding: 12, alignItems: 'center', gap: 6,
+    borderWidth: 1, borderColor: COLORS.border,
+  },
+  statIconWrap: { width: 40, height: 40, borderRadius: 12, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  statValue: { fontSize: 20, fontWeight: '900', color: COLORS.text },
+  statLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' },
+
+  achievementsCard: { marginHorizontal: 16, marginBottom: 10, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.border },
+  achievementsGrad: { flexDirection: 'row', alignItems: 'center', padding: 16 },
+  achievementsLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  achIcon: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  achTitle: { fontSize: 16, fontWeight: '800', color: COLORS.text },
+  achSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
+
+  section: { paddingHorizontal: 16, marginBottom: 10 },
+  langRow: { flexDirection: 'row', gap: 8 },
+  langBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 12, borderRadius: 14, borderWidth: 1.5, borderColor: COLORS.border,
     backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
   },
-  avatarEmoji: {
-    fontSize: 36,
+  langBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primary + '15' },
+  langFlag: { fontSize: 18 },
+  langText: { fontSize: 14, fontWeight: '700', color: COLORS.textMuted },
+
+  premiumCard: {
+    marginHorizontal: 16, marginBottom: 10, borderRadius: 18, padding: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderWidth: 1, borderColor: COLORS.gold + '44',
   },
-  username: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 4,
+  premiumIcon: { width: 48, height: 48, borderRadius: 14, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  premiumTitle: { fontSize: 15, fontWeight: '800', color: COLORS.gold },
+  premiumSub: { fontSize: 11, color: COLORS.gold + 'AA', marginTop: 2 },
+
+  referralCard: {
+    marginHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: COLORS.border,
   },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-  },
-  card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 16,
-  },
-  statRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: COLORS.border,
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  achievementRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  achievementEmoji: {
-    fontSize: 20,
-    marginRight: 12,
-  },
-  achievementText: {
-    fontSize: 15,
-    color: COLORS.text,
-    fontWeight: '500',
-  },
-  noAchievements: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    paddingVertical: 8,
-  },
-  langButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-  },
-  langButtonActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary + '20',
-  },
-  langText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textMuted,
-  },
-  premiumButton: {
-    backgroundColor: '#2d1f00',
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#ffd70060',
-  },
-  premiumButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ffd700',
-  },
-  referralButton: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  referralButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
+  referralText: { flex: 1, fontSize: 15, fontWeight: '700', color: COLORS.text },
 });

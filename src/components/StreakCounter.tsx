@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '../constants';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, RADIUS } from '../constants';
 
 interface Props {
   streak: number;
@@ -9,96 +10,97 @@ interface Props {
 
 export const StreakCounter: React.FC<Props> = ({ streak, size = 'small' }) => {
   const scale = useRef(new Animated.Value(1)).current;
-  const glow = useRef(new Animated.Value(0)).current;
+  const glowOpacity = useRef(new Animated.Value(0)).current;
 
   const isHot = streak >= 3;
+  const isLarge = size === 'large';
 
   useEffect(() => {
     if (!isHot) return;
-
-    // Pulse + glow loop
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.parallel([
-          Animated.timing(scale, { toValue: 1.12, duration: 600, useNativeDriver: true }),
-          Animated.timing(glow, { toValue: 1, duration: 600, useNativeDriver: false }),
+          Animated.timing(scale, { toValue: 1.1, duration: 650, useNativeDriver: true }),
+          Animated.timing(glowOpacity, { toValue: 1, duration: 650, useNativeDriver: true }),
         ]),
         Animated.parallel([
-          Animated.timing(scale, { toValue: 1, duration: 600, useNativeDriver: true }),
-          Animated.timing(glow, { toValue: 0, duration: 600, useNativeDriver: false }),
+          Animated.timing(scale, { toValue: 1, duration: 650, useNativeDriver: true }),
+          Animated.timing(glowOpacity, { toValue: 0, duration: 650, useNativeDriver: true }),
         ]),
       ])
     );
     pulse.start();
     return () => pulse.stop();
-  }, [isHot, scale, glow]);
+  }, [isHot, scale, glowOpacity]);
 
-  const glowColor = glow.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['rgba(249,115,22,0)', 'rgba(249,115,22,0.35)'],
-  });
-
-  const isLarge = size === 'large';
-  const fireSize = isLarge ? 36 : 22;
-  const numSize = isLarge ? 28 : 18;
-  const labelSize = isLarge ? 13 : 10;
-  const padH = isLarge ? 18 : 10;
-  const padV = isLarge ? 12 : 6;
-  const radius = isLarge ? 16 : 10;
+  const iconSize = isLarge ? 32 : 20;
+  const countSize = isLarge ? 26 : 16;
+  const labelSize = isLarge ? 12 : 10;
+  const padH = isLarge ? 16 : 10;
+  const padV = isLarge ? 10 : 6;
 
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        {
-          paddingHorizontal: padH,
-          paddingVertical: padV,
-          borderRadius: radius,
-          backgroundColor: glowColor,
-          transform: [{ scale }],
-        },
-      ]}
-    >
-      <View style={styles.row}>
-        <Text style={{ fontSize: fireSize }}>{isHot ? '🔥' : '💧'}</Text>
+    <View>
+      {/* Glow layer */}
+      {isHot && (
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            styles.glow,
+            { opacity: glowOpacity },
+          ]}
+          pointerEvents="none"
+        />
+      )}
+      <Animated.View
+        style={[
+          styles.container,
+          {
+            paddingHorizontal: padH,
+            paddingVertical: padV,
+            borderColor: isHot ? COLORS.warning + '55' : COLORS.border,
+            transform: [{ scale }],
+          },
+        ]}
+      >
+        <Ionicons
+          name={isHot ? 'flame' : 'water'}
+          size={iconSize}
+          color={isHot ? COLORS.warning : COLORS.accent}
+        />
         <View style={styles.textBlock}>
-          <Text
-            style={[
-              styles.count,
-              {
-                fontSize: numSize,
-                color: isHot ? COLORS.warning : COLORS.textMuted,
-              },
-            ]}
-          >
+          <Text style={[styles.count, { fontSize: countSize, color: isHot ? COLORS.warning : COLORS.textSecondary }]}>
             {streak}
           </Text>
           <Text style={[styles.label, { fontSize: labelSize }]}>
             {streak === 1 ? 'streak' : 'streaks'}
           </Text>
         </View>
-      </View>
-    </Animated.View>
+      </Animated.View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignSelf: 'flex-start',
-  },
-  row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    borderWidth: 1,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface2,
+  },
+  glow: {
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.warning,
+    opacity: 0.15,
   },
   textBlock: {
     alignItems: 'center',
   },
   count: {
     fontWeight: '800',
-    lineHeight: 30,
+    lineHeight: 28,
   },
   label: {
     color: COLORS.textMuted,

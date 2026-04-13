@@ -1,14 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  Text,
-  StyleSheet,
-  View,
-  Animated,
-  ScrollView,
-} from 'react-native';
+import { Text, StyleSheet, View, Animated, ScrollView, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import type { RootStackScreenProps } from '../../types';
 import { COLORS, PASS_THRESHOLD, WORLD_THEMES, WORLDS } from '../../constants';
+import { useI18n } from '../../i18n';
 import { EnergyBar } from '../../components/EnergyBar';
 import { StarRating } from '../../components/StarRating';
 import { DuoButton } from '../../components/common/DuoButton';
@@ -16,272 +13,260 @@ import { useInAppReview } from '../../hooks/useInAppReview';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 type Props = RootStackScreenProps<'LevelCompletion'>;
+const { width: W } = Dimensions.get('window');
 
 function getWorldTheme(worldId: number) {
-  const world = WORLDS.find(w => w.worldId === worldId);
-  return world ? WORLD_THEMES[world.key] : WORLD_THEMES.easy;
+  const w = WORLDS.find(w => w.worldId === worldId);
+  return w ? WORLD_THEMES[w.key] : WORLD_THEMES.easy;
 }
 
-// ─── Confetti particle ────────────────────────────────────────────────────────
-const CONFETTI_CHARS = ['★', '●', '■', '▲', '◆'];
-const CONFETTI_COLORS = [
-  COLORS.brandGreen,
-  COLORS.brandBlue,
-  COLORS.brandYellow,
-  COLORS.brandPurple,
-  COLORS.brandOrange,
-  COLORS.brandRed,
-];
+// ─── Confetti ──────────────────────────────────────────────────────────────────
+const CONFETTI_COLORS = ['#FF4C5E','#FF9100','#00E676','#2979FF','#FFD700','#00D4CF','#FF6D00','#C84DFF','#69FFB0'];
+const SHAPES = Array.from({ length: 50 }, (_, i) => ({
+  id: i, x: Math.random() * W, delay: Math.random() * 600,
+  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+  size: 5 + Math.random() * 9,
+  isCircle: i % 3 !== 0,
+  duration: 1600 + Math.random() * 600,
+}));
 
-const ConfettiPiece: React.FC<{
-  delay: number;
-  x: number;
-  color: string;
-  char: string;
-}> = ({ delay, x, color, char }) => {
-  const translateY = useRef(new Animated.Value(-20)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-  const rotate = useRef(new Animated.Value(0)).current;
+const Piece: React.FC<{ delay: number; x: number; color: string; size: number; isCircle: boolean; duration: number }> = ({
+  delay, x, color, size, isCircle, duration,
+}) => {
+  const ty = useRef(new Animated.Value(-20)).current;
+  const op = useRef(new Animated.Value(0)).current;
+  const rot = useRef(new Animated.Value(0)).current;
+  const sc = useRef(new Animated.Value(0.5)).current;
 
   useEffect(() => {
     Animated.sequence([
       Animated.delay(delay),
       Animated.parallel([
-        Animated.timing(opacity, { toValue: 1, duration: 100, useNativeDriver: true }),
-        Animated.timing(translateY, { toValue: 320, duration: 1800, useNativeDriver: true }),
-        Animated.timing(rotate, { toValue: 1, duration: 1800, useNativeDriver: true }),
+        Animated.spring(sc, { toValue: 1, tension: 200, friction: 6, useNativeDriver: true }),
+        Animated.timing(op, { toValue: 1, duration: 80, useNativeDriver: true }),
+        Animated.timing(ty, { toValue: 380 + Math.random() * 120, duration, useNativeDriver: true }),
+        Animated.timing(rot, { toValue: 1, duration, useNativeDriver: true }),
       ]),
-      Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(op, { toValue: 0, duration: 350, useNativeDriver: true }),
     ]).start();
-  }, [delay, translateY, opacity, rotate]);
+  }, []);
 
-  const spin = rotate.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '720deg'] });
+  const spin = rot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${540 + Math.random() * 360}deg`] });
 
   return (
-    <Animated.Text
+    <Animated.View
+      pointerEvents="none"
       style={{
-        position: 'absolute',
-        left: x,
-        top: 0,
-        fontSize: 16,
-        color,
-        transform: [{ translateY }, { rotate: spin }],
-        opacity,
+        position: 'absolute', left: x, top: 0,
+        width: size, height: isCircle ? size : size * 0.6,
+        borderRadius: isCircle ? size / 2 : 2,
+        backgroundColor: color,
+        opacity: op,
+        transform: [{ translateY: ty }, { rotate: spin }, { scale: sc }],
       }}
       importantForAccessibility="no"
       accessibilityElementsHidden
-    >
-      {char}
-    </Animated.Text>
+    />
   );
 };
-
-// 30 particles per burst
-const CONFETTI_PIECES = Array.from({ length: 30 }, (_, i) => ({
-  id: i,
-  delay: Math.floor(Math.random() * 600),
-  x: Math.floor(Math.random() * 340),
-  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-  char: CONFETTI_CHARS[i % CONFETTI_CHARS.length],
-}));
 
 const Confetti: React.FC<{ active: boolean }> = ({ active }) => {
   if (!active) return null;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {CONFETTI_PIECES.map(p => (
-        <ConfettiPiece
-          key={p.id}
-          delay={p.delay}
-          x={p.x}
-          color={p.color}
-          char={p.char}
-        />
-      ))}
+      {SHAPES.map(s => <Piece key={s.id} {...s} />)}
     </View>
   );
 };
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
-export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) => {
-  const {
-    worldId,
-    worldLevelNumber,
-    levelNumber,
-    correct,
-    total,
-    passed,
-    accuracy,
-    stars,
-    nextLevel,
-    energyRemaining,
-  } = route.params;
+// ─── Animated stat card ────────────────────────────────────────────────────────
+const StatCard: React.FC<{ value: string; label: string; color?: string; delay?: number; icon?: string }> = ({
+  value, label, color, delay = 0, icon,
+}) => {
+  const scale = useRef(new Animated.Value(0.5)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.sequence([
+      Animated.delay(delay),
+      Animated.parallel([
+        Animated.spring(scale, { toValue: 1, tension: 90, friction: 7, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+      ]),
+    ]).start();
+  }, []);
+  return (
+    <Animated.View style={[styles.statCard, { opacity, transform: [{ scale }] }]}>
+      {icon && <Ionicons name={icon as any} size={18} color={color ?? COLORS.textSecondary} />}
+      <Text style={[styles.statValue, color ? { color } : {}]}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </Animated.View>
+  );
+};
 
+// ─── Main ──────────────────────────────────────────────────────────────────────
+export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { worldId, worldLevelNumber, levelNumber, correct, total, passed, accuracy, stars, nextLevel, energyRemaining } = route.params;
   const theme = getWorldTheme(worldId);
+  const { t } = useI18n();
   const accuracyPct = Math.round(accuracy * 100);
   const passThresholdPct = Math.round(PASS_THRESHOLD * 100);
   const { maybeRequestReview } = useInAppReview();
   const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    if (passed) maybeRequestReview();
-  }, [passed, maybeRequestReview]);
   const xpEarned = passed ? Math.round(100 * (1 + stars * 0.5)) : 0;
+  const [confetti, setConfetti] = React.useState(false);
 
-  const cardScale = useRef(new Animated.Value(reduceMotion ? 1 : 0.85)).current;
+  useEffect(() => { if (passed) maybeRequestReview(); }, [passed, maybeRequestReview]);
+
+  // Card entrance
+  const cardScale = useRef(new Animated.Value(reduceMotion ? 1 : 0.75)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
-  const [showConfetti, setShowConfetti] = React.useState(false);
+  const iconBounce = useRef(new Animated.Value(0)).current;
+  // XP bar fill
+  const xpFill = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (reduceMotion) {
-      // Reduced motion: instant appear, no spring, no confetti
       cardScale.setValue(1);
-      Animated.timing(cardOpacity, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }).start();
+      Animated.timing(cardOpacity, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+      xpFill.setValue(1);
       return;
     }
-
     Animated.parallel([
-      Animated.spring(cardScale, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 60,
-        friction: 8,
-      }),
-      Animated.timing(cardOpacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }),
+      Animated.spring(cardScale, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+      Animated.timing(cardOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
     ]).start();
-
+    Animated.sequence([
+      Animated.delay(350),
+      Animated.timing(iconBounce, { toValue: -20, duration: 200, useNativeDriver: true }),
+      Animated.spring(iconBounce, { toValue: 0, tension: 120, friction: 5, useNativeDriver: true }),
+    ]).start();
+    Animated.sequence([
+      Animated.delay(600),
+      Animated.timing(xpFill, { toValue: xpEarned / 250, duration: 700, useNativeDriver: false }),
+    ]).start();
     if (passed) {
-      // Trigger confetti 200ms after card pops in, auto-hide after 2.5s
-      const showTimer = setTimeout(() => setShowConfetti(true), 200);
-      const hideTimer = setTimeout(() => setShowConfetti(false), 2700);
-      return () => {
-        clearTimeout(showTimer);
-        clearTimeout(hideTimer);
-      };
+      const t1 = setTimeout(() => setConfetti(true), 280);
+      const t2 = setTimeout(() => setConfetti(false), 3000);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     }
-  }, [cardScale, cardOpacity, passed, reduceMotion]);
+  }, []);
 
-  const handleNextLevel = () => {
-    navigation.replace('Game', {
-      worldId,
-      worldLevelNumber: worldLevelNumber + 1,
-      levelNumber: nextLevel,
-      categoryId: 'general',
-    });
-  };
+  const handleNext = () => navigation.replace('Game', { worldId, worldLevelNumber: worldLevelNumber + 1, levelNumber: nextLevel, categoryId: 'general' });
+  const handleRetry = () => navigation.replace('Game', { worldId, worldLevelNumber, levelNumber, categoryId: 'general' });
+  const handleMap = () => navigation.navigate('Main');
 
-  const handleTryAgain = () => {
-    navigation.replace('Game', {
-      worldId,
-      worldLevelNumber,
-      levelNumber,
-      categoryId: 'general',
-    });
-  };
-
-  const handleWorldMap = () => {
-    navigation.navigate('Main');
-  };
+  const bgColors: readonly [string, string] = passed
+    ? [theme.dimColor, COLORS.background]
+    : [COLORS.dangerBg, COLORS.background];
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Confetti particle burst (§6.4) */}
-      <Confetti active={showConfetti} />
+      <Confetti active={confetti} />
+      <LinearGradient colors={bgColors} style={StyleSheet.absoluteFill} pointerEvents="none" />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Animated.View
-          style={[styles.card, { transform: [{ scale: cardScale }], opacity: cardOpacity }]}
-        >
-          {/* World + level badge */}
-          <View style={[styles.worldBadge, { backgroundColor: theme.tint, borderColor: theme.color }]}>
-            <Text style={styles.worldEmoji}>{theme.emoji}</Text>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Animated.View style={[styles.card, { transform: [{ scale: cardScale }], opacity: cardOpacity }]}>
+
+          {/* World badge */}
+          <View style={[styles.worldBadge, { backgroundColor: theme.tint, borderColor: theme.color + '55' }]}>
+            <Ionicons name={theme.icon as any} size={15} color={theme.color} />
             <Text style={[styles.worldBadgeText, { color: theme.color }]}>
               {theme.name} · Level {worldLevelNumber}
             </Text>
           </View>
 
-          {/* Result title */}
-          <Text style={[styles.resultTitle, { color: passed ? theme.color : COLORS.brandOrange }]}>
-            {passed ? 'Level Complete!' : 'So Close!'}
+          {/* Result icon */}
+          <Animated.View
+            style={[styles.resultIconBg, { backgroundColor: passed ? theme.dimColor : COLORS.dangerBg, transform: [{ translateY: iconBounce }] }]}
+          >
+            <LinearGradient
+              colors={passed ? theme.nodeGradient : ['#BE123C', '#F43F5E']}
+              style={styles.resultIconGrad}
+            >
+              <Ionicons name={passed ? 'trophy' : 'close-circle'} size={52} color="#FFFFFF" />
+            </LinearGradient>
+          </Animated.View>
+
+          {/* Title */}
+          <Text style={[styles.resultTitle, { color: passed ? theme.color : COLORS.danger }]}>
+            {passed ? t('levelComplete') : t('almostThere')}
           </Text>
-          <Text style={styles.resultSubtitle}>
+          <Text style={styles.resultSub}>
             {passed
-              ? 'You crushed it — next level unlocked!'
-              : `Need ${passThresholdPct}% to pass — you got ${accuracyPct}%`}
+              ? t('levelCompleteMsg')
+              : `${t('passLabel')} ${passThresholdPct}% — ${accuracyPct}%`}
           </Text>
 
-          {/* Animated star reveal (§5.6, §6.4) */}
+          {/* Stars */}
           {passed && (
             <View style={styles.starsRow}>
-              <StarRating stars={stars} size={44} animated />
+              <StarRating stars={stars} size={48} animated />
             </View>
           )}
 
-          {/* XP badge */}
+          {/* XP earned */}
           {passed && xpEarned > 0 && (
-            <View style={[styles.xpBadge, { backgroundColor: COLORS.brandPurple }]}>
-              <Text style={styles.xpText}>+{xpEarned} XP earned</Text>
+            <View style={styles.xpRow}>
+              <LinearGradient colors={['#CC9F00', '#FFD700']} style={styles.xpBadge}>
+                <Ionicons name="flash" size={16} color="#FFD700" />
+                <Text style={styles.xpText}>+{xpEarned} {t('xpEarned')}</Text>
+              </LinearGradient>
+              {/* XP fill bar */}
+              <View style={styles.xpTrack}>
+                <Animated.View
+                  style={[
+                    styles.xpFill,
+                    { width: xpFill.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) },
+                  ]}
+                />
+              </View>
             </View>
           )}
 
-          {/* Stats */}
-          <View style={styles.statsRow}>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{correct}/{total}</Text>
-              <Text style={styles.statLabel}>Correct</Text>
+          {/* Stats grid */}
+          <View style={styles.statsGrid}>
+            <StatCard value={`${correct}/${total}`} label={t('correct')} icon="checkmark-circle" color={passed ? theme.color : COLORS.textSecondary} delay={200} />
+            <StatCard value={`${accuracyPct}%`} label={t('accuracy')} icon="analytics" color={passed ? theme.color : COLORS.danger} delay={320} />
+            <StatCard value={passed ? `Lv ${nextLevel}` : `Lv ${worldLevelNumber}`} label={passed ? t('next') : t('retry')} icon={passed ? 'arrow-up-circle' : 'refresh-circle'} color={COLORS.textSecondary} delay={440} />
+          </View>
+
+          {/* Accuracy bar with threshold marker */}
+          <View style={styles.accSection}>
+            <View style={styles.accBar}>
+              <LinearGradient
+                colors={passed ? theme.nodeGradient : ['#BE123C', '#F43F5E']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                style={[styles.accFill, { width: `${Math.min(accuracyPct, 100)}%` as `${number}%` }]}
+              />
+              <View style={[styles.accMarker, { left: `${passThresholdPct}%` as `${number}%` }]} />
             </View>
-            <View style={[styles.statBox, styles.statBoxCenter]}>
-              <Text style={[styles.statValue, { color: passed ? theme.color : COLORS.brandRed }]}>
-                {accuracyPct}%
+            <View style={styles.accLabels}>
+              <Text style={styles.accLabel}>0%</Text>
+              <Text style={[styles.accThreshLabel, { left: `${passThresholdPct - 14}%` as `${number}%` }]}>
+                {t('passLabel')} {passThresholdPct}%
               </Text>
-              <Text style={styles.statLabel}>Accuracy</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{passed ? `Lv ${nextLevel}` : `Lv ${worldLevelNumber}`}</Text>
-              <Text style={styles.statLabel}>{passed ? 'Next' : 'Retry'}</Text>
+              <Text style={styles.accLabel}>100%</Text>
             </View>
           </View>
 
-          {/* Accuracy bar */}
-          <View style={styles.accuracyBarTrack}>
-            <View
-              style={[
-                styles.accuracyBarFill,
-                {
-                  width: `${Math.min(accuracyPct, 100)}%` as `${number}%`,
-                  backgroundColor: passed ? theme.color : COLORS.brandRed,
-                },
-              ]}
-            />
-            <View style={[styles.thresholdMarker, { left: `${passThresholdPct}%` as `${number}%` }]} />
-          </View>
-          <Text style={styles.accuracyBarLabel}>Pass threshold: {passThresholdPct}%</Text>
-
-          {/* Energy remaining */}
-          <View style={styles.energyRow}>
-            <Text style={styles.energyLabel}>Hearts remaining</Text>
+          {/* Hearts */}
+          <View style={styles.heartsRow}>
+            <Ionicons name="heart" size={15} color={COLORS.danger} />
+            <Text style={styles.heartsLabel}>{t('heartsRemainingLabel')}</Text>
             <EnergyBar hearts={energyRemaining} size={18} />
           </View>
 
-          {/* CTAs — DuoButton with 3D press (§5.1) */}
-          <View style={styles.ctaContainer}>
+          {/* CTAs */}
+          <View style={styles.ctaStack}>
             {passed ? (
-              <DuoButton label="Next Level →" variant="primary" onPress={handleNextLevel} />
+              <DuoButton label={t('nextLevel')} variant="primary" onPress={handleNext}
+                icon={<Ionicons name="arrow-forward" size={18} color="#fff" />} />
             ) : (
-              <DuoButton label="Try Again" variant="danger" onPress={handleTryAgain} />
+              <DuoButton label={t('tryAgain')} variant="danger" onPress={handleRetry}
+                icon={<Ionicons name="refresh" size={18} color="#fff" />} />
             )}
-            <DuoButton label="World Map" variant="secondary" onPress={handleWorldMap} />
+            <DuoButton label={t('worldMap')} variant="secondary" onPress={handleMap}
+              icon={<Ionicons name="map-outline" size={18} color={COLORS.text} />} />
           </View>
         </Animated.View>
       </ScrollView>
@@ -290,161 +275,50 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 18, paddingVertical: 28 },
+
   card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 24,
-    padding: 24,
-    alignItems: 'center',
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 10,
-    gap: 14,
+    backgroundColor: COLORS.surface, borderRadius: 28, padding: 24,
+    alignItems: 'center', borderWidth: 1, borderColor: COLORS.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.55, shadowRadius: 24, elevation: 14,
+    gap: 16,
   },
 
-  // World badge
-  worldBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 6,
-  },
-  worldEmoji: {
-    fontSize: 18,
-  },
-  worldBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
+  worldBadge: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
+  worldBadgeText: { fontSize: 13, fontWeight: '700' },
 
-  // Title
-  resultTitle: {
-    fontSize: 30,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  resultSubtitle: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
+  resultIconBg: { width: 100, height: 100, borderRadius: 28, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 10 },
+  resultIconGrad: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  // Stars
-  starsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginVertical: 4,
-  },
+  resultTitle: { fontSize: 30, fontWeight: '900', textAlign: 'center', letterSpacing: -0.5 },
+  resultSub: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
 
-  // XP badge
-  xpBadge: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  xpText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
+  starsRow: { flexDirection: 'row', gap: 8 },
 
-  // Stats
-  statsRow: {
-    flexDirection: 'row',
-    width: '100%',
-    gap: 10,
-  },
-  statBox: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  statBoxCenter: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  xpRow: { width: '100%', alignItems: 'center', gap: 8 },
+  xpBadge: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, shadowColor: COLORS.gold, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 8, elevation: 5 },
+  xpText: { color: '#1A1200', fontSize: 16, fontWeight: '800' },
+  xpTrack: { width: '100%', height: 6, backgroundColor: COLORS.surface2, borderRadius: 3, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.border },
+  xpFill: { position: 'absolute', left: 0, top: 0, height: '100%', borderRadius: 3, backgroundColor: COLORS.gold },
+
+  statsGrid: { flexDirection: 'row', gap: 8, width: '100%' },
+  statCard: { flex: 1, backgroundColor: COLORS.surface2, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 8, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border, gap: 4 },
+  statValue: { fontSize: 20, fontWeight: '900', color: COLORS.text },
+  statLabel: { fontSize: 10, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.7, fontWeight: '600' },
 
   // Accuracy bar
-  accuracyBarTrack: {
-    width: '100%',
-    height: 8,
-    backgroundColor: COLORS.background,
-    borderRadius: 4,
-    overflow: 'visible',
-    position: 'relative',
-  },
-  accuracyBarFill: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    height: '100%',
-    borderRadius: 4,
-  },
-  thresholdMarker: {
-    position: 'absolute',
-    top: -4,
-    width: 2,
-    height: 16,
-    backgroundColor: COLORS.text,
-    borderRadius: 1,
-    marginLeft: -1,
-  },
-  accuracyBarLabel: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-    alignSelf: 'flex-start',
-  },
+  accSection: { width: '100%', gap: 6 },
+  accBar: { width: '100%', height: 10, backgroundColor: COLORS.surface2, borderRadius: 5, overflow: 'visible', position: 'relative', borderWidth: 1, borderColor: COLORS.border },
+  accFill: { position: 'absolute', left: 0, top: 0, height: '100%', borderRadius: 5 },
+  accMarker: { position: 'absolute', top: -5, width: 2, height: 20, backgroundColor: COLORS.text, borderRadius: 1, opacity: 0.5, marginLeft: -1 },
+  accLabels: { flexDirection: 'row', justifyContent: 'space-between', position: 'relative' },
+  accLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600' },
+  accThreshLabel: { position: 'absolute', fontSize: 10, color: COLORS.textSecondary, fontWeight: '700', top: 0 },
 
-  // Energy row
-  energyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  energyLabel: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    fontWeight: '600',
-  },
+  // Hearts
+  heartsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, width: '100%', backgroundColor: COLORS.surface2, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: COLORS.border },
+  heartsLabel: { flex: 1, fontSize: 13, color: COLORS.textSecondary, fontWeight: '600' },
 
-  // CTAs
-  ctaContainer: {
-    width: '100%',
-    gap: 10,
-  },
+  ctaStack: { width: '100%', gap: 10 },
 });

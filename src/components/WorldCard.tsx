@@ -1,14 +1,21 @@
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { COLORS } from '../constants';
-import { StarRating } from './StarRating';
+import React, { useRef } from 'react';
+import {
+  Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, RADIUS } from '../constants';
 
 interface WorldCardProps {
   name: string;
-  emoji: string;
+  icon: string;
   color: string;
   dimColor: string;
-  tint: string;
+  gradient: readonly [string, string];
   levelsCompleted: number;
   totalLevels: number;
   totalStars: number;
@@ -16,13 +23,17 @@ interface WorldCardProps {
   locked?: boolean;
   onPress?: () => void;
   testID?: string;
+  // legacy emoji prop — kept for back-compat but unused
+  emoji?: string;
+  tint?: string;
 }
 
 export const WorldCard: React.FC<WorldCardProps> = ({
   name,
-  emoji,
+  icon,
   color,
-  tint,
+  dimColor,
+  gradient,
   levelsCompleted,
   totalLevels,
   totalStars,
@@ -32,113 +43,250 @@ export const WorldCard: React.FC<WorldCardProps> = ({
   testID,
 }) => {
   const progressPct = totalLevels > 0 ? (levelsCompleted / totalLevels) * 100 : 0;
-  const starCount = Math.min(3, Math.round((totalStars / maxStars) * 3)) as 0 | 1 | 2 | 3;
+  const pressAnim = useRef(new Animated.Value(0)).current;
+
+  const handlePressIn = () => {
+    if (locked) return;
+    Animated.timing(pressAnim, { toValue: 1, duration: 80, useNativeDriver: true }).start();
+  };
+
+  const handlePressOut = () => {
+    if (locked) return;
+    Animated.spring(pressAnim, { toValue: 0, useNativeDriver: true, tension: 300, friction: 20 }).start();
+  };
+
+  const scale = pressAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.97] });
 
   return (
-    <TouchableOpacity
-      testID={testID}
-      style={[styles.card, { borderColor: locked ? COLORS.border : color }, locked && styles.locked]}
-      onPress={!locked ? onPress : undefined}
-      disabled={locked}
-      activeOpacity={0.82}
-    >
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: tint }]}>
-        <Text style={styles.emoji}>{emoji}</Text>
-        <View style={styles.headerText}>
-          <Text style={[styles.name, { color }]}>{name}</Text>
-          <Text style={styles.levels}>{levelsCompleted}/{totalLevels} levels</Text>
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <TouchableOpacity
+        testID={testID}
+        onPress={!locked ? onPress : undefined}
+        disabled={locked}
+        activeOpacity={1}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        style={[styles.card, locked && styles.locked]}
+        accessibilityRole="button"
+        accessibilityLabel={`${name} world — ${levelsCompleted} of ${totalLevels} levels completed${locked ? ', locked' : ''}`}
+        accessibilityState={{ disabled: locked }}
+      >
+        {/* Gradient header */}
+        <LinearGradient
+          colors={locked ? ['#12122A', '#1A1A3E'] : gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
+          {/* Icon circle */}
+          <View style={[styles.iconCircle, { backgroundColor: locked ? COLORS.border : color + '22', borderColor: locked ? COLORS.border : color + '55' }]}>
+            <Ionicons
+              name={locked ? 'lock-closed' : icon as any}
+              size={28}
+              color={locked ? COLORS.textMuted : color}
+            />
+          </View>
+
+          <View style={styles.headerText}>
+            <Text style={[styles.worldName, { color: locked ? COLORS.textMuted : '#FFFFFF' }]}>
+              {name}
+            </Text>
+            <Text style={[styles.levelCount, { color: locked ? COLORS.textMuted : color }]}>
+              {locked ? 'Complete previous world' : `${levelsCompleted} / ${totalLevels} levels`}
+            </Text>
+          </View>
+
+          {/* Star count */}
+          {!locked && (
+            <View style={styles.starBadge}>
+              <Ionicons name="star" size={14} color="#F59E0B" />
+              <Text style={styles.starText}>{totalStars}</Text>
+            </View>
+          )}
+        </LinearGradient>
+
+        {/* Progress area */}
+        <View style={styles.body}>
+          <View style={styles.progressRow}>
+            <View style={styles.progressTrack}>
+              <Animated.View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${progressPct}%` as `${number}%`,
+                    backgroundColor: locked ? COLORS.border : color,
+                  },
+                ]}
+              />
+              {/* Glow dot at the end of progress */}
+              {!locked && progressPct > 0 && progressPct < 100 && (
+                <View
+                  style={[
+                    styles.progressDot,
+                    { left: `${progressPct}%` as `${number}%`, backgroundColor: color },
+                  ]}
+                />
+              )}
+            </View>
+            <Text style={[styles.progressLabel, { color: locked ? COLORS.textMuted : COLORS.textSecondary }]}>
+              {Math.round(progressPct)}%
+            </Text>
+          </View>
+
+          {/* XP / star line */}
+          {!locked && (
+            <View style={styles.statsRow}>
+              <View style={styles.statChip}>
+                <Ionicons name="flash" size={12} color={dimColor} />
+                <Text style={[styles.statChipText, { color: COLORS.textMuted }]}>
+                  {totalLevels - levelsCompleted} levels left
+                </Text>
+              </View>
+              <View style={styles.statChip}>
+                <Ionicons name="star" size={12} color="#F59E0B" />
+                <Text style={[styles.statChipText, { color: COLORS.textMuted }]}>
+                  {totalStars} / {maxStars}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
-        {locked ? (
-          <Text style={styles.lockIcon}>🔒</Text>
-        ) : (
-          <View style={styles.starsSection}>
-            <StarRating stars={starCount} size={13} />
-            <Text style={styles.starsLabel}>{totalStars}/{maxStars} ⭐</Text>
+
+        {/* Right arrow for unlocked world */}
+        {!locked && (
+          <View style={[styles.chevron, { backgroundColor: color + '22' }]}>
+            <Ionicons name="chevron-forward" size={18} color={color} />
           </View>
         )}
-      </View>
-
-      {/* Progress bar */}
-      <View style={styles.body}>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${progressPct}%` as `${number}%`, backgroundColor: color }]} />
-        </View>
-        {locked && (
-          <Text style={styles.lockHint}>Complete the previous world to unlock</Text>
-        )}
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    borderWidth: 2,
+    borderRadius: RADIUS.xl,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   locked: {
-    opacity: 0.6,
+    opacity: 0.65,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
     gap: 12,
   },
-  emoji: {
-    fontSize: 34,
+  iconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerText: {
     flex: 1,
   },
-  name: {
-    fontSize: 18,
-    fontWeight: '700',
+  worldName: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
-  levels: {
+  levelCount: {
     fontSize: 13,
-    color: COLORS.textMuted,
-    marginTop: 2,
-  },
-  lockIcon: {
-    fontSize: 22,
-  },
-  starsSection: {
-    alignItems: 'center',
-    gap: 3,
-  },
-  starsLabel: {
-    fontSize: 11,
-    color: COLORS.textMuted,
     fontWeight: '600',
+    marginTop: 3,
+  },
+  starBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: RADIUS.full,
+  },
+  starText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#F59E0B',
   },
   body: {
     paddingHorizontal: 16,
-    paddingBottom: 14,
-    gap: 6,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   progressTrack: {
+    flex: 1,
     height: 8,
     backgroundColor: COLORS.background,
     borderRadius: 4,
-    overflow: 'hidden',
+    overflow: 'visible',
+    position: 'relative',
   },
   progressFill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
     height: '100%',
     borderRadius: 4,
   },
-  lockHint: {
+  progressDot: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    top: -2,
+    marginLeft: -6,
+    borderWidth: 2,
+    borderColor: COLORS.surface,
+  },
+  progressLabel: {
     fontSize: 12,
-    color: COLORS.textMuted,
-    fontStyle: 'italic',
+    fontWeight: '700',
+    minWidth: 36,
+    textAlign: 'right',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.surface2,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.full,
+  },
+  statChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  chevron: {
+    position: 'absolute',
+    right: 14,
+    bottom: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

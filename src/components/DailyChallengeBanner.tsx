@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { COLORS } from '../constants';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { COLORS, RADIUS } from '../constants';
 import { getDailyChallenge, type DailyChallenge } from '../services/socialService';
 
 interface Props {
@@ -9,7 +11,6 @@ interface Props {
 
 function useCountdown(expiresAt: string): string {
   const [label, setLabel] = React.useState('');
-
   useEffect(() => {
     function tick() {
       const diff = new Date(expiresAt).getTime() - Date.now();
@@ -23,7 +24,6 @@ function useCountdown(expiresAt: string): string {
     const id = setInterval(tick, 1_000);
     return () => clearInterval(id);
   }, [expiresAt]);
-
   return label;
 }
 
@@ -32,42 +32,55 @@ const BannerInner: React.FC<{ challenge: DailyChallenge; onPress?: () => void }>
   onPress,
 }) => {
   const countdown = useCountdown(challenge.expiresAt);
-
   return (
     <TouchableOpacity
       style={styles.banner}
       onPress={onPress}
       activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel="Daily challenge"
     >
-      {/* Left accent */}
-      <View style={styles.accent} />
+      <LinearGradient
+        colors={['#1E1040', '#120E30']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gradient}
+      >
+        {/* Left stripe */}
+        <View style={styles.accentStripe} />
 
-      <View style={styles.content}>
-        <View style={styles.topRow}>
-          <Text style={styles.fireEmoji}>⚡</Text>
-          <Text style={styles.label}>DAILY CHALLENGE</Text>
-          <View style={styles.countdownBadge}>
-            <Text style={styles.countdownText}>{countdown}</Text>
+        <View style={styles.content}>
+          {/* Top row */}
+          <View style={styles.topRow}>
+            <Ionicons name="flash" size={13} color={COLORS.primaryLight} />
+            <Text style={styles.badgeLabel}>DAILY CHALLENGE</Text>
+            <View style={styles.countdownBadge}>
+              <Ionicons name="time-outline" size={10} color={COLORS.warning} />
+              <Text style={styles.countdownText}>{countdown}</Text>
+            </View>
+          </View>
+
+          {/* Title */}
+          <Text style={styles.title}>{challenge.title}</Text>
+          <Text style={styles.description} numberOfLines={2}>{challenge.description}</Text>
+
+          {/* Bottom stats */}
+          <View style={styles.bottomRow}>
+            <View style={styles.stat}>
+              <Text style={styles.statValue}>{challenge.targetScore.toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Target</Text>
+            </View>
+            <View style={[styles.stat, styles.statSeparated]}>
+              <Text style={styles.statValue}>{challenge.participants.toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Players</Text>
+            </View>
+            <View style={styles.ctaBtn}>
+              <Text style={styles.ctaText}>Play</Text>
+              <Ionicons name="arrow-forward" size={13} color="#fff" />
+            </View>
           </View>
         </View>
-
-        <Text style={styles.title}>{challenge.title}</Text>
-        <Text style={styles.description}>{challenge.description}</Text>
-
-        <View style={styles.bottomRow}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{challenge.targetScore.toLocaleString()}</Text>
-            <Text style={styles.statLabel}>Target Score</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{challenge.participants.toLocaleString()}</Text>
-            <Text style={styles.statLabel}>Players</Text>
-          </View>
-          <View style={styles.ctaBadge}>
-            <Text style={styles.ctaText}>Play Now →</Text>
-          </View>
-        </View>
-      </View>
+      </LinearGradient>
     </TouchableOpacity>
   );
 };
@@ -77,21 +90,18 @@ export const DailyChallengeBanner: React.FC<Props> = ({ onPress }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getDailyChallenge()
-      .then(setChallenge)
-      .finally(() => setLoading(false));
+    getDailyChallenge().then(setChallenge).finally(() => setLoading(false));
   }, []);
 
   if (loading) {
     return (
       <View style={styles.placeholder}>
-        <ActivityIndicator color={COLORS.primary} size="small" />
+        <ActivityIndicator color={COLORS.primaryLight} size="small" />
       </View>
     );
   }
 
   if (!challenge) return null;
-
   return <BannerInner challenge={challenge} onPress={onPress} />;
 };
 
@@ -101,90 +111,107 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   banner: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    borderRadius: RADIUS.lg,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#4338ca',
+    borderColor: COLORS.primary + '55',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  accent: {
+  gradient: {
+    flexDirection: 'row',
+  },
+  accentStripe: {
     width: 4,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.primaryLight,
   },
   content: {
     flex: 1,
     padding: 14,
-    gap: 8,
+    gap: 7,
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
-  fireEmoji: {
-    fontSize: 14,
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.primary,
+  badgeLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: COLORS.primaryLight,
     letterSpacing: 1,
     flex: 1,
   },
   countdownBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     backgroundColor: COLORS.background,
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: RADIUS.full,
   },
   countdownText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '700',
     color: COLORS.warning,
   },
   title: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     color: COLORS.text,
   },
   description: {
-    fontSize: 13,
+    fontSize: 12,
     color: COLORS.textMuted,
-    lineHeight: 18,
+    lineHeight: 17,
   },
   bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginTop: 4,
+    marginTop: 2,
   },
   stat: {
     alignItems: 'center',
   },
+  statSeparated: {
+    paddingLeft: 12,
+    borderLeftWidth: 1,
+    borderLeftColor: COLORS.border,
+  },
   statValue: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
     color: COLORS.text,
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: COLORS.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    fontWeight: '600',
   },
-  ctaBadge: {
+  ctaBtn: {
     marginLeft: 'auto',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: COLORS.primary,
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
+    paddingVertical: 7,
+    borderRadius: RADIUS.full,
   },
   ctaText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: '#fff',
   },

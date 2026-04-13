@@ -1,14 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Share,
-  ActivityIndicator,
-  Alert,
+  View, Text, StyleSheet, TouchableOpacity, Share, ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { COLORS } from '../../constants';
 import { useI18n } from '../../i18n';
@@ -21,9 +17,17 @@ interface ReferralData {
 }
 
 function generateCode(userId: string): string {
-  // Deterministic code from userId prefix
   return 'QD' + userId.replace(/-/g, '').slice(0, 6).toUpperCase();
 }
+
+// Step text keys resolved via t() in the component
+const STEP_KEYS = ['referralStep1', 'referralStep2', 'referralStep3', 'referralStep4'] as const;
+const STEP_ICONS = [
+  { icon: 'share-social',    color: COLORS.primary },
+  { icon: 'download',        color: COLORS.timerSafe },
+  { icon: 'game-controller', color: COLORS.streak },
+  { icon: 'gift',            color: COLORS.gold },
+] as const;
 
 export const ReferralScreen: React.FC = () => {
   const { t } = useI18n();
@@ -49,7 +53,6 @@ export const ReferralScreen: React.FC = () => {
             coinsEarned: referralRow.coins_earned ?? 0,
           });
         } else {
-          // Auto-generate code for new users
           const code = generateCode(user.id);
           try { await supabase.from('referrals').insert({ user_id: user.id, code }); } catch { /* ignore */ }
           setData({ code, successfulReferrals: 0, pendingReferrals: 0, coinsEarned: 0 });
@@ -70,11 +73,11 @@ export const ReferralScreen: React.FC = () => {
     if (!data) return;
     try {
       await Share.share({
-        message: `🧠 Try Quick Decision — the fast trivia battle game! Use my code ${data.code} when you sign up and we both get 50 bonus coins. Download: https://quickdecision.app`,
-        title: 'Join Quick Decision!',
+        message: `${t('referralExplain')} ${t('yourReferralCode')}: ${data.code}`,
+        title: 'Quick Decision',
       });
     } catch {
-      Alert.alert('Share failed', 'Could not open share sheet.');
+      Alert.alert(t('shareFailed'), t('shareFailedBody'));
     }
   };
 
@@ -90,18 +93,23 @@ export const ReferralScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.scroll}>
         {/* Hero */}
-        <View style={styles.hero}>
-          <Text style={styles.heroEmoji}>🤝</Text>
+        <LinearGradient colors={['#001020', '#001830']} style={styles.hero}>
+          <View style={styles.heroIconWrap}>
+            <Ionicons name="people" size={36} color={COLORS.accent} />
+          </View>
           <Text style={styles.heroTitle}>{t('referral')}</Text>
           <Text style={styles.heroSubtitle}>{t('referralExplain')}</Text>
-        </View>
+        </LinearGradient>
 
         {/* Code card */}
         <View style={styles.codeCard}>
           <Text style={styles.codeLabel}>{t('yourReferralCode')}</Text>
           <Text style={styles.code}>{data?.code ?? '------'}</Text>
-          <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-            <Text style={styles.shareButtonText}>📤  {t('shareInvite')}</Text>
+          <TouchableOpacity style={styles.shareWrap} onPress={handleShare} activeOpacity={0.88}>
+            <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.shareButton}>
+              <Ionicons name="share-social" size={18} color="#fff" />
+              <Text style={styles.shareButtonText}>{t('shareInvite')}</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -109,42 +117,34 @@ export const ReferralScreen: React.FC = () => {
         <View style={styles.statsCard}>
           <View style={styles.statRow}>
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: COLORS.success }]}>
-                {data?.successfulReferrals ?? 0}
-              </Text>
-              <Text style={styles.statLabel}>Successful</Text>
+              <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
+              <Text style={[styles.statValue, { color: COLORS.success }]}>{data?.successfulReferrals ?? 0}</Text>
+              <Text style={styles.statLabel}>{t('successful')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: COLORS.warning }]}>
-                {data?.pendingReferrals ?? 0}
-              </Text>
-              <Text style={styles.statLabel}>Pending</Text>
+              <Ionicons name="time" size={20} color={COLORS.timerWarning} />
+              <Text style={[styles.statValue, { color: COLORS.timerWarning }]}>{data?.pendingReferrals ?? 0}</Text>
+              <Text style={styles.statLabel}>{t('pendingLabel')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: COLORS.yellow }]}>
-                {(data?.coinsEarned ?? 0).toLocaleString()}
-              </Text>
-              <Text style={styles.statLabel}>Coins Earned</Text>
+              <Ionicons name="gift" size={20} color={COLORS.gold} />
+              <Text style={[styles.statValue, { color: COLORS.gold }]}>{(data?.coinsEarned ?? 0).toLocaleString()}</Text>
+              <Text style={styles.statLabel}>{t('coinsEarned')}</Text>
             </View>
           </View>
         </View>
 
         {/* How it works */}
         <View style={styles.howCard}>
-          <Text style={styles.cardTitle}>How It Works</Text>
-          {[
-            { step: '1', text: 'Share your unique referral code with friends' },
-            { step: '2', text: 'Friend downloads and signs up with your code' },
-            { step: '3', text: 'They play their first 3 games' },
-            { step: '4', text: 'You both receive 50 bonus coins! 🎉' },
-          ].map((item) => (
-            <View key={item.step} style={styles.stepRow}>
-              <View style={styles.stepBadge}>
-                <Text style={styles.stepNum}>{item.step}</Text>
+          <Text style={styles.cardTitle}>{t('howItWorks')}</Text>
+          {STEP_ICONS.map((step, i) => (
+            <View key={i} style={styles.stepRow}>
+              <View style={[styles.stepBadge, { backgroundColor: step.color + '22', borderColor: step.color + '55' }]}>
+                <Ionicons name={step.icon as any} size={16} color={step.color} />
               </View>
-              <Text style={styles.stepText}>{item.text}</Text>
+              <Text style={styles.stepText}>{t(STEP_KEYS[i])}</Text>
             </View>
           ))}
         </View>
@@ -155,78 +155,60 @@ export const ReferralScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  scroll: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
-  hero: { alignItems: 'center', marginBottom: 24 },
-  heroEmoji: { fontSize: 56, marginBottom: 8 },
-  heroTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.text, marginBottom: 6 },
-  heroSubtitle: { fontSize: 14, color: COLORS.textMuted, textAlign: 'center', lineHeight: 20 },
+  scroll: { flex: 1, paddingHorizontal: 20, paddingTop: 16, gap: 14 },
+
+  hero: {
+    alignItems: 'center', borderRadius: 22, padding: 28, gap: 8,
+    borderWidth: 1, borderColor: COLORS.accent + '33',
+  },
+  heroIconWrap: {
+    width: 66, height: 66, borderRadius: 20, borderWidth: 1,
+    borderColor: COLORS.accent + '55', backgroundColor: COLORS.accent + '20',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  heroTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text },
+  heroSubtitle: { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', lineHeight: 19 },
+
   codeCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: COLORS.primary + '60',
+    backgroundColor: COLORS.surface, borderRadius: 20, padding: 24,
+    alignItems: 'center', borderWidth: 1.5, borderColor: COLORS.primary + '55', gap: 12,
   },
   codeLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 10,
+    fontSize: 10, fontWeight: '800', color: COLORS.textMuted,
+    textTransform: 'uppercase', letterSpacing: 1.2,
   },
   code: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-    letterSpacing: 4,
-    marginBottom: 20,
-    fontVariant: ['tabular-nums'],
+    fontSize: 36, fontWeight: '900', color: COLORS.primary,
+    letterSpacing: 6, fontVariant: ['tabular-nums'],
   },
+  shareWrap: { width: '100%', borderRadius: 14, overflow: 'hidden' },
   shareButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, height: 50,
   },
   shareButtonText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+
   statsCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    backgroundColor: COLORS.surface, borderRadius: 18, padding: 20,
+    borderWidth: 1, borderColor: COLORS.border,
   },
   statRow: { flexDirection: 'row', alignItems: 'center' },
-  statItem: { flex: 1, alignItems: 'center' },
-  statDivider: { width: 1, height: 40, backgroundColor: COLORS.border },
-  statValue: { fontSize: 26, fontWeight: 'bold' },
-  statLabel: { fontSize: 12, color: COLORS.textMuted, marginTop: 4 },
+  statItem: { flex: 1, alignItems: 'center', gap: 4 },
+  statDivider: { width: 1, height: 44, backgroundColor: COLORS.border },
+  statValue: { fontSize: 24, fontWeight: '900' },
+  statLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+
   howCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 32,
+    backgroundColor: COLORS.surface, borderRadius: 18, padding: 20,
+    borderWidth: 1, borderColor: COLORS.border, gap: 14, marginBottom: 32,
   },
   cardTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 16,
+    fontSize: 10, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.2,
   },
-  stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+    width: 36, height: 36, borderRadius: 11, borderWidth: 1,
+    justifyContent: 'center', alignItems: 'center',
   },
-  stepNum: { fontSize: 13, fontWeight: 'bold', color: '#fff' },
   stepText: { flex: 1, fontSize: 14, color: COLORS.text, lineHeight: 20 },
 });

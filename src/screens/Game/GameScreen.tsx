@@ -1,32 +1,32 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Animated,
-  View,
-  ActivityIndicator,
+  Text, StyleSheet, TouchableOpacity, Animated, View,
+  ActivityIndicator, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import type { RootStackScreenProps } from '../../types';
 import type { Question } from '../../types';
 import { getLevelConfig, COLORS, WORLD_THEMES, WORLDS } from '../../constants';
+import { useI18n } from '../../i18n';
 import { fetchQuestionsForLevel, submitLevelAttempt } from '../../services/gameService';
 import { useEnergy } from '../../hooks/useEnergy';
 import { EnergyBar } from '../../components/EnergyBar';
 import { OptionButton } from '../../components/game/OptionButton';
 import { FactReveal } from '../../components/game/FactReveal';
+import { FloatingScore } from '../../components/game/FloatingScore';
 
 type AnswerState = 'idle' | 'correct' | 'wrong';
-type GamePhase = 'loading' | 'playing' | 'fact_reveal' | 'submitting' | 'no_energy';
-
+type GamePhase = 'loading' | 'playing' | 'selected' | 'fact_reveal' | 'submitting' | 'no_energy';
 type Props = RootStackScreenProps<'Game'>;
 
-function getWorldTheme(worldId: number) {
-  const world = WORLDS.find(w => w.worldId === worldId);
-  return world ? WORLD_THEMES[world.key] : WORLD_THEMES.easy;
-}
+const { width: W, height: H } = Dimensions.get('window');
 
+function getWorldTheme(worldId: number) {
+  const w = WORLDS.find(w => w.worldId === worldId);
+  return w ? WORLD_THEMES[w.key] : WORLD_THEMES.easy;
+}
 function getStars(accuracy: number): 0 | 1 | 2 | 3 {
   if (accuracy >= 1.0) return 3;
   if (accuracy >= 0.9) return 2;
@@ -34,51 +34,183 @@ function getStars(accuracy: number): 0 | 1 | 2 | 3 {
   return 0;
 }
 
+// ─── Ambient background particles ─────────────────────────────────────────────
+const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
+  id: i,
+  x: Math.random() * W,
+  size: 2 + (i % 4) * 1.5,
+  duration: 8000 + i * 700,
+  delay: i * 350,
+  opacity: 0.08 + (i % 3) * 0.06,
+}));
+
+const AmbientBg: React.FC<{ color: string }> = ({ color }) => {
+  const anims = useRef(PARTICLES.map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    anims.forEach((anim, i) => {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.delay(PARTICLES[i].delay),
+          Animated.timing(anim, { toValue: 1, duration: PARTICLES[i].duration, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 0, duration: 0, useNativeDriver: true }),
+        ])
+      );
+      loop.start();
+    });
+    return () => anims.forEach(a => a.stopAnimation());
+  }, []);
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <LinearGradient
+        colors={['#09071A', '#0D0A28', '#09071A']}
+        style={StyleSheet.absoluteFill}
+      />
+      {PARTICLES.map((p, i) => {
+        const ty = anims[i].interpolate({ inputRange: [0, 1], outputRange: [H, -p.size * 4] });
+        const op = anims[i].interpolate({ inputRange: [0, 0.1, 0.85, 1], outputRange: [0, p.opacity, p.opacity, 0] });
+        return (
+          <Animated.View
+            key={p.id}
+            style={{
+              position: 'absolute', left: p.x, width: p.size, height: p.size,
+              borderRadius: p.size / 2, backgroundColor: color,
+              opacity: op, transform: [{ translateY: ty }],
+            }}
+          />
+        );
+      })}
+    </View>
+  );
+};
+
+// ─── Circular countdown timer ──────────────────────────────────────────────────
+const CircleTimer: React.FC<{ timeLeft: number; total: number }> = ({ timeLeft, total }) => {
+  const { t } = useI18n();
+  const pct = timeLeft / total;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const prevPct = useRef(pct);
+
+  // Color zones: blue (safe) → orange (warning) → red (danger)
+  const color = pct > 0.5 ? COLORS.timerSafe : pct > 0.25 ? COLORS.timerWarning : COLORS.timerDanger;
+
+  useEffect(() => {
+    if (timeLeft <= Math.ceil(total * 0.25) && timeLeft > 0) {
+      const a = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.15, duration: 380, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 380, useNativeDriver: true }),
+        ])
+      );
+      a.start();
+      return () => a.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [timeLeft <= Math.ceil(total * 0.25)]);
+
+  return (
+    <Animated.View style={[tStyles.wrap, { transform: [{ scale: pulseAnim }] }]}>
+      <LinearGradient
+        colors={pct > 0.5 ? ['#1040A0', COLORS.timerSafe] : pct > 0.25 ? ['#A04000', COLORS.timerWarning] : ['#8B001C', COLORS.timerDanger]}
+        style={tStyles.grad}
+      >
+        <View style={tStyles.innerMask}>
+          <Text style={[tStyles.num, { color }]}>{timeLeft}</Text>
+          <Text style={[tStyles.unit, { color: color + 'AA' }]}>{t('sec')}</Text>
+        </View>
+      </LinearGradient>
+    </Animated.View>
+  );
+};
+const tStyles = StyleSheet.create({
+  wrap: {
+    width: 66, height: 66, borderRadius: 33, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 8, elevation: 8,
+  },
+  grad: { flex: 1, padding: 3 },
+  innerMask: {
+    flex: 1, borderRadius: 30, backgroundColor: '#09071A',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  num:  { fontSize: 22, fontWeight: '900', lineHeight: 24 },
+  unit: { fontSize: 8, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+});
+
+// ─── Score display ─────────────────────────────────────────────────────────────
+const ScoreDisplay: React.FC<{ score: number; color: string }> = ({ score, color }) => {
+  const popAnim = useRef(new Animated.Value(1)).current;
+  const prevScore = useRef(score);
+
+  useEffect(() => {
+    if (score !== prevScore.current) {
+      prevScore.current = score;
+      Animated.sequence([
+        Animated.timing(popAnim, { toValue: 1.4, duration: 100, useNativeDriver: true }),
+        Animated.spring(popAnim, { toValue: 1, tension: 350, friction: 8, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [score]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale: popAnim }] }}>
+      <View style={sStyles.chip}>
+        <Ionicons name="flash" size={12} color={COLORS.gold} />
+        <Text style={[sStyles.val, { color }]}>{score.toLocaleString()}</Text>
+      </View>
+    </Animated.View>
+  );
+};
+const sStyles = StyleSheet.create({
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: COLORS.surface2, paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 20, borderWidth: 1, borderColor: COLORS.border,
+  },
+  val: { fontSize: 16, fontWeight: '900' },
+});
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
   const { worldId, worldLevelNumber, levelNumber, categoryId } = route.params;
   const levelConfig = getLevelConfig(levelNumber);
   const theme = getWorldTheme(worldId);
+  const { t } = useI18n();
 
   const { hearts, maxHearts, secondsUntilRegen, loseHeart, refillHearts } = useEnergy();
 
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [phase, setPhase] = useState<GamePhase>('loading');
-  const [loadError, setLoadError] = useState<string | null>(null);
-
+  const [questions, setQuestions]       = useState<Question[]>([]);
+  const [phase, setPhase]               = useState<GamePhase>('loading');
+  const [loadError, setLoadError]       = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(levelConfig.timerSeconds);
-  const [score, setScore] = useState(0);
-  const [streak, setStreak] = useState(0);
+  const [timeLeft, setTimeLeft]         = useState(levelConfig.timerSeconds);
+  const [score, setScore]               = useState(0);
+  const [streak, setStreak]             = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
-  const [answerState, setAnswerState] = useState<AnswerState>('idle');
+  const [answerState, setAnswerState]   = useState<AnswerState>('idle');
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-  const timerBarAnim = useRef(new Animated.Value(1)).current;
-  const choiceScaleAnims = useRef([
-    new Animated.Value(1),
-    new Animated.Value(1),
-    new Animated.Value(1),
-    new Animated.Value(1),
-  ]).current;
+  // Floating score
+  const [scorePopup, setScorePopup] = useState<{ id: number; pts: number; streak: number } | null>(null);
+  const popupIdRef = useRef(0);
 
-  const timerBarAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+  const fadeAnim    = useRef(new Animated.Value(1)).current;
+  const slideAnim   = useRef(new Animated.Value(0)).current;
+  const timerBarAnim = useRef(new Animated.Value(1)).current;
+
+  const timerBarAnimRef  = useRef<Animated.CompositeAnimation | null>(null);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isAnsweredRef = useRef(false);
+  const isAnsweredRef    = useRef(false);
 
   const currentQuestion = questions[currentIndex];
-  const isLastQuestion = currentIndex >= questions.length - 1;
-  const timerDuration = levelConfig.timerSeconds;
+  const isLastQuestion  = currentIndex >= questions.length - 1;
+  const timerDuration   = levelConfig.timerSeconds;
 
-  // Check energy on mount — show no-energy screen if empty
+  // Load questions
   useEffect(() => {
-    if (hearts <= 0) {
-      setPhase('no_energy');
-      return;
-    }
-
-    setPhase('loading');
-    setLoadError(null);
+    if (hearts <= 0) { setPhase('no_energy'); return; }
+    setPhase('loading'); setLoadError(null);
     let cancelled = false;
     fetchQuestionsForLevel(categoryId, {
       levelNumber,
@@ -86,244 +218,165 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
       timerSeconds: levelConfig.timerSeconds,
       difficulty: levelNumber <= 20 ? 'easy' : levelNumber <= 40 ? 'medium' : 'hard',
     })
-      .then(qs => {
-        if (!cancelled) {
-          setQuestions(qs);
-          setPhase('playing');
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setLoadError('Failed to load questions. Check your connection and try again.');
-          setPhase('loading');
-        }
-      });
+      .then(qs => { if (!cancelled) { setQuestions(qs); setPhase('playing'); } })
+      .catch(() => { if (!cancelled) { setLoadError('Connection error. Please try again.'); setPhase('loading'); } });
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stopTimer = useCallback(() => {
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = null;
-    }
-    if (timerBarAnimRef.current) {
-      timerBarAnimRef.current.stop();
-    }
+    if (timerIntervalRef.current) { clearInterval(timerIntervalRef.current); timerIntervalRef.current = null; }
+    if (timerBarAnimRef.current) timerBarAnimRef.current.stop();
   }, []);
 
-  const finishGame = useCallback(
-    async (finalCorrect: number) => {
-      setPhase('submitting');
-      const total = questions.length;
-      const result = await submitLevelAttempt({
-        levelNumber,
-        questionsCorrect: finalCorrect,
-        questionsTotal: total,
-      });
-      const accuracy = total > 0 ? finalCorrect / total : 0;
-      const passed = accuracy >= 0.75;
-      const nextLevel = result?.next_level ?? (passed ? levelNumber + 1 : levelNumber);
-      const stars = getStars(accuracy);
+  const finishGame = useCallback(async (finalCorrect: number) => {
+    setPhase('submitting');
+    const total = questions.length;
+    const result = await submitLevelAttempt({ levelNumber, questionsCorrect: finalCorrect, questionsTotal: total });
+    const accuracy = total > 0 ? finalCorrect / total : 0;
+    const passed = accuracy >= 0.75;
+    const nextLevel = result?.next_level ?? (passed ? levelNumber + 1 : levelNumber);
+    navigation.replace('LevelCompletion', {
+      worldId, worldLevelNumber, levelNumber, correct: finalCorrect, total,
+      passed, accuracy, stars: getStars(accuracy), nextLevel, energyRemaining: hearts,
+    });
+  }, [questions.length, levelNumber, worldId, worldLevelNumber, hearts, navigation]);
 
-      navigation.replace('LevelCompletion', {
-        worldId,
-        worldLevelNumber,
-        levelNumber,
-        correct: finalCorrect,
-        total,
-        passed,
-        accuracy,
-        stars,
-        nextLevel,
-        energyRemaining: hearts,
-      });
-    },
-    [questions.length, levelNumber, worldId, worldLevelNumber, hearts, navigation]
-  );
+  const advanceQuestion = useCallback((latestCorrect: number) => {
+    if (isLastQuestion) { finishGame(latestCorrect); return; }
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: -28, duration: 150, useNativeDriver: true }),
+    ]).start(() => {
+      setCurrentIndex(p => p + 1);
+      setTimeLeft(timerDuration);
+      setAnswerState('idle');
+      setSelectedIndex(null);
+      setPhase('playing');
+      isAnsweredRef.current = false;
+      timerBarAnim.setValue(1);
+      slideAnim.setValue(28);
+      Animated.parallel([
+        Animated.timing(fadeAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
+      ]).start();
+    });
+  }, [isLastQuestion, fadeAnim, timerBarAnim, slideAnim, finishGame, timerDuration]);
 
-  const advanceQuestion = useCallback(
-    (latestCorrectCount: number) => {
-      if (isLastQuestion) {
-        finishGame(latestCorrectCount);
-        return;
-      }
+  const handleContinue = useCallback(() => advanceQuestion(correctCount), [advanceQuestion, correctCount]);
 
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start(() => {
-        setCurrentIndex(prev => prev + 1);
-        setTimeLeft(timerDuration);
-        setAnswerState('idle');
-        setSelectedIndex(null);
-        setPhase('playing');
-        isAnsweredRef.current = false;
-        choiceScaleAnims.forEach(a => a.setValue(1));
-        timerBarAnim.setValue(1);
+  const handleAnswer = useCallback((choiceIndex: number, timedOut = false) => {
+    if (isAnsweredRef.current) return;
+    isAnsweredRef.current = true;
+    stopTimer();
 
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }).start();
-      });
-    },
-    [isLastQuestion, fadeAnim, timerBarAnim, choiceScaleAnims, finishGame, timerDuration, setPhase]
-  );
+    const isCorrect = !timedOut && choiceIndex === currentQuestion.correctIndex;
 
-  const handleContinue = useCallback(() => {
-    advanceQuestion(correctCount);
-  }, [advanceQuestion, correctCount]);
+    // Step 1: show 'selected' state briefly for game tension
+    if (!timedOut) {
+      setSelectedIndex(choiceIndex);
+      setPhase('selected');
+    }
 
-  const handleAnswer = useCallback(
-    (choiceIndex: number, timedOut: boolean = false) => {
-      if (isAnsweredRef.current) return;
-      isAnsweredRef.current = true;
-      stopTimer();
-
-      const isCorrect = !timedOut && choiceIndex === currentQuestion.correctIndex;
-      setSelectedIndex(timedOut ? null : choiceIndex);
+    // Step 2: after brief hold, reveal result
+    const revealDelay = timedOut ? 0 : 280;
+    setTimeout(() => {
       setAnswerState(isCorrect ? 'correct' : 'wrong');
 
-      let newCorrectCount = correctCount;
+      let newCorrect = correctCount;
       if (isCorrect) {
         const newStreak = streak + 1;
-        setScore(prev => prev + Math.floor(100 * (1 + (newStreak - 1) * 0.5)));
+        const pts = Math.floor(100 * (1 + (newStreak - 1) * 0.5));
+        setScore(p => p + pts);
         setStreak(newStreak);
-        newCorrectCount = correctCount + 1;
-        setCorrectCount(newCorrectCount);
+        newCorrect = correctCount + 1;
+        setCorrectCount(newCorrect);
+        setScorePopup({ id: ++popupIdRef.current, pts, streak: newStreak });
       } else {
         setStreak(0);
         loseHeart();
       }
-
-      if (!timedOut && choiceIndex >= 0) {
-        Animated.sequence([
-          Animated.timing(choiceScaleAnims[choiceIndex], {
-            toValue: 0.94,
-            duration: 80,
-            useNativeDriver: true,
-          }),
-          Animated.timing(choiceScaleAnims[choiceIndex], {
-            toValue: 1,
-            duration: 120,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      }
-
       setPhase('fact_reveal');
-    },
-    [currentQuestion, streak, correctCount, stopTimer, choiceScaleAnims, loseHeart, setPhase]
-  );
+    }, revealDelay);
+  }, [currentQuestion, streak, correctCount, stopTimer, loseHeart]);
 
-  // Timer per question
+  // Timer
   useEffect(() => {
     if (phase !== 'playing' || questions.length === 0) return;
-
     isAnsweredRef.current = false;
     setTimeLeft(timerDuration);
     timerBarAnim.setValue(1);
 
     timerIntervalRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timerIntervalRef.current!);
-          timerIntervalRef.current = null;
-          handleAnswer(-1, true);
-          return 0;
-        }
-        return prev - 1;
+      setTimeLeft(p => {
+        if (p <= 1) { clearInterval(timerIntervalRef.current!); timerIntervalRef.current = null; handleAnswer(-1, true); return 0; }
+        return p - 1;
       });
     }, 1000);
 
-    timerBarAnimRef.current = Animated.timing(timerBarAnim, {
-      toValue: 0,
-      duration: timerDuration * 1000,
-      useNativeDriver: false,
-    });
+    timerBarAnimRef.current = Animated.timing(timerBarAnim, { toValue: 0, duration: timerDuration * 1000, useNativeDriver: false });
     timerBarAnimRef.current.start();
 
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       if (timerBarAnimRef.current) timerBarAnimRef.current.stop();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, phase, questions.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, phase === 'playing', questions.length]);
 
-  const getChoiceStyle = (index: number) => {
-    if (answerState === 'idle') return styles.choiceDefault;
-    const isCorrect = index === currentQuestion.correctIndex;
-    const isSelected = index === selectedIndex;
-    if (isCorrect) return styles.choiceCorrect;
-    if (isSelected && !isCorrect) return styles.choiceWrong;
-    return styles.choiceDefault;
-  };
-
-  const timerColor = timerBarAnim.interpolate({
-    inputRange: [0, 0.3, 1],
-    outputRange: ['#ef4444', '#f97316', theme.color],
+  // Timer bar: blue → orange → red
+  const timerBarColor = timerBarAnim.interpolate({
+    inputRange: [0, 0.25, 0.5, 1],
+    outputRange: [COLORS.timerDanger, COLORS.timerWarning, COLORS.timerWarning, COLORS.timerSafe],
   });
 
-  // No energy gate
+  // ── No energy ──────────────────────────────────────────────────────────────
   if (phase === 'no_energy') {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.centeredState}>
-          <EnergyBar hearts={0} maxHearts={maxHearts} size={30} />
-          <Text style={styles.noEnergyTitle}>Out of Hearts!</Text>
-          <Text style={styles.noEnergyBody}>
-            Watch an ad to refill your hearts and keep playing.
-          </Text>
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: '#7c3aed' }]}
-            onPress={() => {
-              // TODO: wire real rewarded ad (CHO-77 follow-up)
-              refillHearts();
-              setPhase('loading');
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Watch ad to refill hearts"
-            accessibilityHint="Double-tap to watch a rewarded ad and refill your hearts"
-          >
-            <Text style={styles.actionBtnText}>📺 Watch Ad to Refill</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Text style={styles.backBtnText}>Go Back</Text>
-          </TouchableOpacity>
+        <AmbientBg color={COLORS.danger} />
+        <View style={styles.centeredFull}>
+          <View style={styles.gateCard}>
+            <View style={[styles.gateIcon, { backgroundColor: COLORS.dangerBg, borderColor: COLORS.dangerBorder }]}>
+              <Ionicons name="heart-dislike" size={40} color={COLORS.danger} />
+            </View>
+            <Text style={styles.gateTitle}>{t('outOfHearts')}</Text>
+            <Text style={styles.gateBody}>{t('outOfHeartsBody')}</Text>
+            <EnergyBar hearts={0} maxHearts={maxHearts} size={26} />
+            <TouchableOpacity onPress={() => { refillHearts(); setPhase('loading'); }} style={styles.adBtnWrap}>
+              <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.adBtnGrad}>
+                <Ionicons name="play-circle" size={22} color="#fff" />
+                <Text style={styles.adBtnText}>{t('watchAdRefill')}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.ghostBtn}>
+              <Text style={styles.ghostBtnText}>{t('goBack')}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
     );
   }
 
-  // Loading / error
+  // ── Loading ────────────────────────────────────────────────────────────────
   if (phase === 'loading' || loadError) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.centeredState}>
+        <AmbientBg color={theme.color} />
+        <View style={styles.centeredFull}>
           {loadError ? (
-            <>
-              <Text style={styles.errorText}>{loadError}</Text>
-              <TouchableOpacity
-                style={styles.goBackButton}
-                onPress={() => navigation.goBack()}
-                accessibilityRole="button"
-                accessibilityLabel="Go back"
-              >
-                <Text style={styles.goBackButtonText}>Go Back</Text>
+            <View style={styles.errorCard}>
+              <Ionicons name="wifi-outline" size={52} color={COLORS.danger} />
+              <Text style={styles.errorTitle}>{t('connectionError')}</Text>
+              <Text style={styles.errorBody}>{t('connectionErrorBody')}</Text>
+              <TouchableOpacity style={styles.retryBtn} onPress={() => navigation.goBack()}>
+                <Text style={styles.retryText}>{t('goBack')}</Text>
               </TouchableOpacity>
-            </>
+            </View>
           ) : (
             <>
               <ActivityIndicator size="large" color={theme.color} />
-              <Text style={styles.loadingText}>Loading Level {worldLevelNumber}…</Text>
+              <Text style={styles.loadingText}>{t('loadingLevel')} {worldLevelNumber}…</Text>
             </>
           )}
         </View>
@@ -334,9 +387,10 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
   if (phase === 'submitting') {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.centeredState}>
+        <AmbientBg color={theme.color} />
+        <View style={styles.centeredFull}>
           <ActivityIndicator size="large" color={theme.color} />
-          <Text style={styles.loadingText}>Saving results…</Text>
+          <Text style={styles.loadingText}>{t('savingResults')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -345,81 +399,136 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
   if (!currentQuestion) return null;
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View
-          style={styles.scoreBox}
-          accessible
-          accessibilityLabel={`Score: ${score}`}
-        >
-          <Text style={styles.scoreLabel}>Score</Text>
-          <Text style={[styles.scoreValue, { color: theme.color }]}>{score}</Text>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      {/* Living background */}
+      <AmbientBg color={theme.color} />
+
+      {/* World color accent at top */}
+      <LinearGradient
+        colors={[theme.dimColor + '66', 'transparent']}
+        style={styles.topAccent}
+        pointerEvents="none"
+      />
+
+      {/* ── Top bar ── */}
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Exit game">
+          <Ionicons name="close" size={18} color={COLORS.textMuted} />
+        </TouchableOpacity>
+
+        {/* Progress dots */}
+        <View style={styles.progressDots}>
+          {questions.map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.progressStep,
+                {
+                  backgroundColor: i < currentIndex
+                    ? theme.color
+                    : i === currentIndex
+                    ? COLORS.textSecondary
+                    : COLORS.surface3,
+                  width: i === currentIndex ? 20 : 8,
+                },
+              ]}
+            />
+          ))}
         </View>
-        <View
-          style={styles.progressBox}
-          accessible
-          accessibilityLabel={`Question ${currentIndex + 1} of ${questions.length}`}
-        >
-          <Text style={styles.progressText}>
-            {currentIndex + 1} / {questions.length}
-          </Text>
-        </View>
-        <View style={styles.heartsBox}>
-          <EnergyBar hearts={hearts} maxHearts={maxHearts} size={16} />
-        </View>
+
+        <EnergyBar hearts={hearts} maxHearts={maxHearts} size={15} />
       </View>
 
-      {/* Timer bar */}
-      <View style={styles.timerTrack}>
+      {/* ── Timer bar: thin strip with color ── */}
+      <View style={styles.timerBarWrap}>
         <Animated.View
           style={[
-            styles.timerBar,
+            styles.timerBarFill,
             {
-              width: timerBarAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: ['0%', '100%'],
-              }),
-              backgroundColor: timerColor,
+              width: timerBarAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+              backgroundColor: timerBarColor,
             },
           ]}
         />
       </View>
-      <Text
-        style={styles.timerText}
-        accessible
-        accessibilityLabel={`Time remaining: ${timeLeft} seconds`}
-      >
-        {timeLeft}s
-      </Text>
 
-      {/* Question */}
-      <Animated.View style={[styles.questionCard, { opacity: fadeAnim, borderColor: theme.color }]}>
+      {/* ── Stats row ── */}
+      <View style={styles.statsBar}>
+        <ScoreDisplay score={score} color={theme.color} />
+        <CircleTimer timeLeft={timeLeft} total={timerDuration} />
+        <View style={styles.counterChip}>
+          <Text style={styles.counterNum}>{currentIndex + 1}</Text>
+          <Text style={styles.counterOf}>/{questions.length}</Text>
+        </View>
+      </View>
+
+      {/* ── Streak badge ── */}
+      {streak > 1 && (
+        <View style={styles.streakBadge}>
+          <Ionicons name="flame" size={14} color={COLORS.streak} />
+          <Text style={styles.streakText}>{streak}x {t('winStreak')}!</Text>
+        </View>
+      )}
+
+      {/* ── Question card ── */}
+      <Animated.View
+        style={[
+          styles.questionCard,
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }], borderColor: theme.color + '44' },
+        ]}
+      >
+        <LinearGradient
+          colors={['rgba(255,255,255,0.05)', 'transparent']}
+          style={styles.cardShine}
+          pointerEvents="none"
+        />
+        <View style={styles.levelTag}>
+          <Ionicons name={theme.icon as any} size={11} color={theme.color} />
+          <Text style={[styles.levelTagText, { color: theme.color }]}>
+            {theme.name} · Level {worldLevelNumber}
+          </Text>
+        </View>
         <Text style={styles.questionText}>{currentQuestion.text}</Text>
       </Animated.View>
 
-      {/* Choices — Duolingo-style OptionButton (§5.2) */}
-      <Animated.View style={[styles.choicesContainer, { opacity: fadeAnim }]}>
-        {currentQuestion.options.map((option, index) => {
-          let state: 'idle' | 'correct' | 'wrong' = 'idle';
-          if (answerState !== 'idle') {
-            if (index === currentQuestion.correctIndex) state = 'correct';
-            else if (index === selectedIndex) state = 'wrong';
+      {/* ── Answer options ── */}
+      <Animated.View style={[styles.options, { opacity: fadeAnim }]}>
+        {currentQuestion.options.map((option, i) => {
+          // Determine per-button state
+          let btnState: 'idle' | 'selected' | 'correct' | 'wrong' = 'idle';
+          if (phase === 'selected' && selectedIndex !== null) {
+            btnState = i === selectedIndex ? 'selected' : 'idle';
+          } else if (answerState !== 'idle') {
+            if (i === currentQuestion.correctIndex) btnState = 'correct';
+            else if (i === selectedIndex) btnState = 'wrong';
           }
+
           return (
             <OptionButton
-              key={index}
+              key={i}
               label={option}
-              prefix={String.fromCharCode(65 + index)}
-              answerState={state}
-              disabled={answerState !== 'idle'}
-              onPress={() => handleAnswer(index)}
+              prefix={String.fromCharCode(65 + i)}
+              answerState={btnState}
+              disabled={phase !== 'playing'}
+              onPress={() => handleAnswer(i)}
             />
           );
         })}
       </Animated.View>
 
-      {/* Duolingo slide-up feedback banner (§6.3) */}
+      {/* ── Floating score popup ── */}
+      {scorePopup && (
+        <FloatingScore
+          key={scorePopup.id}
+          points={scorePopup.pts}
+          streak={scorePopup.streak}
+          x={W / 2}
+          y={H * 0.27}
+          onComplete={() => setScorePopup(null)}
+        />
+      )}
+
+      {/* ── Fact reveal ── */}
       {phase === 'fact_reveal' && answerState !== 'idle' && (
         <FactReveal
           answerCorrect={answerState === 'correct'}
@@ -433,205 +542,87 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 20,
+  container: { flex: 1, backgroundColor: COLORS.background },
+  topAccent: { position: 'absolute', top: 0, left: 0, right: 0, height: 180, zIndex: 0 },
+  centeredFull: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, paddingHorizontal: 24, zIndex: 1 },
+
+  gateCard: {
+    width: '100%', backgroundColor: COLORS.surface, borderRadius: 24, padding: 28,
+    alignItems: 'center', gap: 16, borderWidth: 1, borderColor: COLORS.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 16, elevation: 10,
   },
-  centeredState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-    paddingHorizontal: 24,
+  gateIcon: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
+  gateTitle: { fontSize: 24, fontWeight: '900', color: COLORS.text },
+  gateBody: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 21 },
+  adBtnWrap: { width: '100%', borderRadius: 16, overflow: 'hidden' },
+  adBtnGrad: { height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  adBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  ghostBtn: { paddingVertical: 12 },
+  ghostBtnText: { color: COLORS.textMuted, fontSize: 14, fontWeight: '500' },
+
+  errorCard: { alignItems: 'center', gap: 12, paddingHorizontal: 20 },
+  errorTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text },
+  errorBody: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
+  retryBtn: { backgroundColor: COLORS.surface2, borderRadius: 12, paddingHorizontal: 28, paddingVertical: 12, borderWidth: 1, borderColor: COLORS.border },
+  retryText: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
+  loadingText: { color: COLORS.textMuted, fontSize: 15, marginTop: 10 },
+
+  topBar: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingTop: 8, paddingBottom: 10, gap: 8, zIndex: 1,
   },
-  loadingText: {
-    color: COLORS.textMuted,
-    fontSize: 16,
-    marginTop: 12,
+  closeBtn: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: COLORS.surface2, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: COLORS.border,
   },
-  errorText: {
-    color: '#ef4444',
-    fontSize: 15,
-    textAlign: 'center',
-    marginBottom: 16,
-    lineHeight: 22,
+  progressDots: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, flexWrap: 'wrap',
   },
-  noEnergyTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: COLORS.text,
-    textAlign: 'center',
+  progressStep: { height: 8, borderRadius: 4 },
+
+  timerBarWrap: {
+    height: 5, backgroundColor: COLORS.surface2, marginHorizontal: 14, borderRadius: 3,
+    overflow: 'hidden', marginBottom: 10, zIndex: 1,
   },
-  noEnergyBody: {
-    fontSize: 15,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    lineHeight: 22,
+  timerBarFill: { height: '100%', borderRadius: 3 },
+
+  statsBar: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 14, marginBottom: 6, zIndex: 1,
   },
-  actionBtn: {
-    width: '100%',
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
+  counterChip: {
+    flexDirection: 'row', alignItems: 'baseline',
+    backgroundColor: COLORS.surface2, paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 20, borderWidth: 1, borderColor: COLORS.border,
   },
-  actionBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+  counterNum: { fontSize: 17, fontWeight: '900', color: COLORS.text },
+  counterOf:  { fontSize: 12, color: COLORS.textMuted, fontWeight: '500' },
+
+  streakBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'center',
+    backgroundColor: COLORS.surface2, paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 20, borderWidth: 1, borderColor: COLORS.streak + '55', marginBottom: 8, zIndex: 1,
   },
-  backBtn: {
-    paddingVertical: 12,
-  },
-  backBtnText: {
-    color: COLORS.textMuted,
-    fontSize: 15,
-  },
-  goBackButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  goBackButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 12,
-  },
-  scoreBox: {
-    alignItems: 'center',
-  },
-  scoreLabel: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  scoreValue: {
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  progressBox: {
-    backgroundColor: COLORS.surface,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  progressText: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    fontWeight: '600',
-  },
-  heartsBox: {
-    alignItems: 'flex-end',
-  },
-  timerTrack: {
-    height: 6,
-    backgroundColor: COLORS.surface,
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 6,
-  },
-  timerBar: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  timerText: {
-    textAlign: 'center',
-    fontSize: 13,
-    color: COLORS.textMuted,
-    marginBottom: 28,
-  },
+  streakText: { fontSize: 12, fontWeight: '800', color: COLORS.streak },
+
   questionCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 28,
-    marginBottom: 32,
-    minHeight: 140,
-    justifyContent: 'center',
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    marginHorizontal: 14, marginBottom: 14,
+    backgroundColor: COLORS.surface, borderRadius: 22, padding: 22,
+    minHeight: 138, justifyContent: 'center', borderWidth: 1.5,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 16, elevation: 8,
+    overflow: 'hidden', zIndex: 1,
   },
+  cardShine: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: '60%',
+    borderTopLeftRadius: 22, borderTopRightRadius: 22,
+  },
+  levelTag: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 10 },
+  levelTagText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
   questionText: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: COLORS.text,
-    textAlign: 'center',
-    // No fixed lineHeight so Dynamic Type can scale freely
+    fontSize: 20, fontWeight: '700', color: COLORS.text,
+    textAlign: 'center', lineHeight: 28, letterSpacing: -0.3,
   },
-  choicesContainer: {
-    gap: 14,
-    alignItems: 'center',
-  },
-  choiceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    borderRadius: 14,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    borderWidth: 2,
-  },
-  choiceDefault: {
-    backgroundColor: COLORS.surface,
-    borderColor: COLORS.border,
-  },
-  choiceCorrect: {
-    backgroundColor: '#14532d',
-    borderColor: '#22c55e',
-  },
-  choiceWrong: {
-    backgroundColor: '#450a0a',
-    borderColor: '#ef4444',
-  },
-  choiceLabel: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.border,
-    textAlign: 'center',
-    lineHeight: 32,
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: COLORS.textMuted,
-    marginRight: 14,
-    overflow: 'hidden',
-  },
-  choiceText: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '500',
-    color: COLORS.text,
-  },
-  feedbackBanner: {
-    position: 'absolute',
-    bottom: 40,
-    left: 20,
-    right: 20,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  feedbackCorrect: {
-    backgroundColor: '#15803d',
-  },
-  feedbackWrong: {
-    backgroundColor: '#b91c1c',
-  },
-  feedbackText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+
+  options: { paddingHorizontal: 14, gap: 10, zIndex: 1 },
 });

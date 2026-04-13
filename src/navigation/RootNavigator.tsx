@@ -34,7 +34,7 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen
           name="Game"
           component={GameScreen}
-          options={{ presentation: 'modal', headerShown: true, title: 'Game' }}
+          options={{ presentation: 'fullScreenModal', headerShown: false }}
         />
         <Stack.Screen
           name="LevelCompletion"

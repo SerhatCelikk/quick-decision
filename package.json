@@ -47,14 +47,17 @@
     ]
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.15.9",
     "@react-navigation/native": "^7.2.2",
     "@react-navigation/native-stack": "^7.14.10",
     "@supabase/supabase-js": "^2.103.0",
+    "babel-preset-expo": "^55.0.17",
     "expo": "~54.0.33",
     "expo-build-properties": "~1.0.10",
     "expo-constants": "~18.0.13",
+    "expo-linear-gradient": "^55.0.13",
     "expo-notifications": "~0.32.16",
     "expo-status-bar": "~3.0.9",
     "expo-updates": "~29.0.16",
@@ -72,6 +75,7 @@
     "@types/react": "~19.1.0",
     "@typescript-eslint/eslint-plugin": "^8.58.1",
     "@typescript-eslint/parser": "^8.58.1",
+    "detox": "^20.27.2",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
@@ -82,8 +86,7 @@
     "jest-expo": "^54.0.17",
     "prettier": "^3.8.2",
     "react-test-renderer": "^19.1.0",
-    "typescript": "~5.9.2",
-    "detox": "^20.27.2"
+    "typescript": "~5.9.2"
   },
   "private": true
 }

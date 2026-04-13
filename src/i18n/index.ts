@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../services/supabase';
 
 export type Language = 'en' | 'tr';
 
@@ -7,30 +8,36 @@ const LANG_KEY = '@quick_decision_language';
 
 const translations = {
   en: {
+    // ── Tab navigation ─────────────────────────────────────────────────────────
     play: 'Play',
     leaderboard: 'Leaderboard',
     social: 'Social',
     profile: 'Profile',
     achievements: 'Achievements',
-    premiumUpgrade: 'Go Premium',
-    multiplayer: 'Multiplayer',
-    referral: 'Refer Friends',
-    seasonalEvent: 'Spring Knowledge Sprint',
-    findOpponent: 'Find Opponent',
-    quickMatch: 'Quick Match',
-    challengeFriend: 'Challenge Friend',
-    searching: 'Searching for opponent…',
+
+    // ── General / shared ───────────────────────────────────────────────────────
+    loading: 'Loading…',
+    errorRetry: 'Something went wrong. Tap to retry.',
+    goBack: 'Go Back',
     cancel: 'Cancel',
-    battleReady: 'Battle Ready!',
-    yourScore: 'Your Score',
-    opponentScore: 'Opponent Score',
-    youWon: 'You Won!',
-    youLost: 'You Lost',
-    playAgain: 'Play Again',
-    backToLobby: 'Back to Lobby',
-    yourReferralCode: 'Your Referral Code',
-    shareInvite: 'Share Invite',
-    referralExplain: 'Invite friends and earn 50 bonus coins per successful referral.',
+    share: 'Share',
+    add: 'Add',
+    level: 'Level',
+    rank: 'Rank',
+    you: 'You',
+    vs: 'VS',
+    yes: 'Yes',
+    no: 'No',
+    ok: 'OK',
+    done: 'Done',
+
+    // ── Language ───────────────────────────────────────────────────────────────
+    language: 'Language',
+    english: 'English',
+    turkish: 'Türkçe',
+
+    // ── Premium ────────────────────────────────────────────────────────────────
+    premiumUpgrade: 'Go Premium',
     premiumTitle: 'Quick Decision Premium',
     premiumBenefit1: 'No Ads — play without interruptions',
     premiumBenefit2: 'Unlimited Energy — never run out of hearts',
@@ -39,46 +46,212 @@ const translations = {
     monthlyPlan: 'Monthly',
     yearlyPlan: 'Yearly  (Save 40%)',
     restorePurchases: 'Restore Purchases',
-    eventProgress: 'Event Progress',
-    eventEnds: 'Event ends',
-    loading: 'Loading…',
-    errorRetry: 'Something went wrong. Tap to retry.',
-    language: 'Language',
-    english: 'English',
-    turkish: 'Türkçe',
-    noAchievementsYet: 'Keep playing to earn achievements!',
-    badgeUnlocked: 'Badge Unlocked!',
-    rank: 'Rank',
+    unlockFullExperience: 'Unlock the full Quick Decision experience',
+    bestValue: 'BEST VALUE',
+    subscriptionLegal: 'Subscription auto-renews. Cancel anytime in App Store / Google Play settings.',
+    unlimitedHeartsNoAds: 'Unlimited hearts · No ads · Exclusive content',
+    premiumIapNote: 'In-app purchase requires a signed build. Ready for TestFlight / internal testing.',
+
+    // ── Multiplayer / lobby ───────────────────────────────────────────────────
+    multiplayer: 'Multiplayer',
+    findOpponent: 'Find Opponent',
+    quickMatch: 'Quick Match',
+    challengeFriend: 'Challenge Friend',
+    searching: 'Searching for opponent…',
+    battleReady: 'Battle Ready!',
+    yourScore: 'Your Score',
+    opponentScore: 'Opponent Score',
+    youWon: 'You Won!',
+    youLost: 'You Lost',
+    playAgain: 'Play Again',
+    backToLobby: 'Back to Lobby',
     elo: 'ELO Rating',
+    eloChange: 'ELO Change',
     wins: 'Wins',
     losses: 'Losses',
     winStreak: 'Win Streak',
+    recentBattles: 'RECENT BATTLES',
+    multiplayerFreeInfo: 'Multiplayer matches don\'t cost energy. Play as many as you like!',
+    outstandingPerformance: 'Outstanding performance!',
+    betterLuckNextTime: 'Better luck next time!',
+    matchmakingTip: 'Matched with players near your ELO. Average wait: 15–30 seconds.',
+
+    // ── Game screen ───────────────────────────────────────────────────────────
+    outOfHearts: 'Out of Hearts!',
+    outOfHeartsBody: 'Watch an ad to refill your hearts and keep playing.',
+    watchAdRefill: 'Watch Ad to Refill',
+    connectionError: 'Connection Error',
+    connectionErrorBody: 'Could not load questions. Please check your connection.',
+    loadingLevel: 'Loading Level',
+    savingResults: 'Saving results…',
+    heartsRemaining: 'Hearts remaining',
+    sec: 'sec',
+
+    // ── Level completion ──────────────────────────────────────────────────────
+    levelComplete: 'Level Complete!',
+    almostThere: 'Almost There!',
+    levelCompleteMsg: 'Brilliant! Next level is unlocked.',
+    correct: 'Correct',
+    accuracy: 'Accuracy',
+    next: 'Next',
+    retry: 'Retry',
+    nextLevel: 'Next Level',
+    tryAgain: 'Try Again',
+    worldMap: 'World Map',
+    xpEarned: 'XP earned',
+    passLabel: 'Pass:',
+    heartsRemainingLabel: 'Hearts remaining',
+
+    // ── Leaderboard ───────────────────────────────────────────────────────────
+    leaderboardSubtitle: 'Top players by total score',
+    loadingRankings: 'Loading rankings…',
+    noScoresYet: 'No scores yet',
+    playSomeGames: 'Play some games to appear here!',
+
+    // ── Profile ───────────────────────────────────────────────────────────────
+    yourStats: 'YOUR STATS',
+    passRate: 'Pass Rate',
+    bestStreak: 'Best Streak',
+    totalScore: 'Total Score',
+    gamesPlayed: 'Games Played',
+    highestLevel: 'Highest Level',
+    earnedBadges: 'You have earned badges!',
+    startEarningBadges: 'Start earning badges',
+
+    // ── Achievements ──────────────────────────────────────────────────────────
+    noAchievementsYet: 'Keep playing to earn achievements!',
+    badgeUnlocked: 'Badge Unlocked!',
+    unlockedLabel: 'unlocked',
+    doneLabel: 'done',
+    earned: 'Earned',
+
+    // Badge names
+    badge_first_win_name: 'First Win',
+    badge_level_5_name: 'Level 5',
+    badge_level_10_name: 'Level 10',
+    badge_streak_5_name: 'On Fire',
+    badge_streak_10_name: 'Unstoppable',
+    badge_games_10_name: 'Dedicated',
+    badge_games_50_name: 'Veteran',
+    badge_perfect_game_name: 'Perfectionist',
+    badge_speed_demon_name: 'Speed Demon',
+    badge_multiplayer_1_name: 'First Battle',
+    badge_multiplayer_5w_name: 'Champion',
+    badge_referral_1_name: 'Recruiter',
+    badge_spring_event_name: 'Spring Scholar',
+    badge_premium_name: 'Premium Member',
+    badge_turkish_mode_name: 'Bilingual',
+
+    // Badge descriptions
+    badge_first_win_desc: 'Pass your first level',
+    badge_level_5_desc: 'Reach level 5',
+    badge_level_10_desc: 'Reach level 10',
+    badge_streak_5_desc: 'Achieve a 5x answer streak',
+    badge_streak_10_desc: 'Achieve a 10x answer streak',
+    badge_games_10_desc: 'Play 10 games',
+    badge_games_50_desc: 'Play 50 games',
+    badge_perfect_game_desc: 'Get 100% accuracy in a game',
+    badge_speed_demon_desc: 'Answer 5 questions in under 2s each',
+    badge_multiplayer_1_desc: 'Complete your first multiplayer match',
+    badge_multiplayer_5w_desc: 'Win 5 multiplayer matches',
+    badge_referral_1_desc: 'Invite a friend who joins',
+    badge_spring_event_desc: 'Complete Spring Knowledge Sprint',
+    badge_premium_desc: 'Subscribe to Quick Decision Premium',
+    badge_turkish_mode_desc: 'Play in Turkish mode',
+
+    // ── Referral ──────────────────────────────────────────────────────────────
+    referral: 'Refer Friends',
+    referralExplain: 'Invite friends and earn 50 bonus coins per successful referral.',
+    yourReferralCode: 'Your Referral Code',
+    shareInvite: 'Share Invite',
+    howItWorks: 'HOW IT WORKS',
+    successful: 'Successful',
+    pendingLabel: 'Pending',
+    coinsEarned: 'Coins Earned',
+    shareFailed: 'Share failed',
+    shareFailedBody: 'Could not open share sheet.',
+    referralStep1: 'Share your unique referral code with friends',
+    referralStep2: 'Friend downloads and signs up with your code',
+    referralStep3: 'They play their first 3 games',
+    referralStep4: 'You both receive 50 bonus coins!',
+
+    // ── Friends ───────────────────────────────────────────────────────────────
+    friends: 'Friends',
+    myFriendCode: 'MY FRIEND CODE',
+    addFriend: 'ADD FRIEND',
+    enterFriendCode: 'Enter friend code',
+    shareFriendCodeHint: 'Share this code so friends can add you',
+    noFriendsYet: 'Share your code to invite friends!',
+
+    // ── Challenges ───────────────────────────────────────────────────────────
+    challenges: 'Challenges',
+    incomingTab: 'Incoming',
+    outgoingTab: 'Outgoing',
+    noIncomingChallenges: 'No incoming challenges yet',
+    noOutgoingChallenges: 'No challenges sent yet',
+    acceptChallenge: 'Accept Challenge',
+    youWonBattle: 'You won!',
+    youLostBattle: 'You lost — challenge them back!',
+    pendingStatus: 'Pending',
+    completedStatus: 'Done',
+    expiredStatus: 'Expired',
+
+    // ── Seasonal event ────────────────────────────────────────────────────────
+    seasonalEvent: 'Spring Knowledge Sprint',
+    eventProgress: 'EVENT PROGRESS',
+    eventEnds: 'Event ends',
+    milestones: 'MILESTONES',
+    questionsLabel: 'Answered',
+    correctLabel: 'Correct',
+    eventInfoText: 'Play any game mode during the event. Spring-themed questions are automatically included and count toward your progress.',
+
+    // ── Share card ────────────────────────────────────────────────────────────
+    shareYourStats: 'Share Your Stats',
+    showOffProgress: 'Show off your progress',
+    shareCard: 'Share Card',
+    signInToSeeCard: 'Sign in to see your card',
+    challengeMeWithCode: 'Challenge me with code',
+    thinkFastTagline: 'Think fast. Decide faster.',
+
+    // ── World map ─────────────────────────────────────────────────────────────
+    selectWorld: 'Select World',
+    dailyChallenge: 'Daily Challenge',
+    todayLabel: 'TODAY',
+    continueJourney: 'Continue your journey',
+    worldLocked: 'Complete previous world to unlock',
   },
+
   tr: {
+    // ── Tab navigation ─────────────────────────────────────────────────────────
     play: 'Oyna',
     leaderboard: 'Sıralama',
     social: 'Sosyal',
     profile: 'Profil',
     achievements: 'Başarımlar',
-    premiumUpgrade: 'Premium Al',
-    multiplayer: 'Çok Oyunculu',
-    referral: 'Arkadaş Davet Et',
-    seasonalEvent: 'Bahar Bilgi Koşusu',
-    findOpponent: 'Rakip Bul',
-    quickMatch: 'Hızlı Eşleşme',
-    challengeFriend: 'Arkadaşa Meydan Oku',
-    searching: 'Rakip aranıyor…',
+
+    // ── General / shared ───────────────────────────────────────────────────────
+    loading: 'Yükleniyor…',
+    errorRetry: 'Bir şeyler yanlış gitti. Tekrar denemek için dokun.',
+    goBack: 'Geri Dön',
     cancel: 'İptal',
-    battleReady: 'Mücadele Başlıyor!',
-    yourScore: 'Senin Puanın',
-    opponentScore: 'Rakip Puanı',
-    youWon: 'Kazandın!',
-    youLost: 'Kaybettin',
-    playAgain: 'Tekrar Oyna',
-    backToLobby: 'Lobiye Dön',
-    yourReferralCode: 'Davet Kodun',
-    shareInvite: 'Davet Paylaş',
-    referralExplain: 'Arkadaşlarını davet et, her başarılı davet için 50 bonus coin kazan.',
+    share: 'Paylaş',
+    add: 'Ekle',
+    level: 'Seviye',
+    rank: 'Sıra',
+    you: 'Sen',
+    vs: 'VS',
+    yes: 'Evet',
+    no: 'Hayır',
+    ok: 'Tamam',
+    done: 'Bitti',
+
+    // ── Language ───────────────────────────────────────────────────────────────
+    language: 'Dil',
+    english: 'English',
+    turkish: 'Türkçe',
+
+    // ── Premium ────────────────────────────────────────────────────────────────
+    premiumUpgrade: 'Premium Al',
     premiumTitle: 'Quick Decision Premium',
     premiumBenefit1: 'Reklamsız — kesintisiz oyna',
     premiumBenefit2: 'Sınırsız Enerji — hiç bitme endişesi yok',
@@ -87,24 +260,183 @@ const translations = {
     monthlyPlan: 'Aylık',
     yearlyPlan: 'Yıllık  (%40 İndirimli)',
     restorePurchases: 'Satın Almaları Geri Yükle',
-    eventProgress: 'Etkinlik İlerlemesi',
-    eventEnds: 'Etkinlik bitiş',
-    loading: 'Yükleniyor…',
-    errorRetry: 'Bir şeyler yanlış gitti. Tekrar denemek için dokun.',
-    language: 'Dil',
-    english: 'English',
-    turkish: 'Türkçe',
-    noAchievementsYet: 'Başarım kazanmak için oynamaya devam et!',
-    badgeUnlocked: 'Rozet Açıldı!',
-    rank: 'Sıra',
+    unlockFullExperience: 'Quick Decision deneyiminin tamamını aç',
+    bestValue: 'EN İYİ DEĞER',
+    subscriptionLegal: 'Abonelik otomatik yenilenir. App Store / Google Play ayarlarından istediğiniz zaman iptal edebilirsiniz.',
+    unlimitedHeartsNoAds: 'Sınırsız can · Reklamsız · Özel içerik',
+    premiumIapNote: 'Uygulama içi satın alma imzalı bir derleme gerektirir. TestFlight / dahili test için hazır.',
+
+    // ── Multiplayer / lobby ───────────────────────────────────────────────────
+    multiplayer: 'Çok Oyunculu',
+    findOpponent: 'Rakip Bul',
+    quickMatch: 'Hızlı Eşleşme',
+    challengeFriend: 'Arkadaşa Meydan Oku',
+    searching: 'Rakip aranıyor…',
+    battleReady: 'Mücadele Başlıyor!',
+    yourScore: 'Senin Puanın',
+    opponentScore: 'Rakip Puanı',
+    youWon: 'Kazandın!',
+    youLost: 'Kaybettin',
+    playAgain: 'Tekrar Oyna',
+    backToLobby: 'Lobiye Dön',
     elo: 'ELO Puanı',
+    eloChange: 'ELO Değişimi',
     wins: 'Galibiyet',
     losses: 'Mağlubiyet',
     winStreak: 'Galibiyet Serisi',
+    recentBattles: 'SON SAVAŞLAR',
+    multiplayerFreeInfo: 'Çok oyunculu maçlar enerji harcamaz. İstediğin kadar oyna!',
+    outstandingPerformance: 'Muhteşem performans!',
+    betterLuckNextTime: 'Bir dahaki sefere şansın daha iyi olsun!',
+    matchmakingTip: 'ELO\'una yakın oyuncularla eşleşiyorsun. Ortalama bekleme: 15–30 saniye.',
+
+    // ── Game screen ───────────────────────────────────────────────────────────
+    outOfHearts: 'Canın Bitti!',
+    outOfHeartsBody: 'Canlarını doldurmak ve oynamaya devam etmek için reklam izle.',
+    watchAdRefill: 'Reklam İzle ve Doldur',
+    connectionError: 'Bağlantı Hatası',
+    connectionErrorBody: 'Sorular yüklenemedi. Bağlantını kontrol et.',
+    loadingLevel: 'Bölüm Yükleniyor',
+    savingResults: 'Sonuçlar kaydediliyor…',
+    heartsRemaining: 'Kalan can',
+    sec: 'sn',
+
+    // ── Level completion ──────────────────────────────────────────────────────
+    levelComplete: 'Bölüm Tamamlandı!',
+    almostThere: 'Neredeyse Bitti!',
+    levelCompleteMsg: 'Harika! Bir sonraki bölüm açıldı.',
+    correct: 'Doğru',
+    accuracy: 'Doğruluk',
+    next: 'Sonraki',
+    retry: 'Tekrar',
+    nextLevel: 'Sonraki Bölüm',
+    tryAgain: 'Tekrar Dene',
+    worldMap: 'Dünya Haritası',
+    xpEarned: 'XP kazanıldı',
+    passLabel: 'Geçiş:',
+    heartsRemainingLabel: 'Kalan can',
+
+    // ── Leaderboard ───────────────────────────────────────────────────────────
+    leaderboardSubtitle: 'Toplam puana göre en iyi oyuncular',
+    loadingRankings: 'Sıralama yükleniyor…',
+    noScoresYet: 'Henüz puan yok',
+    playSomeGames: 'Burada görünmek için birkaç oyun oyna!',
+
+    // ── Profile ───────────────────────────────────────────────────────────────
+    yourStats: 'İSTATİSTİKLERİN',
+    passRate: 'Geçiş Oranı',
+    bestStreak: 'En İyi Seri',
+    totalScore: 'Toplam Puan',
+    gamesPlayed: 'Oynanan Oyun',
+    highestLevel: 'En Yüksek Seviye',
+    earnedBadges: 'Rozetler kazandın!',
+    startEarningBadges: 'Rozet kazanmaya başla',
+
+    // ── Achievements ──────────────────────────────────────────────────────────
+    noAchievementsYet: 'Başarım kazanmak için oynamaya devam et!',
+    badgeUnlocked: 'Rozet Açıldı!',
+    unlockedLabel: 'açıldı',
+    doneLabel: 'tamamlandı',
+    earned: 'Kazanıldı',
+
+    // Badge names
+    badge_first_win_name: 'İlk Galibiyet',
+    badge_level_5_name: '5. Seviye',
+    badge_level_10_name: '10. Seviye',
+    badge_streak_5_name: 'Ateş Topu',
+    badge_streak_10_name: 'Durdurulamaz',
+    badge_games_10_name: 'Kararlı',
+    badge_games_50_name: 'Tecrübeli',
+    badge_perfect_game_name: 'Mükemmeliyetçi',
+    badge_speed_demon_name: 'Hız Canavarı',
+    badge_multiplayer_1_name: 'İlk Savaş',
+    badge_multiplayer_5w_name: 'Şampiyon',
+    badge_referral_1_name: 'İşe Alımcı',
+    badge_spring_event_name: 'Bahar Akademisyeni',
+    badge_premium_name: 'Premium Üye',
+    badge_turkish_mode_name: 'İki Dilli',
+
+    // Badge descriptions
+    badge_first_win_desc: 'İlk bölümünü geç',
+    badge_level_5_desc: '5. seviyeye ulaş',
+    badge_level_10_desc: '10. seviyeye ulaş',
+    badge_streak_5_desc: '5\'lik cevap serisi yap',
+    badge_streak_10_desc: '10\'luk cevap serisi yap',
+    badge_games_10_desc: '10 oyun oyna',
+    badge_games_50_desc: '50 oyun oyna',
+    badge_perfect_game_desc: 'Bir oyunda %100 doğruluk elde et',
+    badge_speed_demon_desc: '5 soruyu 2 saniyenin altında cevapla',
+    badge_multiplayer_1_desc: 'İlk çok oyunculu maçını tamamla',
+    badge_multiplayer_5w_desc: '5 çok oyunculu maç kazan',
+    badge_referral_1_desc: 'Katılan bir arkadaşı davet et',
+    badge_spring_event_desc: 'Bahar Bilgi Koşusu\'nu tamamla',
+    badge_premium_desc: 'Quick Decision Premium\'a abone ol',
+    badge_turkish_mode_desc: 'Türkçe modda oyna',
+
+    // ── Referral ──────────────────────────────────────────────────────────────
+    referral: 'Arkadaş Davet Et',
+    referralExplain: 'Arkadaşlarını davet et, her başarılı davet için 50 bonus coin kazan.',
+    yourReferralCode: 'Davet Kodun',
+    shareInvite: 'Davet Paylaş',
+    howItWorks: 'NASIL ÇALIŞIR',
+    successful: 'Başarılı',
+    pendingLabel: 'Bekliyor',
+    coinsEarned: 'Kazanılan Coin',
+    shareFailed: 'Paylaşım Başarısız',
+    shareFailedBody: 'Paylaşım sayfası açılamadı.',
+    referralStep1: 'Benzersiz davet kodunu arkadaşlarınla paylaş',
+    referralStep2: 'Arkadaşın uygulamayı indirip kodunla kayıt olur',
+    referralStep3: 'İlk 3 oyununu oynuyorlar',
+    referralStep4: 'İkiniz de 50 bonus coin alıyorsunuz!',
+
+    // ── Friends ───────────────────────────────────────────────────────────────
+    friends: 'Arkadaşlar',
+    myFriendCode: 'ARKADAŞ KODUM',
+    addFriend: 'ARKADAŞ EKLE',
+    enterFriendCode: 'Arkadaş kodu gir',
+    shareFriendCodeHint: 'Arkadaşların seni ekleyebilmesi için bu kodu paylaş',
+    noFriendsYet: 'Arkadaşlarını davet etmek için kodunu paylaş!',
+
+    // ── Challenges ───────────────────────────────────────────────────────────
+    challenges: 'Meydan Okumalar',
+    incomingTab: 'Gelen',
+    outgoingTab: 'Giden',
+    noIncomingChallenges: 'Henüz gelen meydan okuma yok',
+    noOutgoingChallenges: 'Henüz meydan okuma gönderilmedi',
+    acceptChallenge: 'Meydan Okumayı Kabul Et',
+    youWonBattle: 'Kazandın!',
+    youLostBattle: 'Kaybettin — geri meydan oku!',
+    pendingStatus: 'Bekliyor',
+    completedStatus: 'Tamamlandı',
+    expiredStatus: 'Süresi Doldu',
+
+    // ── Seasonal event ────────────────────────────────────────────────────────
+    seasonalEvent: 'Bahar Bilgi Koşusu',
+    eventProgress: 'ETKİNLİK İLERLEMESİ',
+    eventEnds: 'Etkinlik bitiş',
+    milestones: 'AŞAMALAR',
+    questionsLabel: 'Cevaplanan',
+    correctLabel: 'Doğru',
+    eventInfoText: 'Etkinlik süresince herhangi bir oyun modunda oyna. Bahar temalı sorular otomatik olarak dahil edilir ve ilerlemenize sayılır.',
+
+    // ── Share card ────────────────────────────────────────────────────────────
+    shareYourStats: 'İstatistiklerini Paylaş',
+    showOffProgress: 'İlerlemenle övün',
+    shareCard: 'Kartı Paylaş',
+    signInToSeeCard: 'Kartını görmek için giriş yap',
+    challengeMeWithCode: 'Bu kodla bana meydan oku',
+    thinkFastTagline: 'Hızlı düşün. Daha hızlı karar ver.',
+
+    // ── World map ─────────────────────────────────────────────────────────────
+    selectWorld: 'Dünya Seç',
+    dailyChallenge: 'Günlük Meydan Okuma',
+    todayLabel: 'BUGÜN',
+    continueJourney: 'Yolculuğuna devam et',
+    worldLocked: 'Kilidi açmak için önceki dünyayı tamamla',
   },
 } as const;
 
-type TranslationKey = keyof typeof translations.en;
+export type TranslationKey = keyof typeof translations.en;
 
 interface I18nContextValue {
   language: Language;
@@ -121,19 +453,47 @@ const I18nContext = createContext<I18nContextValue>({
 export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>('en');
 
+  // Load from AsyncStorage (fast, local) then verify/sync with Supabase
   React.useEffect(() => {
     AsyncStorage.getItem(LANG_KEY).then((stored) => {
       if (stored === 'en' || stored === 'tr') setLanguageState(stored);
+    });
+
+    // Also load from Supabase user profile (cross-device sync)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.from('users') as any).select('preferred_language').eq('id', user.id).single()
+        .then(({ data }: { data: { preferred_language?: string } | null }) => {
+          if (data?.preferred_language === 'en' || data?.preferred_language === 'tr') {
+            setLanguageState(data.preferred_language as Language);
+            AsyncStorage.setItem(LANG_KEY, data.preferred_language);
+          }
+        })
+        .catch(() => { /* column may not exist yet — ignore */ });
     });
   }, []);
 
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
     AsyncStorage.setItem(LANG_KEY, lang);
+
+    // Persist to Supabase for cross-device sync
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.from('users') as any).update({ preferred_language: lang }).eq('id', user.id)
+          .then(() => { /* silent sync */ })
+          .catch(() => { /* ignore if column not yet migrated */ });
+      }
+    });
   }, []);
 
   const t = useCallback(
-    (key: TranslationKey): string => translations[language][key] ?? translations.en[key] ?? key,
+    (key: TranslationKey): string =>
+      (translations[language] as Record<string, string>)[key]
+      ?? (translations.en as Record<string, string>)[key]
+      ?? key,
     [language],
   );
 
