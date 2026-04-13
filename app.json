@@ -48,7 +48,10 @@
     "extra": {
       "eas": {
         "projectId": "REPLACE_WITH_PROJECT_ID"
-      }
+      },
+      "privacyPolicyUrl": "https://serhatcelikk.github.io/quick-decision-app/privacy.html",
+      "termsOfServiceUrl": "https://serhatcelikk.github.io/quick-decision-app/terms.html",
+      "supportUrl": "https://serhatcelikk.github.io/quick-decision-app/"
     },
     "plugins": [
       [
