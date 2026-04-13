@@ -219,6 +219,112 @@ const translations = {
     todayLabel: 'TODAY',
     continueJourney: 'Continue your journey',
     worldLocked: 'Complete previous world to unlock',
+    appTagline: 'How weird is the world?',
+    chooseYourWorld: 'Choose Your World',
+    tapWorldToStart: 'Tap a world to start playing',
+    moreWorldsComing: 'More worlds coming',
+    moreWorldsSubtitle: 'Memes · Guinness · Pop Culture',
+    springKnowledgeSprint: 'Spring Knowledge Sprint',
+
+    // ── Level map ─────────────────────────────────────────────────────────────
+    milestoneAlmostThere: 'Almost There',
+    milestoneHalfway: 'Halfway',
+    milestoneWarmingUp: 'Warming Up',
+    milestoneStartHere: 'Start Here',
+    worldCompleteTitle: 'World Complete!',
+    worldCompleteHint: 'Finish all {n} levels to claim the trophy',
+    levelsCompletedFmt: '{n} / {total} completed',
+    mapBeginning: 'Beginning',
+    levelsCountFmt: '{n} / {total} levels',
+
+    // ── Social screen ─────────────────────────────────────────────────────────
+    socialSubheading: 'Challenge friends & grow together',
+    actionsSection: 'ACTIONS',
+    socialFriendsDesc: 'Add friends & see their progress',
+    socialChallengesDesc: 'Send & receive trivia challenges',
+    socialShareCardLabel: 'Share Card',
+    socialShareCardDesc: 'Generate your stats card to share',
+    socialBattlesStat: 'Battles',
+    liveBattleTitle: 'Live Battle',
+    liveBattleDesc: 'Play against a real opponent now',
+    liveLabel: 'LIVE',
+
+    // ── Share card tiers ──────────────────────────────────────────────────────
+    tierLegendary: 'Legendary',
+    tierElite: 'Elite',
+    tierPro: 'Pro',
+    tierRising: 'Rising',
+
+    // ── Share messages ────────────────────────────────────────────────────────
+    shareCardTitle: 'My Quick Decision Stats',
+    friendShareMsg: 'Add me on Quick Decision! My friend code is: {code}\nDownload the app and enter my code to challenge me!',
+    friendShareTitle: 'Quick Decision — Friend Request',
+    friendsCountFmt: 'Friends ({n})',
+    noFriendsHeading: 'No friends yet',
+    friendsSuccessTitle: 'Success',
+    friendsErrorTitle: 'Error',
+
+    // ── Challenges ────────────────────────────────────────────────────────────
+    challengeCompleteTitle: 'Challenge Complete!',
+    challengeCompleteBody: 'You scored {score} pts vs {opponentScore} pts',
+    yourScorePending: 'Your score',
+
+    // ── Seasonal event extras ─────────────────────────────────────────────────
+    springEventSubtitle: 'Answer spring-themed questions to earn exclusive badges',
+    eventEndDate: 'April 30, 2026',
+    progressToMilestoneFmt: '{n} / {total} to next milestone ({pct}%)',
+    answerNQuestionsFmt: 'Answer {n} questions',
+
+    // ── Paywall ───────────────────────────────────────────────────────────────
+    premiumSubscriptionTitle: 'Premium Subscription',
+    restorePurchasesChecking: 'Checking for previous purchases…',
+    subscribeBtnFmt: 'Subscribe — {price}',
+
+    // ── Profile ───────────────────────────────────────────────────────────────
+    playerDefault: 'Player',
+
+    // ── Game screen ───────────────────────────────────────────────────────────
+    exitGameLabel: 'Exit game',
+
+    // ── Daily challenge banner ────────────────────────────────────────────────
+    dailyChallengeLabel: 'DAILY CHALLENGE',
+    expired: 'Expired',
+    targetLabel: 'Target',
+    playersLabel: 'Players',
+
+    // ── Energy bar ────────────────────────────────────────────────────────────
+    nextHeartInFmt: 'Next heart in {time}',
+
+    // ── Fact reveal ───────────────────────────────────────────────────────────
+    factTimesUp: "Time's Up!",
+    factCorrect: 'Correct!',
+    factWrong: 'Wrong!',
+    streakSuffix: 'Streak!',
+    answerFasterTip: 'Answer faster next time!',
+    keepGoingMsg: "Keep going — you've got this!",
+    didYouKnow: 'Did you know?',
+    tipLabel: 'Tip',
+    tipText: 'Read each option carefully — some are very close!',
+    continueBtn: 'Continue',
+
+    // ── Seasonal event banner ─────────────────────────────────────────────────
+    seasonalEventLabel: 'SEASONAL EVENT',
+    springEventEnds: 'Ends April 30 · Exclusive badges',
+    springEventAccessibility: 'Spring Knowledge Sprint seasonal event',
+
+    // ── Level node ────────────────────────────────────────────────────────────
+    levelNodeLockedSuffix: ': locked',
+    levelNodeCompletedFmt: ': completed, {stars} stars',
+    levelNodeCurrentSuffix: ': current level',
+    levelNodeUnlockedSuffix: ': unlocked',
+    completePrevLevels: 'Complete previous levels to unlock',
+    doubleTapToStart: 'Double-tap to start',
+
+    // ── World card ────────────────────────────────────────────────────────────
+    completePrevWorld: 'Complete previous world',
+
+    // ── Error view ────────────────────────────────────────────────────────────
+    somethingWentWrong: 'Something went wrong.',
   },
 
   tr: {
@@ -433,6 +539,112 @@ const translations = {
     todayLabel: 'BUGÜN',
     continueJourney: 'Yolculuğuna devam et',
     worldLocked: 'Kilidi açmak için önceki dünyayı tamamla',
+    appTagline: 'Dünya ne kadar tuhaf?',
+    chooseYourWorld: 'Dünyanı Seç',
+    tapWorldToStart: 'Oynamak için bir dünyaya dokun',
+    moreWorldsComing: 'Daha fazla dünya geliyor',
+    moreWorldsSubtitle: 'Memler · Guinness · Pop Kültür',
+    springKnowledgeSprint: 'Bahar Bilgi Koşusu',
+
+    // ── Level map ─────────────────────────────────────────────────────────────
+    milestoneAlmostThere: 'Neredeyse Bitti',
+    milestoneHalfway: 'Yarı Yol',
+    milestoneWarmingUp: 'Isınma',
+    milestoneStartHere: 'Buradan Başla',
+    worldCompleteTitle: 'Dünya Tamamlandı!',
+    worldCompleteHint: 'Kupayı almak için tüm {n} seviyeyi bitir',
+    levelsCompletedFmt: '{n} / {total} tamamlandı',
+    mapBeginning: 'Başlangıç',
+    levelsCountFmt: '{n} / {total} seviye',
+
+    // ── Social screen ─────────────────────────────────────────────────────────
+    socialSubheading: 'Arkadaşlarına meydan oku ve birlikte büyü',
+    actionsSection: 'İŞLEMLER',
+    socialFriendsDesc: 'Arkadaş ekle ve ilerlemelerini gör',
+    socialChallengesDesc: 'Bilgi meydan okumaları gönder ve al',
+    socialShareCardLabel: 'Kart Paylaş',
+    socialShareCardDesc: 'Paylaşmak için istatistik kartı oluştur',
+    socialBattlesStat: 'Savaşlar',
+    liveBattleTitle: 'Canlı Savaş',
+    liveBattleDesc: 'Şimdi gerçek bir rakiple oyna',
+    liveLabel: 'CANLI',
+
+    // ── Share card tiers ──────────────────────────────────────────────────────
+    tierLegendary: 'Efsanevi',
+    tierElite: 'Elit',
+    tierPro: 'Pro',
+    tierRising: 'Yükselen',
+
+    // ── Share messages ────────────────────────────────────────────────────────
+    shareCardTitle: 'Quick Decision İstatistiklerim',
+    friendShareMsg: 'Beni Quick Decision\'da ekle! Arkadaş kodum: {code}\nUygulamayı indir ve kodumu girerek bana meydan oku!',
+    friendShareTitle: 'Quick Decision — Arkadaş İsteği',
+    friendsCountFmt: 'Arkadaşlar ({n})',
+    noFriendsHeading: 'Henüz arkadaş yok',
+    friendsSuccessTitle: 'Başarılı',
+    friendsErrorTitle: 'Hata',
+
+    // ── Challenges ────────────────────────────────────────────────────────────
+    challengeCompleteTitle: 'Meydan Okuma Tamamlandı!',
+    challengeCompleteBody: '{score} puan yaptın, rakip {opponentScore} puan',
+    yourScorePending: 'Senin puanın',
+
+    // ── Seasonal event extras ─────────────────────────────────────────────────
+    springEventSubtitle: 'Özel rozetler kazanmak için bahar temalı soruları cevapla',
+    eventEndDate: '30 Nisan 2026',
+    progressToMilestoneFmt: 'Sonraki aşamaya {n} / {total} ({pct}%)',
+    answerNQuestionsFmt: '{n} soru cevapla',
+
+    // ── Paywall ───────────────────────────────────────────────────────────────
+    premiumSubscriptionTitle: 'Premium Abonelik',
+    restorePurchasesChecking: 'Önceki satın almalar kontrol ediliyor…',
+    subscribeBtnFmt: 'Abone Ol — {price}',
+
+    // ── Profile ───────────────────────────────────────────────────────────────
+    playerDefault: 'Oyuncu',
+
+    // ── Game screen ───────────────────────────────────────────────────────────
+    exitGameLabel: 'Oyundan çık',
+
+    // ── Daily challenge banner ────────────────────────────────────────────────
+    dailyChallengeLabel: 'GÜNLÜK MEYDAN OKUMA',
+    expired: 'Süresi Doldu',
+    targetLabel: 'Hedef',
+    playersLabel: 'Oyuncular',
+
+    // ── Energy bar ────────────────────────────────────────────────────────────
+    nextHeartInFmt: 'Sonraki can {time} içinde',
+
+    // ── Fact reveal ───────────────────────────────────────────────────────────
+    factTimesUp: 'Süre Doldu!',
+    factCorrect: 'Doğru!',
+    factWrong: 'Yanlış!',
+    streakSuffix: 'Seri!',
+    answerFasterTip: 'Bir dahaki sefere daha hızlı cevapla!',
+    keepGoingMsg: 'Devam et — başarabilirsin!',
+    didYouKnow: 'Biliyor muydun?',
+    tipLabel: 'İpucu',
+    tipText: 'Her seçeneği dikkatlice oku — bazıları çok yakın!',
+    continueBtn: 'Devam',
+
+    // ── Seasonal event banner ─────────────────────────────────────────────────
+    seasonalEventLabel: 'MEVSİMSEL ETKİNLİK',
+    springEventEnds: '30 Nisan\'da bitiyor · Özel rozetler',
+    springEventAccessibility: 'Bahar Bilgi Koşusu mevsimsel etkinliği',
+
+    // ── Level node ────────────────────────────────────────────────────────────
+    levelNodeLockedSuffix: ': kilitli',
+    levelNodeCompletedFmt: ': tamamlandı, {stars} yıldız',
+    levelNodeCurrentSuffix: ': mevcut seviye',
+    levelNodeUnlockedSuffix: ': açık',
+    completePrevLevels: 'Kilidi açmak için önceki seviyeleri tamamla',
+    doubleTapToStart: 'Başlamak için çift dokun',
+
+    // ── World card ────────────────────────────────────────────────────────────
+    completePrevWorld: 'Önceki dünyayı tamamla',
+
+    // ── Error view ────────────────────────────────────────────────────────────
+    somethingWentWrong: 'Bir şeyler yanlış gitti.',
   },
 } as const;
 

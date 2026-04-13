@@ -3,6 +3,7 @@ import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, RADIUS } from '../constants';
+import { useI18n } from '../i18n';
 
 interface EnergyBarProps {
   hearts: number;
@@ -53,6 +54,7 @@ export const EnergyBar: React.FC<EnergyBarProps> = ({
   secondsUntilRegen,
   onWatchAd,
 }) => {
+  const { t } = useI18n();
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -87,7 +89,7 @@ export const EnergyBar: React.FC<EnergyBarProps> = ({
         <View style={styles.countdownRow}>
           <Ionicons name="time-outline" size={12} color={COLORS.textMuted} />
           <Text style={styles.countdown}>
-            Next heart in {formatTime(secondsUntilRegen!)}
+            {t('nextHeartInFmt').replace('{time}', formatTime(secondsUntilRegen!))}
           </Text>
         </View>
       )}
@@ -99,11 +101,11 @@ export const EnergyBar: React.FC<EnergyBarProps> = ({
           onPress={onWatchAd}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Watch ad to refill hearts"
+          accessibilityLabel={t('watchAdRefill')}
         >
           <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.adBtnInner}>
             <Ionicons name="play-circle-outline" size={16} color="#fff" />
-            <Text style={styles.adBtnText}>Watch Ad to Refill</Text>
+            <Text style={styles.adBtnText}>{t('watchAdRefill')}</Text>
           </LinearGradient>
         </TouchableOpacity>
       )}

@@ -33,9 +33,9 @@ export const PaywallScreen: React.FC<Props> = ({ navigation }) => {
     setPurchasing(true);
     try {
       Alert.alert(
-        'Premium Subscription',
-        'In-app purchase requires a signed build with App Store / Play Store configuration. This feature is ready for TestFlight / internal testing.',
-        [{ text: 'OK' }],
+        t('premiumSubscriptionTitle'),
+        t('premiumIapNote'),
+        [{ text: t('ok') }],
       );
     } finally {
       setPurchasing(false);
@@ -43,7 +43,7 @@ export const PaywallScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleRestore = () => {
-    Alert.alert('Restore Purchases', 'Checking for previous purchases…', [{ text: 'OK' }]);
+    Alert.alert(t('restorePurchases'), t('restorePurchasesChecking'), [{ text: t('ok') }]);
   };
 
   return (
@@ -113,7 +113,7 @@ export const PaywallScreen: React.FC<Props> = ({ navigation }) => {
             ) : (
               <>
                 <Ionicons name="diamond" size={20} color="#1A1200" />
-                <Text style={styles.ctaText}>Subscribe — {PLANS[selectedPlan].price}</Text>
+                <Text style={styles.ctaText}>{t('subscribeBtnFmt').replace('{price}', PLANS[selectedPlan].price)}</Text>
               </>
             )}
           </LinearGradient>

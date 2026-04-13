@@ -3,18 +3,19 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS } from '../constants';
+import { useI18n } from '../i18n';
 import { getDailyChallenge, type DailyChallenge } from '../services/socialService';
 
 interface Props {
   onPress?: () => void;
 }
 
-function useCountdown(expiresAt: string): string {
+function useCountdown(expiresAt: string, expiredLabel: string): string {
   const [label, setLabel] = React.useState('');
   useEffect(() => {
     function tick() {
       const diff = new Date(expiresAt).getTime() - Date.now();
-      if (diff <= 0) { setLabel('Expired'); return; }
+      if (diff <= 0) { setLabel(expiredLabel); return; }
       const h = Math.floor(diff / 3_600_000);
       const m = Math.floor((diff % 3_600_000) / 60_000);
       const s = Math.floor((diff % 60_000) / 1_000);
@@ -23,7 +24,7 @@ function useCountdown(expiresAt: string): string {
     tick();
     const id = setInterval(tick, 1_000);
     return () => clearInterval(id);
-  }, [expiresAt]);
+  }, [expiresAt, expiredLabel]);
   return label;
 }
 
@@ -31,14 +32,15 @@ const BannerInner: React.FC<{ challenge: DailyChallenge; onPress?: () => void }>
   challenge,
   onPress,
 }) => {
-  const countdown = useCountdown(challenge.expiresAt);
+  const { t } = useI18n();
+  const countdown = useCountdown(challenge.expiresAt, t('expired'));
   return (
     <TouchableOpacity
       style={styles.banner}
       onPress={onPress}
       activeOpacity={0.85}
       accessibilityRole="button"
-      accessibilityLabel="Daily challenge"
+      accessibilityLabel={t('dailyChallenge')}
     >
       <LinearGradient
         colors={['#1E1040', '#120E30']}
@@ -53,7 +55,7 @@ const BannerInner: React.FC<{ challenge: DailyChallenge; onPress?: () => void }>
           {/* Top row */}
           <View style={styles.topRow}>
             <Ionicons name="flash" size={13} color={COLORS.primaryLight} />
-            <Text style={styles.badgeLabel}>DAILY CHALLENGE</Text>
+            <Text style={styles.badgeLabel}>{t('dailyChallengeLabel')}</Text>
             <View style={styles.countdownBadge}>
               <Ionicons name="time-outline" size={10} color={COLORS.warning} />
               <Text style={styles.countdownText}>{countdown}</Text>
@@ -68,14 +70,14 @@ const BannerInner: React.FC<{ challenge: DailyChallenge; onPress?: () => void }>
           <View style={styles.bottomRow}>
             <View style={styles.stat}>
               <Text style={styles.statValue}>{challenge.targetScore.toLocaleString()}</Text>
-              <Text style={styles.statLabel}>Target</Text>
+              <Text style={styles.statLabel}>{t('targetLabel')}</Text>
             </View>
             <View style={[styles.stat, styles.statSeparated]}>
               <Text style={styles.statValue}>{challenge.participants.toLocaleString()}</Text>
-              <Text style={styles.statLabel}>Players</Text>
+              <Text style={styles.statLabel}>{t('playersLabel')}</Text>
             </View>
             <View style={styles.ctaBtn}>
-              <Text style={styles.ctaText}>Play</Text>
+              <Text style={styles.ctaText}>{t('play')}</Text>
               <Ionicons name="arrow-forward" size={13} color="#fff" />
             </View>
           </View>

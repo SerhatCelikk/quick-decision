@@ -1,26 +1,28 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
+import { useI18n } from '../../i18n';
 
 interface Props {
   message?: string;
   onRetry?: () => void;
 }
 
-export const ErrorView: React.FC<Props> = ({
-  message = 'Something went wrong.',
-  onRetry,
-}) => (
-  <View style={styles.container}>
-    <Text style={styles.emoji}>⚠️</Text>
-    <Text style={styles.message}>{message}</Text>
-    {onRetry && (
-      <TouchableOpacity style={styles.button} onPress={onRetry}>
-        <Text style={styles.buttonText}>Try Again</Text>
-      </TouchableOpacity>
-    )}
-  </View>
-);
+export const ErrorView: React.FC<Props> = ({ message, onRetry }) => {
+  const { t } = useI18n();
+  return (
+    <View style={styles.container}>
+      <Ionicons name="warning" size={48} color={COLORS.timerWarning} style={{ marginBottom: 16 }} />
+      <Text style={styles.message}>{message ?? t('somethingWentWrong')}</Text>
+      {onRetry && (
+        <TouchableOpacity style={styles.button} onPress={onRetry}>
+          <Text style={styles.buttonText}>{t('tryAgain')}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {

@@ -3,12 +3,14 @@ import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS } from '../constants';
+import { useI18n } from '../i18n';
 
 interface Props {
   onPress: () => void;
 }
 
 export const SeasonalEventBanner: React.FC<Props> = ({ onPress }) => {
+  const { t } = useI18n();
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -28,7 +30,7 @@ export const SeasonalEventBanner: React.FC<Props> = ({ onPress }) => {
       onPress={onPress}
       activeOpacity={0.85}
       accessibilityRole="button"
-      accessibilityLabel="Spring Knowledge Sprint seasonal event"
+      accessibilityLabel={t('springEventAccessibility')}
     >
       <LinearGradient
         colors={['#064E3B', '#047857', '#064E3B']}
@@ -49,11 +51,11 @@ export const SeasonalEventBanner: React.FC<Props> = ({ onPress }) => {
 
         {/* Text */}
         <View style={styles.textBlock}>
-          <Text style={styles.eventLabel}>SEASONAL EVENT</Text>
-          <Text style={styles.eventTitle}>Spring Knowledge Sprint</Text>
+          <Text style={styles.eventLabel}>{t('seasonalEventLabel')}</Text>
+          <Text style={styles.eventTitle}>{t('springKnowledgeSprint')}</Text>
           <View style={styles.metaRow}>
             <Ionicons name="calendar-outline" size={11} color="#6EE7B7" />
-            <Text style={styles.eventMeta}>Ends April 30 · Exclusive badges</Text>
+            <Text style={styles.eventMeta}>{t('springEventEnds')}</Text>
           </View>
         </View>
 

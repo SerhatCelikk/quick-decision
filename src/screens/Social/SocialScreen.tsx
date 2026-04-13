@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../constants';
+import { useI18n } from '../../i18n';
 import type { RootStackParamList } from '../../types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -20,42 +21,6 @@ interface ActionCard {
   iconColor: string;
   badge?: string;
 }
-
-const ACTIONS: ActionCard[] = [
-  {
-    icon: 'people',
-    label: 'Friends',
-    desc: 'Add friends & see their progress',
-    screen: 'Friends',
-    gradient: ['#003A5C', '#005C8A'],
-    iconColor: '#29B6F6',
-    badge: undefined,
-  },
-  {
-    icon: 'flash',
-    label: 'Challenges',
-    desc: 'Send & receive trivia challenges',
-    screen: 'Challenges',
-    gradient: ['#3A1A00', '#6A2E00'],
-    iconColor: '#FF8C42',
-    badge: '2',
-  },
-  {
-    icon: 'share-social',
-    label: 'Share Card',
-    desc: 'Generate your stats card to share',
-    screen: 'ShareCard',
-    gradient: ['#003D2E', '#006650'],
-    iconColor: '#00C897',
-    badge: undefined,
-  },
-];
-
-const STATS = [
-  { label: 'Friends', value: '12', icon: 'person' as IoniconName, color: '#29B6F6' },
-  { label: 'Wins', value: '48', icon: 'trophy' as IoniconName, color: '#FFD700' },
-  { label: 'Battles', value: '63', icon: 'flash' as IoniconName, color: '#FF8C42' },
-];
 
 const AnimatedCard: React.FC<{ card: ActionCard; index: number; onPress: () => void }> = ({
   card, index, onPress,
@@ -123,8 +88,45 @@ const AnimatedCard: React.FC<{ card: ActionCard; index: number; onPress: () => v
 };
 
 export const SocialScreen: React.FC = () => {
+  const { t } = useI18n();
   const navigation = useNavigation<Nav>();
   const headerAnim = useRef(new Animated.Value(0)).current;
+
+  const ACTIONS: ActionCard[] = [
+    {
+      icon: 'people',
+      label: t('friends'),
+      desc: t('socialFriendsDesc'),
+      screen: 'Friends',
+      gradient: ['#003A5C', '#005C8A'],
+      iconColor: '#29B6F6',
+      badge: undefined,
+    },
+    {
+      icon: 'flash',
+      label: t('challenges'),
+      desc: t('socialChallengesDesc'),
+      screen: 'Challenges',
+      gradient: ['#3A1A00', '#6A2E00'],
+      iconColor: '#FF8C42',
+      badge: '2',
+    },
+    {
+      icon: 'share-social',
+      label: t('socialShareCardLabel'),
+      desc: t('socialShareCardDesc'),
+      screen: 'ShareCard',
+      gradient: ['#003D2E', '#006650'],
+      iconColor: '#00C897',
+      badge: undefined,
+    },
+  ];
+
+  const STATS = [
+    { label: t('friends'), value: '12', icon: 'person' as IoniconName, color: '#29B6F6' },
+    { label: t('wins'), value: '48', icon: 'trophy' as IoniconName, color: '#FFD700' },
+    { label: t('socialBattlesStat'), value: '63', icon: 'flash' as IoniconName, color: '#FF8C42' },
+  ];
 
   useEffect(() => {
     Animated.timing(headerAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
@@ -136,8 +138,8 @@ export const SocialScreen: React.FC = () => {
 
         {/* Header */}
         <Animated.View style={{ opacity: headerAnim }}>
-          <Text style={styles.heading}>Social</Text>
-          <Text style={styles.subheading}>Challenge friends & grow together</Text>
+          <Text style={styles.heading}>{t('social')}</Text>
+          <Text style={styles.subheading}>{t('socialSubheading')}</Text>
         </Animated.View>
 
         {/* Stats strip */}
@@ -152,7 +154,7 @@ export const SocialScreen: React.FC = () => {
         </Animated.View>
 
         {/* Section header */}
-        <Text style={styles.sectionTitle}>ACTIONS</Text>
+        <Text style={styles.sectionTitle}>{t('actionsSection')}</Text>
 
         {/* Action cards */}
         {ACTIONS.map((card, i) => (
@@ -180,12 +182,12 @@ export const SocialScreen: React.FC = () => {
               <Ionicons name="game-controller" size={28} color="#fff" />
             </View>
             <View style={styles.battleText}>
-              <Text style={styles.battleTitle}>Live Battle</Text>
-              <Text style={styles.battleSub}>Play against a real opponent now</Text>
+              <Text style={styles.battleTitle}>{t('liveBattleTitle')}</Text>
+              <Text style={styles.battleSub}>{t('liveBattleDesc')}</Text>
             </View>
             <View style={styles.battleLive}>
               <View style={styles.liveDot} />
-              <Text style={styles.liveText}>LIVE</Text>
+              <Text style={styles.liveText}>{t('liveLabel')}</Text>
             </View>
           </LinearGradient>
         </TouchableOpacity>

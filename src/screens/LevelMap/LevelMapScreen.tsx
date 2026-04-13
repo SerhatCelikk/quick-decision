@@ -16,6 +16,7 @@ import { COLORS, LEVELS_PER_WORLD, WORLD_THEMES, WORLDS } from '../../constants'
 import { useLevelProgress } from '../../hooks/useLevelProgress';
 import { LevelNode, type LevelNodeState } from '../../components/LevelNode';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useI18n, type TranslationKey } from '../../i18n';
 
 type Props = RootStackScreenProps<'LevelMap'>;
 const { width: W } = Dimensions.get('window');
@@ -133,11 +134,11 @@ const GEM_POSITIONS = [
 ];
 
 // ─── Milestone header (shown above certain levels) ────────────────────────────
-const MilestoneHeader: React.FC<{ label: string; emoji: string; color: string }> = ({ label, emoji, color }) => (
+const MilestoneHeader: React.FC<{ label: string; icon: string; color: string }> = ({ label, icon, color }) => (
   <View style={ms.wrap}>
     <View style={[ms.line, { backgroundColor: color + '44' }]} />
     <View style={[ms.badge, { backgroundColor: color + '1A', borderColor: color + '55' }]}>
-      <Text style={ms.emoji}>{emoji}</Text>
+      <Ionicons name={icon as any} size={11} color={color} />
       <Text style={[ms.text, { color }]}>{label}</Text>
     </View>
     <View style={[ms.line, { backgroundColor: color + '44' }]} />
@@ -147,20 +148,20 @@ const ms = StyleSheet.create({
   wrap: { flexDirection: 'row', alignItems: 'center', gap: 8, width: '88%', marginVertical: 8 },
   line: { flex: 1, height: 1 },
   badge: { borderWidth: 1, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  emoji: { fontSize: 13 },
   text: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
 });
 
 // Milestones shown ABOVE the corresponding level number in reversed (top-to-bottom = high-to-low) layout
-const MILESTONES: Record<number, { label: string; emoji: string }> = {
-  16: { label: 'Almost There', emoji: '🔥' },
-  11: { label: 'Halfway',      emoji: '⚡' },
-  6:  { label: 'Warming Up',   emoji: '💪' },
-  1:  { label: 'Start Here',   emoji: '🚀' },
+const MILESTONES: Record<number, { labelKey: TranslationKey; icon: string }> = {
+  16: { labelKey: 'milestoneAlmostThere', icon: 'flame' },
+  11: { labelKey: 'milestoneHalfway',     icon: 'flash' },
+  6:  { labelKey: 'milestoneWarmingUp',   icon: 'barbell' },
+  1:  { labelKey: 'milestoneStartHere',   icon: 'flag' },
 };
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { t } = useI18n();
   const { worldId, worldName, worldColor } = route.params;
   const { progress } = useLevelProgress();
   const reduceMotion = useReducedMotion();
@@ -249,7 +250,7 @@ export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('goBack')}
         >
           <View style={styles.backCircle}>
             <Ionicons name="chevron-back" size={22} color={COLORS.text} />
@@ -261,7 +262,7 @@ export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
             <Ionicons name={theme.icon as any} size={20} color={theme.color} />
             <Text style={[styles.worldTitle, { color: theme.color }]}>{worldName}</Text>
           </View>
-          <Text style={styles.worldSubtitle}>{completed} / {LEVELS_PER_WORLD} completed</Text>
+          <Text style={styles.worldSubtitle}>{t('levelsCompletedFmt').replace('{n}', String(completed)).replace('{total}', String(LEVELS_PER_WORLD))}</Text>
         </View>
 
         {/* Progress pill */}
@@ -293,8 +294,8 @@ export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
             <View style={[styles.trophyWrap, { borderColor: theme.color + '66', backgroundColor: theme.dimColor }]}>
               <Ionicons name="trophy" size={40} color={theme.color} />
             </View>
-            <Text style={[styles.worldTopTitle, { color: theme.color }]}>World Complete!</Text>
-            <Text style={styles.worldTopSub}>Finish all {LEVELS_PER_WORLD} levels to claim the trophy</Text>
+            <Text style={[styles.worldTopTitle, { color: theme.color }]}>{t('worldCompleteTitle')}</Text>
+            <Text style={styles.worldTopSub}>{t('worldCompleteHint').replace('{n}', String(LEVELS_PER_WORLD))}</Text>
           </LinearGradient>
         </View>
 
@@ -316,7 +317,7 @@ export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
               <View key={wln} style={styles.nodeSlot}>
                 {/* Milestone label above this level */}
                 {milestone && (
-                  <MilestoneHeader label={milestone.label} emoji={milestone.emoji} color={theme.color} />
+                  <MilestoneHeader label={t(milestone.labelKey)} icon={milestone.icon} color={theme.color} />
                 )}
 
                 {/* Path connector from previous (above) to this node */}
@@ -360,7 +361,7 @@ export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={[styles.bottomLine, { backgroundColor: theme.color + '44' }]} />
           <View style={[styles.bottomBadge, { borderColor: theme.color + '55', backgroundColor: theme.color + '18' }]}>
             <Ionicons name="flag" size={16} color={theme.color} />
-            <Text style={[styles.bottomText, { color: theme.color }]}>Beginning</Text>
+            <Text style={[styles.bottomText, { color: theme.color }]}>{t('mapBeginning')}</Text>
           </View>
           <View style={[styles.bottomLine, { backgroundColor: theme.color + '44' }]} />
         </View>

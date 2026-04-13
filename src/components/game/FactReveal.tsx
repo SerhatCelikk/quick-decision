@@ -3,6 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
+import { useI18n } from '../../i18n';
 import { DuoButton } from '../common/DuoButton';
 
 interface FactRevealProps {
@@ -16,6 +17,7 @@ interface FactRevealProps {
 export const FactReveal: React.FC<FactRevealProps> = ({
   fact, answerCorrect, timedOut, streak, onContinue,
 }) => {
+  const { t } = useI18n();
   const slideAnim  = useRef(new Animated.Value(140)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const iconScale  = useRef(new Animated.Value(0.3)).current;
@@ -43,10 +45,10 @@ export const FactReveal: React.FC<FactRevealProps> = ({
 
   const spin = iconRotate.interpolate({ inputRange: [0, 1], outputRange: ['-30deg', '0deg'] });
 
-  const resultLabel = timedOut ? "Time's Up!"
+  const resultLabel = timedOut ? t('factTimesUp')
     : isCorrect
-    ? streak > 1 ? `${streak}x Streak!` : 'Correct!'
-    : 'Wrong!';
+    ? streak > 1 ? `${streak}x ${t('streakSuffix')}` : t('factCorrect')
+    : t('factWrong');
 
   const topIcon = isCorrect ? 'checkmark-circle' : timedOut ? 'time' : 'close-circle';
   const iconColor = isCorrect ? COLORS.success : timedOut ? COLORS.warning : COLORS.danger;
@@ -77,7 +79,7 @@ export const FactReveal: React.FC<FactRevealProps> = ({
             <Text style={[styles.verdict, { color: iconColor }]}>{resultLabel}</Text>
             {!isCorrect && (
               <Text style={styles.encouragement}>
-                {timedOut ? 'Answer faster next time!' : 'Keep going — you\'ve got this!'}
+                {timedOut ? t('answerFasterTip') : t('keepGoingMsg')}
               </Text>
             )}
             {isCorrect && streak > 1 && (
@@ -104,7 +106,7 @@ export const FactReveal: React.FC<FactRevealProps> = ({
           <View style={[styles.factBox, { borderColor: accentColor + '44' }]}>
             <View style={styles.factHeader}>
               <Ionicons name="bulb" size={13} color="#F59E0B" />
-              <Text style={styles.factTitle}>Did you know?</Text>
+              <Text style={styles.factTitle}>{t('didYouKnow')}</Text>
             </View>
             <Text style={styles.factBody}>{fact}</Text>
           </View>
@@ -112,15 +114,15 @@ export const FactReveal: React.FC<FactRevealProps> = ({
           <View style={[styles.factBox, { borderColor: COLORS.border }]}>
             <View style={styles.factHeader}>
               <Ionicons name="information-circle" size={13} color={COLORS.textMuted} />
-              <Text style={styles.factTitle}>Tip</Text>
+              <Text style={styles.factTitle}>{t('tipLabel')}</Text>
             </View>
-            <Text style={styles.factBody}>Read each option carefully — some are very close!</Text>
+            <Text style={styles.factBody}>{t('tipText')}</Text>
           </View>
         ) : null}
 
         {/* Continue button */}
         <DuoButton
-          label="Continue"
+          label={t('continueBtn')}
           variant={isCorrect ? 'primary' : 'danger'}
           onPress={onContinue}
         />

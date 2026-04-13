@@ -412,7 +412,7 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
 
       {/* ── Top bar ── */}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Exit game">
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel={t('exitGameLabel')}>
           <Ionicons name="close" size={18} color={COLORS.textMuted} />
         </TouchableOpacity>
 

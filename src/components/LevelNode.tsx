@@ -9,6 +9,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants';
+import { useI18n } from '../i18n';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 
 export type LevelNodeState = 'locked' | 'unlocked' | 'completed' | 'current';
@@ -53,6 +54,7 @@ export const LevelNode: React.FC<LevelNodeProps> = ({
   gradient,
   onPress,
 }) => {
+  const { t } = useI18n();
   const isLocked = state === 'locked';
   const isCurrent = state === 'current';
   const isCompleted = state === 'completed';
@@ -91,12 +93,20 @@ export const LevelNode: React.FC<LevelNodeProps> = ({
 
   const translateY = pressDepth.interpolate({ inputRange: [0, 1], outputRange: [0, 5] });
 
-  let accessibilityLabel = `Level ${levelNumber}`;
+  let accessibilityLabel = `${t('level')} ${levelNumber}`;
   let accessibilityHint: string | undefined;
-  if (isLocked) { accessibilityLabel += ': locked'; accessibilityHint = 'Complete previous levels to unlock'; }
-  else if (isCompleted) accessibilityLabel += `: completed, ${stars} stars`;
-  else if (isCurrent) { accessibilityLabel += ': current level'; accessibilityHint = 'Double-tap to start'; }
-  else { accessibilityLabel += ': unlocked'; accessibilityHint = 'Double-tap to start'; }
+  if (isLocked) {
+    accessibilityLabel += t('levelNodeLockedSuffix');
+    accessibilityHint = t('completePrevLevels');
+  } else if (isCompleted) {
+    accessibilityLabel += t('levelNodeCompletedFmt').replace('{stars}', String(stars));
+  } else if (isCurrent) {
+    accessibilityLabel += t('levelNodeCurrentSuffix');
+    accessibilityHint = t('doubleTapToStart');
+  } else {
+    accessibilityLabel += t('levelNodeUnlockedSuffix');
+    accessibilityHint = t('doubleTapToStart');
+  }
 
   const shadowColor = isLocked ? COLORS.border : dimColor;
   const completedGrad: readonly [string, string] = ['#047857', '#10B981'];

@@ -66,10 +66,10 @@ export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
             <Ionicons name="leaf" size={36} color="#00C060" />
           </View>
           <Text style={styles.heroTitle}>{eventTitle}</Text>
-          <Text style={styles.heroSubtitle}>Answer spring-themed questions to earn exclusive badges</Text>
+          <Text style={styles.heroSubtitle}>{t('springEventSubtitle')}</Text>
           <View style={styles.endsRow}>
             <Ionicons name="time" size={12} color="#00C060" />
-            <Text style={styles.endsText}>{t('eventEnds')}: April 30, 2026</Text>
+            <Text style={styles.endsText}>{t('eventEnds')}: {t('eventEndDate')}</Text>
           </View>
         </LinearGradient>
 
@@ -116,7 +116,10 @@ export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
                     />
                   </View>
                   <Text style={styles.progressLabel}>
-                    {answered} / {nextMilestone.questionsRequired} to next milestone ({pct}%)
+                    {t('progressToMilestoneFmt')
+                      .replace('{n}', String(answered))
+                      .replace('{total}', String(nextMilestone.questionsRequired))
+                      .replace('{pct}', String(pct))}
                   </Text>
                 </>
               )}
@@ -144,7 +147,7 @@ export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
                 <Text style={[styles.milestoneName, m.completed && { color: COLORS.success }]}>
                   {m.reward}
                 </Text>
-                <Text style={styles.milestoneReq}>Answer {m.questionsRequired} questions</Text>
+                <Text style={styles.milestoneReq}>{t('answerNQuestionsFmt').replace('{n}', String(m.questionsRequired))}</Text>
               </View>
               {m.completed && (
                 <Ionicons name="checkmark-circle" size={22} color={COLORS.success} />
@@ -156,10 +159,7 @@ export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
         {/* How to participate */}
         <View style={styles.infoCard}>
           <Ionicons name="information-circle" size={16} color={COLORS.timerSafe} />
-          <Text style={styles.infoText}>
-            Play any game mode during the event. Spring-themed questions are automatically
-            included and count toward your progress while the event is active.
-          </Text>
+          <Text style={styles.infoText}>{t('eventInfoText')}</Text>
         </View>
 
       </ScrollView>

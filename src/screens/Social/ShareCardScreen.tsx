@@ -11,12 +11,13 @@ import { StreakCounter } from '../../components/StreakCounter';
 import { getShareData, type ShareData } from '../../services/socialService';
 
 // Tier config — no emojis, Ionicons only
-type Tier = { label: string; color: string; icon: string; gradient: readonly [string, string] };
+type TierKey = 'tierLegendary' | 'tierElite' | 'tierPro' | 'tierRising';
+type Tier = { labelKey: TierKey; color: string; icon: string; gradient: readonly [string, string] };
 function getTier(score: number): Tier {
-  if (score >= 10_000) return { label: 'Legendary', color: COLORS.gold,     icon: 'trophy',   gradient: ['#2A2000', '#3D3000'] };
-  if (score >= 5_000)  return { label: 'Elite',     color: COLORS.accent,   icon: 'diamond',  gradient: ['#001820', '#002530'] };
-  if (score >= 1_000)  return { label: 'Pro',       color: COLORS.timerSafe, icon: 'flash',   gradient: ['#001040', '#001A60'] };
-  return                      { label: 'Rising',    color: COLORS.success,  icon: 'leaf',     gradient: ['#001A08', '#002510'] };
+  if (score >= 10_000) return { labelKey: 'tierLegendary', color: COLORS.gold,      icon: 'trophy',  gradient: ['#2A2000', '#3D3000'] };
+  if (score >= 5_000)  return { labelKey: 'tierElite',     color: COLORS.accent,    icon: 'diamond', gradient: ['#001820', '#002530'] };
+  if (score >= 1_000)  return { labelKey: 'tierPro',       color: COLORS.timerSafe, icon: 'flash',   gradient: ['#001040', '#001A60'] };
+  return                      { labelKey: 'tierRising',    color: COLORS.success,   icon: 'leaf',    gradient: ['#001A08', '#002510'] };
 }
 
 const ShareCard: React.FC<{ data: ShareData }> = ({ data }) => {
@@ -46,7 +47,7 @@ const ShareCard: React.FC<{ data: ShareData }> = ({ data }) => {
         </View>
         <View style={[styles.tierBadge, { borderColor: tier.color + '88', backgroundColor: tier.color + '15' }]}>
           <Ionicons name={tier.icon as any} size={13} color={tier.color} />
-          <Text style={[styles.tierLabel, { color: tier.color }]}>{tier.label}</Text>
+          <Text style={[styles.tierLabel, { color: tier.color }]}>{t(tier.labelKey)}</Text>
         </View>
       </View>
 
@@ -95,14 +96,12 @@ export const ShareCardScreen: React.FC = () => {
     try {
       await Share.share({
         message:
-          `I'm playing Quick Decision!\n\n` +
           `${shareData.username}\n` +
-          `Level ${shareData.level}\n` +
-          `Score: ${shareData.totalScore.toLocaleString()}\n` +
-          `Best Streak: ${shareData.bestStreak}\n\n` +
-          `Challenge me with code: ${shareData.shareCode}\n` +
-          `Download Quick Decision and beat my score!`,
-        title: 'My Quick Decision Stats',
+          `${t('level')} ${shareData.level}\n` +
+          `${t('totalScore')}: ${shareData.totalScore.toLocaleString()}\n` +
+          `${t('bestStreak')}: ${shareData.bestStreak}\n\n` +
+          `${t('challengeMeWithCode')}: ${shareData.shareCode}`,
+        title: t('shareCardTitle'),
       });
     } catch { /* user cancelled */ }
   };

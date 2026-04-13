@@ -93,10 +93,10 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.avatarGrad}>
             <Text style={styles.avatarInitials}>{initials}</Text>
           </LinearGradient>
-          <Text style={styles.username}>{username ?? 'Player'}</Text>
+          <Text style={styles.username}>{username ?? t('playerDefault')}</Text>
           <View style={styles.levelBadge}>
             <Ionicons name="flash" size={13} color={COLORS.gold} />
-            <Text style={styles.levelBadgeText}>Level {currentLevel}</Text>
+            <Text style={styles.levelBadgeText}>{t('level')} {currentLevel}</Text>
           </View>
         </View>
 

@@ -35,7 +35,12 @@ export const ChallengesScreen: React.FC = () => {
     const result = await respondToChallenge(challenge.id, mockScore);
     if (result.success) {
       await load();
-      Alert.alert('Challenge Complete!', `You scored ${mockScore} pts vs ${challenge.challengerScore} pts`);
+      Alert.alert(
+        tr('challengeCompleteTitle'),
+        tr('challengeCompleteBody')
+          .replace('{score}', String(mockScore))
+          .replace('{opponentScore}', String(challenge.challengerScore)),
+      );
     }
   };
 
@@ -48,7 +53,7 @@ export const ChallengesScreen: React.FC = () => {
         {/* Header */}
         <View style={styles.headerRow}>
           <Ionicons name="flash" size={22} color={COLORS.primary} />
-          <Text style={styles.heading}>Challenges</Text>
+          <Text style={styles.heading}>{tr('challenges')}</Text>
           {incoming.length > 0 && (
             <View style={styles.incomingBadge}>
               <Text style={styles.incomingBadgeText}>{incoming.length}</Text>
@@ -157,7 +162,7 @@ const ChallengeCard: React.FC<{
       <View style={styles.scoresRow}>
         <View style={styles.scoreBox}>
           <Text style={styles.scoreValue}>{challenge.challengerScore}</Text>
-          <Text style={styles.scoreLabel}>{isIncoming ? opponent : 'You'}</Text>
+          <Text style={styles.scoreLabel}>{isIncoming ? opponent : tr('you')}</Text>
         </View>
         <View style={styles.vsWrap}>
           <Text style={styles.vs}>VS</Text>
@@ -168,12 +173,12 @@ const ChallengeCard: React.FC<{
               <Text style={[styles.scoreValue, won && { color: COLORS.success }]}>
                 {challenge.challengedScore}
               </Text>
-              <Text style={styles.scoreLabel}>{isIncoming ? 'You' : opponent}</Text>
+              <Text style={styles.scoreLabel}>{isIncoming ? tr('you') : opponent}</Text>
             </>
           ) : (
             <>
               <Text style={styles.scoreValueDash}>—</Text>
-              <Text style={styles.scoreLabel}>{isIncoming ? 'Your score' : opponent}</Text>
+              <Text style={styles.scoreLabel}>{isIncoming ? tr('yourScorePending') : opponent}</Text>
             </>
           )}
         </View>

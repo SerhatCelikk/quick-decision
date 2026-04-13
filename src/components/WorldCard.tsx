@@ -9,6 +9,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS } from '../constants';
+import { useI18n } from '../i18n';
 
 interface WorldCardProps {
   name: string;
@@ -42,6 +43,7 @@ export const WorldCard: React.FC<WorldCardProps> = ({
   onPress,
   testID,
 }) => {
+  const { t } = useI18n();
   const progressPct = totalLevels > 0 ? (levelsCompleted / totalLevels) * 100 : 0;
   const pressAnim = useRef(new Animated.Value(0)).current;
 
@@ -68,7 +70,7 @@ export const WorldCard: React.FC<WorldCardProps> = ({
         onPressOut={handlePressOut}
         style={[styles.card, locked && styles.locked]}
         accessibilityRole="button"
-        accessibilityLabel={`${name} world — ${levelsCompleted} of ${totalLevels} levels completed${locked ? ', locked' : ''}`}
+        accessibilityLabel={`${name} — ${t('levelsCompletedFmt').replace('{n}', String(levelsCompleted)).replace('{total}', String(totalLevels))}${locked ? ', ' + t('levelNodeLockedSuffix').replace(': ', '') : ''}`}
         accessibilityState={{ disabled: locked }}
       >
         {/* Gradient header */}
@@ -92,7 +94,7 @@ export const WorldCard: React.FC<WorldCardProps> = ({
               {name}
             </Text>
             <Text style={[styles.levelCount, { color: locked ? COLORS.textMuted : color }]}>
-              {locked ? 'Complete previous world' : `${levelsCompleted} / ${totalLevels} levels`}
+              {locked ? t('completePrevWorld') : t('levelsCountFmt').replace('{n}', String(levelsCompleted)).replace('{total}', String(totalLevels))}
             </Text>
           </View>
 

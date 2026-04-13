@@ -34,8 +34,8 @@ export const FriendsScreen: React.FC = () => {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Add me on Quick Decision! My friend code is: ${shareCode}\nDownload the app and enter my code to challenge me!`,
-        title: 'Quick Decision — Friend Request',
+        message: t('friendShareMsg').replace('{code}', shareCode),
+        title: t('friendShareTitle'),
       });
     } catch { /* user cancelled */ }
   };
@@ -47,7 +47,7 @@ export const FriendsScreen: React.FC = () => {
     const result = await addFriendByCode(code);
     setAdding(false);
     if (result.success) { setAddCode(''); await load(); }
-    Alert.alert(result.success ? 'Success' : 'Error', result.message);
+    Alert.alert(result.success ? t('friendsSuccessTitle') : t('friendsErrorTitle'), result.message);
   };
 
   return (
@@ -56,7 +56,7 @@ export const FriendsScreen: React.FC = () => {
 
         {/* Header */}
         <View style={styles.headerRow}>
-          <Text style={styles.heading}>Friends</Text>
+          <Text style={styles.heading}>{t('friends')}</Text>
           <View style={[styles.countBadge, friends.length > 0 && { backgroundColor: COLORS.primary + '22', borderColor: COLORS.primary + '55' }]}>
             <Text style={[styles.countText, friends.length > 0 && { color: COLORS.primary }]}>{friends.length}</Text>
           </View>
@@ -70,7 +70,7 @@ export const FriendsScreen: React.FC = () => {
             <TouchableOpacity style={styles.shareWrap} onPress={handleShare} activeOpacity={0.88}>
               <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.shareBtn}>
                 <Ionicons name="share-social" size={16} color="#fff" />
-                <Text style={styles.shareBtnText}>Share</Text>
+                <Text style={styles.shareBtnText}>{t('share')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -105,7 +105,7 @@ export const FriendsScreen: React.FC = () => {
 
         {/* Friend list */}
         <Text style={styles.sectionTitle}>
-          {friends.length > 0 ? `Friends (${friends.length})` : 'No friends yet'}
+          {friends.length > 0 ? t('friendsCountFmt').replace('{n}', String(friends.length)) : t('noFriendsHeading')}
         </Text>
 
         {loading

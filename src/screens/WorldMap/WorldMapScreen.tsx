@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import type { TabScreenProps } from '../../types/navigation';
 import { COLORS, WORLD_THEMES, WORLDS, LEVELS_PER_WORLD } from '../../constants';
+import { useI18n } from '../../i18n';
 import { useLevelProgress } from '../../hooks/useLevelProgress';
 import { useEnergy } from '../../hooks/useEnergy';
 import { EnergyBar } from '../../components/EnergyBar';
@@ -198,6 +199,7 @@ const WorldCard: React.FC<WorldCardProps> = ({
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
+  const { t } = useI18n();
   const { progress } = useLevelProgress();
   const { hearts, maxHearts, secondsUntilRegen, refillHearts } = useEnergy();
 
@@ -251,12 +253,12 @@ export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.appName}>Quick Decision</Text>
-            <Text style={styles.appTagline}>How weird is the world?</Text>
+            <Text style={styles.appTagline}>{t('appTagline')}</Text>
           </View>
           <TouchableOpacity
             onPress={() => navigation.navigate('Profile')}
             accessibilityRole="button"
-            accessibilityLabel="Profile"
+            accessibilityLabel={t('profile')}
           >
             <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.profileGrad}>
               <Ionicons name="person" size={19} color="#fff" />
@@ -286,8 +288,8 @@ export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* ── Worlds section — shown first, no scroll needed ── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Choose Your World</Text>
-          <Text style={styles.sectionSub}>Tap a world to start playing</Text>
+          <Text style={styles.sectionTitle}>{t('chooseYourWorld')}</Text>
+          <Text style={styles.sectionSub}>{t('tapWorldToStart')}</Text>
         </View>
 
         {WORLDS.map((world, i) => {
@@ -319,17 +321,17 @@ export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
             {[0, 1, 2].map(i => <View key={i} style={[styles.csDot, { opacity: 0.3 + i * 0.25 }]} />)}
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.csTitle}>More worlds coming</Text>
-            <Text style={styles.csSub}>Memes · Guinness · Pop Culture</Text>
+            <Text style={styles.csTitle}>{t('moreWorldsComing')}</Text>
+            <Text style={styles.csSub}>{t('moreWorldsSubtitle')}</Text>
           </View>
           <Ionicons name="lock-closed" size={16} color={COLORS.textMuted} />
         </TouchableOpacity>
 
         {/* ── Banners below worlds ── */}
         <View style={styles.bannerSection}>
-          <Text style={styles.bannerSectionTitle}>TODAY</Text>
+          <Text style={styles.bannerSectionTitle}>{t('todayLabel')}</Text>
           <SeasonalEventBanner onPress={() =>
-            navigation.navigate('SeasonalEvent', { eventId: 'spring_2026', eventTitle: 'Spring Knowledge Sprint' })
+            navigation.navigate('SeasonalEvent', { eventId: 'spring_2026', eventTitle: t('springKnowledgeSprint') })
           } />
           <DailyChallengeBanner />
         </View>
