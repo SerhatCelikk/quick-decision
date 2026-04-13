@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { COLORS } from '../constants';
 import { StarRating } from './StarRating';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 export type LevelNodeState = 'locked' | 'unlocked' | 'completed' | 'current';
 
@@ -25,11 +26,12 @@ export const LevelNode: React.FC<LevelNodeProps> = ({
   const isLocked = state === 'locked';
   const isCurrent = state === 'current';
   const isCompleted = state === 'completed';
+  const reduceMotion = useReducedMotion();
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (!isCurrent) {
+    if (!isCurrent || reduceMotion) {
       pulseAnim.setValue(1);
       return;
     }
@@ -41,13 +43,29 @@ export const LevelNode: React.FC<LevelNodeProps> = ({
     );
     anim.start();
     return () => anim.stop();
-  }, [isCurrent, pulseAnim]);
+  }, [isCurrent, pulseAnim, reduceMotion]);
 
-  const nodeBg = isLocked ? COLORS.surface : isCompleted ? dimColor : dimColor;
+  const nodeBg = isLocked ? COLORS.surface : dimColor;
   const borderColor = isLocked ? COLORS.border : color;
   const borderWidth = isCurrent ? 3 : 2;
 
   const label = isLocked ? '🔒' : isCompleted ? '✓' : '▶';
+
+  // Accessibility label per design spec §1 (CHO-133)
+  let accessibilityLabel: string;
+  let accessibilityHint: string | undefined;
+  if (isLocked) {
+    accessibilityLabel = `Level ${levelNumber}: locked`;
+    accessibilityHint = 'Complete previous levels to unlock';
+  } else if (isCompleted) {
+    accessibilityLabel = `Level ${levelNumber}: completed with ${stars} star${stars !== 1 ? 's' : ''}`;
+  } else if (isCurrent) {
+    accessibilityLabel = `Level ${levelNumber}: current level`;
+    accessibilityHint = 'Double-tap to start';
+  } else {
+    accessibilityLabel = `Level ${levelNumber}: unlocked`;
+    accessibilityHint = 'Double-tap to start';
+  }
 
   return (
     <TouchableOpacity
@@ -55,6 +73,10 @@ export const LevelNode: React.FC<LevelNodeProps> = ({
       disabled={isLocked}
       activeOpacity={0.75}
       style={styles.wrapper}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: isLocked }}
     >
       <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
         <View
@@ -83,6 +105,10 @@ const styles = StyleSheet.create({
   wrapper: {
     alignItems: 'center',
     paddingVertical: 2,
+    // Ensure minimum 44pt touch target via padding
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   node: {
     width: 60,

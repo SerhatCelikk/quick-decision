@@ -12,6 +12,7 @@ import type { RootStackScreenProps } from '../../types/navigation';
 import { COLORS, LEVELS_PER_WORLD } from '../../constants';
 import { useLevelProgress } from '../../hooks/useLevelProgress';
 import { LevelNode, type LevelNodeState } from '../../components/LevelNode';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 type Props = RootStackScreenProps<'LevelMap'>;
 
@@ -44,6 +45,7 @@ function sideOffset(index: number): number {
 export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
   const { worldId, worldName, worldColor } = route.params;
   const { progress } = useLevelProgress();
+  const reduceMotion = useReducedMotion();
 
   const globalCurrent = progress?.current_level ?? 1;
   const globalHighest = progress?.highest_level_unlocked ?? 1;
@@ -61,6 +63,14 @@ export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
   ).current;
 
   useEffect(() => {
+    if (reduceMotion) {
+      // Snap all nodes visible immediately — no translate or stagger
+      nodeAnims.forEach(a => {
+        a.opacity.setValue(1);
+        a.translateX.setValue(0);
+      });
+      return;
+    }
     nodeAnims.forEach((a, i) => a.translateX.setValue(sideOffset(i)));
     const anims = nodeAnims.map((a, i) =>
       Animated.parallel([
@@ -69,7 +79,7 @@ export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
       ])
     );
     Animated.stagger(STAGGER_MS, anims).start();
-  }, []);
+  }, [reduceMotion]);
 
   const handleNodePress = useCallback(
     (worldLevelNumber: number) => {
@@ -96,7 +106,12 @@ export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <Text style={[styles.backIcon, { color: worldColor }]}>←</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: worldColor }]}>{worldName}</Text>
@@ -167,8 +182,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   backBtn: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },

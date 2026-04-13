@@ -13,6 +13,7 @@ import { EnergyBar } from '../../components/EnergyBar';
 import { StarRating } from '../../components/StarRating';
 import { DuoButton } from '../../components/common/DuoButton';
 import { useInAppReview } from '../../hooks/useInAppReview';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 type Props = RootStackScreenProps<'LevelCompletion'>;
 
@@ -67,6 +68,8 @@ const ConfettiPiece: React.FC<{
         transform: [{ translateY }, { rotate: spin }],
         opacity,
       }}
+      importantForAccessibility="no"
+      accessibilityElementsHidden
     >
       {char}
     </Animated.Text>
@@ -118,17 +121,29 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
   const accuracyPct = Math.round(accuracy * 100);
   const passThresholdPct = Math.round(PASS_THRESHOLD * 100);
   const { maybeRequestReview } = useInAppReview();
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (passed) maybeRequestReview();
   }, [passed, maybeRequestReview]);
   const xpEarned = passed ? Math.round(100 * (1 + stars * 0.5)) : 0;
 
-  const cardScale = useRef(new Animated.Value(0.85)).current;
+  const cardScale = useRef(new Animated.Value(reduceMotion ? 1 : 0.85)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
   const [showConfetti, setShowConfetti] = React.useState(false);
 
   useEffect(() => {
+    if (reduceMotion) {
+      // Reduced motion: instant appear, no spring, no confetti
+      cardScale.setValue(1);
+      Animated.timing(cardOpacity, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
+
     Animated.parallel([
       Animated.spring(cardScale, {
         toValue: 1,
@@ -152,7 +167,7 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
         clearTimeout(hideTimer);
       };
     }
-  }, [cardScale, cardOpacity, passed]);
+  }, [cardScale, cardOpacity, passed, reduceMotion]);
 
   const handleNextLevel = () => {
     navigation.replace('Game', {

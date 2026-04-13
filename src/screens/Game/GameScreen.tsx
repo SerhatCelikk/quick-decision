@@ -284,10 +284,18 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
               refillHearts();
               setPhase('loading');
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Watch ad to refill hearts"
+            accessibilityHint="Double-tap to watch a rewarded ad and refill your hearts"
           >
             <Text style={styles.actionBtnText}>📺 Watch Ad to Refill</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
             <Text style={styles.backBtnText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -303,7 +311,12 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
           {loadError ? (
             <>
               <Text style={styles.errorText}>{loadError}</Text>
-              <TouchableOpacity style={styles.goBackButton} onPress={() => navigation.goBack()}>
+              <TouchableOpacity
+                style={styles.goBackButton}
+                onPress={() => navigation.goBack()}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+              >
                 <Text style={styles.goBackButtonText}>Go Back</Text>
               </TouchableOpacity>
             </>
@@ -335,11 +348,19 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.scoreBox}>
+        <View
+          style={styles.scoreBox}
+          accessible
+          accessibilityLabel={`Score: ${score}`}
+        >
           <Text style={styles.scoreLabel}>Score</Text>
           <Text style={[styles.scoreValue, { color: theme.color }]}>{score}</Text>
         </View>
-        <View style={styles.progressBox}>
+        <View
+          style={styles.progressBox}
+          accessible
+          accessibilityLabel={`Question ${currentIndex + 1} of ${questions.length}`}
+        >
           <Text style={styles.progressText}>
             {currentIndex + 1} / {questions.length}
           </Text>
@@ -364,7 +385,13 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
           ]}
         />
       </View>
-      <Text style={styles.timerText}>{timeLeft}s</Text>
+      <Text
+        style={styles.timerText}
+        accessible
+        accessibilityLabel={`Time remaining: ${timeLeft} seconds`}
+      >
+        {timeLeft}s
+      </Text>
 
       {/* Question */}
       <Animated.View style={[styles.questionCard, { opacity: fadeAnim, borderColor: theme.color }]}>
@@ -541,7 +568,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
     textAlign: 'center',
-    lineHeight: 32,
+    // No fixed lineHeight so Dynamic Type can scale freely
   },
   choicesContainer: {
     gap: 14,

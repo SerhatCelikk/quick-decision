@@ -106,7 +106,7 @@ export const OptionButton: React.FC<OptionButtonProps> = memo(({
         <View style={[styles.prefixBadge, { backgroundColor: prefixBg }]}>
           <Text style={[styles.prefixText, { color: prefixColor }]}>{prefix}</Text>
         </View>
-        <Text style={styles.label} numberOfLines={3}>{label}</Text>
+        <Text style={styles.label}>{label}</Text>
         {isCorrect && (
           <Text style={[styles.stateIcon, { color: COLORS.brandGreen }]}>✓</Text>
         )}
@@ -124,13 +124,13 @@ const styles = StyleSheet.create({
   },
   button: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',  // allow label to wrap at large Dynamic Type sizes
     width: '100%',
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderWidth: 2,
-    minHeight: 64,
+    minHeight: 64,             // no fixed height — grows with content
   },
   idle: {
     backgroundColor: COLORS.surface,
@@ -158,6 +158,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
+    marginTop: 2,  // optical alignment with first line of text
   },
   prefixText: {
     fontSize: 14,

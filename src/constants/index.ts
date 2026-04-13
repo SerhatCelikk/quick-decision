@@ -12,14 +12,20 @@ export const COLORS = {
   yellow: '#eab308',
 
   // ─── Duolingo brand palette (CHO-76) ────────────────────────────────────────
-  brandGreen: '#58CC02',
+  brandGreen: '#58CC02',             // decorative only (icons, non-text fills)
   brandGreenDark: '#4CAD00',
-  brandBlue: '#1CB0F6',
+  brandGreenAccessible: '#1A7A00',   // WCAG AA — use when green is a text-bearing bg
+  brandBlue: '#1CB0F6',              // decorative only
+  brandBlueAccessible: '#0065A6',    // WCAG AA — use when blue is a text-bearing bg
   brandPurple: '#CE82FF',
-  brandOrange: '#FF9600',
+  brandOrange: '#FF9600',            // decorative only
+  brandOrangeText: '#B36B00',        // WCAG AA — use for orange text on light/white bg
   brandRed: '#FF4B4B',
   brandRedDark: '#CC3B3B',
   brandYellow: '#FFD900',
+  // ─── Accessible neutrals (CHO-135) ──────────────────────────────────────────
+  placeholderText: '#767676',        // WCAG AA minimum on white
+  lockedText: '#595959',             // WCAG AA on light bg
 
   // Answer card states
   correctBg: '#052e16',

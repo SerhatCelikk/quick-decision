@@ -115,24 +115,36 @@ export const AchievementsScreen: React.FC = () => {
         keyExtractor={(item) => item.id}
         numColumns={2}
         contentContainerStyle={styles.grid}
-        renderItem={({ item }) => (
-          <View style={[styles.badge, item.unlockedAt ? styles.badgeUnlocked : styles.badgeLocked]}>
-            <Text style={[styles.badgeEmoji, !item.unlockedAt && styles.badgeEmojiLocked]}>
-              {item.unlockedAt ? item.emoji : '🔒'}
-            </Text>
-            <Text style={[styles.badgeName, !item.unlockedAt && styles.badgeNameLocked]}>
-              {item.name}
-            </Text>
-            <Text style={styles.badgeDesc} numberOfLines={2}>
-              {item.description}
-            </Text>
-            {item.unlockedAt && (
-              <Text style={styles.badgeDate}>
-                {new Date(item.unlockedAt).toLocaleDateString()}
+        renderItem={({ item }) => {
+          const earnedDate = item.unlockedAt
+            ? new Date(item.unlockedAt).toLocaleDateString()
+            : null;
+          const a11yLabel = item.unlockedAt
+            ? `${item.name} badge, earned on ${earnedDate}`
+            : `${item.name} badge, locked. ${item.description}`;
+          return (
+            <View
+              style={[styles.badge, item.unlockedAt ? styles.badgeUnlocked : styles.badgeLocked]}
+              accessible
+              accessibilityLabel={a11yLabel}
+            >
+              <Text style={[styles.badgeEmoji, !item.unlockedAt && styles.badgeEmojiLocked]}>
+                {item.unlockedAt ? item.emoji : '🔒'}
               </Text>
-            )}
-          </View>
-        )}
+              <Text style={[styles.badgeName, !item.unlockedAt && styles.badgeNameLocked]}>
+                {item.name}
+              </Text>
+              <Text style={styles.badgeDesc} numberOfLines={3}>
+                {item.description}
+              </Text>
+              {item.unlockedAt && (
+                <Text style={styles.badgeDate}>
+                  {earnedDate}
+                </Text>
+              )}
+            </View>
+          );
+        }}
         ListEmptyComponent={
           <Text style={styles.empty}>{t('noAchievementsYet')}</Text>
         }
@@ -169,6 +181,7 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
+    minHeight: 44,
   },
   badgeUnlocked: {
     backgroundColor: COLORS.surface,
@@ -192,6 +205,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     textAlign: 'center',
     marginBottom: 4,
+    flexWrap: 'wrap',
   },
   badgeNameLocked: {
     color: COLORS.textMuted,

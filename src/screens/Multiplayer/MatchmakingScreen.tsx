@@ -6,12 +6,14 @@ import {
   TouchableOpacity,
   Animated,
   Easing,
+  AccessibilityInfo,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { RootStackScreenProps } from '../../types';
 import { supabase } from '../../services/supabase';
 import { COLORS } from '../../constants';
 import { useI18n } from '../../i18n';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 type Props = RootStackScreenProps<'Matchmaking'>;
 
@@ -20,9 +22,14 @@ export const MatchmakingScreen: React.FC<Props> = ({ navigation }) => {
   const [elapsed, setElapsed] = useState(0);
   const [cancelled, setCancelled] = useState(false);
   const spinAnim = useRef(new Animated.Value(0)).current;
+  const reduceMotion = useReducedMotion();
 
-  // Spin animation
+  // Spin animation — skip when reduce motion is enabled
   useEffect(() => {
+    if (reduceMotion) {
+      spinAnim.setValue(0);
+      return;
+    }
     const loop = Animated.loop(
       Animated.timing(spinAnim, {
         toValue: 1,
@@ -33,7 +40,7 @@ export const MatchmakingScreen: React.FC<Props> = ({ navigation }) => {
     );
     loop.start();
     return () => loop.stop();
-  }, [spinAnim]);
+  }, [spinAnim, reduceMotion]);
 
   // Timer
   useEffect(() => {
@@ -58,6 +65,8 @@ export const MatchmakingScreen: React.FC<Props> = ({ navigation }) => {
       channel = supabase.channel(`matchmaking:${userId}`)
         .on('broadcast', { event: 'match_found' }, (payload) => {
           const { match_id, opponent_username } = payload.payload as { match_id: string; opponent_username: string };
+          // Announce opponent found to screen readers
+          AccessibilityInfo.announceForAccessibility(`Opponent found: ${opponent_username}`);
           navigation.replace('LiveBattle', { matchId: match_id, opponentUsername: opponent_username });
         })
         .subscribe();
@@ -87,23 +96,49 @@ export const MatchmakingScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Spinner */}
-        <Animated.View style={[styles.ring, { transform: [{ rotate: spin }] }]}>
-          <View style={styles.ringInner} />
-        </Animated.View>
+        {reduceMotion ? (
+          // Static concentric circles — no rotation, no pulse
+          <View style={styles.staticRingOuter}>
+            <View style={styles.staticRingInner} />
+          </View>
+        ) : (
+          // Animated rotating ring
+          <Animated.View style={[styles.ring, { transform: [{ rotate: spin }] }]}>
+            <View style={styles.ringInner} />
+          </Animated.View>
+        )}
 
-        {/* Pulsing dots */}
-        <View style={styles.dots}>
-          {[0, 1, 2].map((i) => (
-            <View key={i} style={styles.dot} />
-          ))}
-        </View>
+        {/* Pulsing dots (hidden in reduced motion — show system activity indicator instead) */}
+        {!reduceMotion && (
+          <View style={styles.dots}>
+            {[0, 1, 2].map((i) => (
+              <View key={i} style={styles.dot} />
+            ))}
+          </View>
+        )}
 
-        <Text style={styles.searchingText}>{t('searching')}</Text>
-        <Text style={styles.elapsedText}>{formatElapsed(elapsed)}</Text>
+        <Text
+          style={styles.searchingText}
+          accessibilityLiveRegion="polite"
+          accessibilityLabel="Searching for opponent…"
+        >
+          {t('searching')}
+        </Text>
+        <Text
+          style={styles.elapsedText}
+          accessibilityLabel={`Search time: ${formatElapsed(elapsed)}`}
+        >
+          {formatElapsed(elapsed)}
+        </Text>
 
         {!cancelled && (
-          <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={handleCancel}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel search"
+            accessibilityHint="Double-tap to cancel matchmaking and go back"
+          >
             <Text style={styles.cancelText}>{t('cancel')}</Text>
           </TouchableOpacity>
         )}
@@ -143,6 +178,25 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     backgroundColor: COLORS.surface,
   },
+  // Static alternative for reduced motion
+  staticRingOuter: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 4,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 32,
+  },
+  staticRingInner: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: COLORS.surface,
+    borderWidth: 2,
+    borderColor: COLORS.border,
+  },
   dots: { flexDirection: 'row', gap: 8, marginBottom: 24 },
   dot: {
     width: 8,
@@ -172,6 +226,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     marginBottom: 32,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   cancelText: { fontSize: 15, color: COLORS.textMuted, fontWeight: '600' },
   tipCard: {
