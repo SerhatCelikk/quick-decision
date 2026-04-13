@@ -103,7 +103,7 @@ export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
   const nodeDimColor = `${worldColor}33`; // 20% alpha background approximation via hex
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView testID="level-map-screen" style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity

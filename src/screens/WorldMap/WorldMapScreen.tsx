@@ -67,7 +67,7 @@ export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
   }, [refillHearts]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView testID="world-map-screen" style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Quick Decision</Text>
@@ -75,7 +75,7 @@ export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       {/* Energy bar */}
-      <View style={styles.energySection}>
+      <View testID="energy-bar" style={styles.energySection}>
         <EnergyBar
           hearts={hearts}
           maxHearts={maxHearts}
@@ -113,6 +113,7 @@ export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
               }}
             >
               <WorldCard
+                testID={`world-card-${world.worldId}`}
                 name={theme.name}
                 emoji={theme.emoji}
                 color={theme.color}

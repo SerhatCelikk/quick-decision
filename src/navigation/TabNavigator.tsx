@@ -37,6 +37,7 @@ export const TabNavigator: React.FC = () => {
         options={{
           tabBarLabel: t('play'),
           tabBarIcon: ({ color }) => <TabIcon emoji="🌍" color={color} />,
+          tabBarButtonTestID: 'tab-world-map',
         }}
       />
       <Tab.Screen
@@ -45,6 +46,7 @@ export const TabNavigator: React.FC = () => {
         options={{
           tabBarLabel: t('leaderboard'),
           tabBarIcon: ({ color }) => <TabIcon emoji="🏆" color={color} />,
+          tabBarButtonTestID: 'tab-leaderboard',
         }}
       />
       <Tab.Screen
@@ -53,6 +55,7 @@ export const TabNavigator: React.FC = () => {
         options={{
           tabBarLabel: t('social'),
           tabBarIcon: ({ color }) => <TabIcon emoji="👥" color={color} />,
+          tabBarButtonTestID: 'tab-social',
         }}
       />
       <Tab.Screen
@@ -61,6 +64,7 @@ export const TabNavigator: React.FC = () => {
         options={{
           tabBarLabel: t('profile'),
           tabBarIcon: ({ color }) => <TabIcon emoji="👤" color={color} />,
+          tabBarButtonTestID: 'tab-profile',
         }}
       />
     </Tab.Navigator>

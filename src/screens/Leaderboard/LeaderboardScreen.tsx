@@ -111,7 +111,7 @@ export const LeaderboardScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView testID="leaderboard-screen" style={styles.container}>
       <Text style={styles.title}>🏆 Leaderboard</Text>
       <Text style={styles.subtitle}>Top players by total score</Text>
 

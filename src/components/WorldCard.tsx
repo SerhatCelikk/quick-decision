@@ -15,6 +15,7 @@ interface WorldCardProps {
   maxStars: number;
   locked?: boolean;
   onPress?: () => void;
+  testID?: string;
 }
 
 export const WorldCard: React.FC<WorldCardProps> = ({
@@ -28,12 +29,14 @@ export const WorldCard: React.FC<WorldCardProps> = ({
   maxStars,
   locked = false,
   onPress,
+  testID,
 }) => {
   const progressPct = totalLevels > 0 ? (levelsCompleted / totalLevels) * 100 : 0;
   const starCount = Math.min(3, Math.round((totalStars / maxStars) * 3)) as 0 | 1 | 2 | 3;
 
   return (
     <TouchableOpacity
+      testID={testID}
       style={[styles.card, { borderColor: locked ? COLORS.border : color }, locked && styles.locked]}
       onPress={!locked ? onPress : undefined}
       disabled={locked}

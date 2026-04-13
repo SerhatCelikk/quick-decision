@@ -84,7 +84,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     : 0;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView testID="profile-screen" style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Avatar + Name */}
         <View style={styles.avatarContainer}>
