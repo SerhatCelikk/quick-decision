@@ -15,14 +15,14 @@ type Props = RootStackScreenProps<'SeasonalEvent'>;
 interface Milestone { questionsRequired: number; reward: string; icon: string; iconColor: string; completed: boolean }
 
 const SPRING_MILESTONES: Omit<Milestone, 'completed'>[] = [
-  { questionsRequired: 5,  reward: 'Seedling Badge',      icon: 'leaf',    iconColor: '#00C060' },
-  { questionsRequired: 15, reward: 'Blossom Badge',       icon: 'flower',  iconColor: '#FF6D9D' },
+  { questionsRequired: 5,  reward: 'Seedling Badge',      icon: 'leaf',     iconColor: '#00C060' },
+  { questionsRequired: 15, reward: 'Blossom Badge',       icon: 'flower',   iconColor: '#FF6D9D' },
   { questionsRequired: 30, reward: 'Spring Scholar Badge', icon: 'sparkles', iconColor: '#FFD700' },
 ];
 
 interface EventProgress { questionsAnswered: number; correctAnswers: number; rank: number | null }
 
-export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
+export const SeasonalEventScreen: React.FC<Props> = ({ navigation, route }) => {
   const { eventTitle } = route.params;
   const { t } = useI18n();
   const [progress, setProgress] = useState<EventProgress | null>(null);
@@ -57,11 +57,22 @@ export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
   const pct = nextMilestone ? Math.min(100, Math.round((answered / nextMilestone.questionsRequired) * 100)) : 100;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <LinearGradient colors={['#4F46E5', '#4338CA', '#3B35BC']} style={StyleSheet.absoluteFill} pointerEvents="none" />
+
+      {/* Nav bar */}
+      <View style={styles.navBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('goBack')}>
+          <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>{eventTitle}</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Hero */}
-        <LinearGradient colors={['#00200E', '#001A0A']} style={styles.hero}>
+        <LinearGradient colors={['rgba(0,192,96,0.20)', 'rgba(0,192,96,0.06)']} style={styles.hero}>
           <View style={styles.heroIconWrap}>
             <Ionicons name="leaf" size={36} color="#00C060" />
           </View>
@@ -136,7 +147,7 @@ export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
                 styles.milestoneIcon,
                 m.completed
                   ? { backgroundColor: m.iconColor + '22', borderColor: m.iconColor + '55' }
-                  : { backgroundColor: COLORS.border + '50', borderColor: COLORS.border },
+                  : { backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.14)' },
               ]}>
                 {m.completed
                   ? <Ionicons name={m.icon as any} size={20} color={m.iconColor} />
@@ -156,7 +167,7 @@ export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
           ))}
         </View>
 
-        {/* How to participate */}
+        {/* Info */}
         <View style={styles.infoCard}>
           <Ionicons name="information-circle" size={16} color={COLORS.timerSafe} />
           <Text style={styles.infoText}>{t('eventInfoText')}</Text>
@@ -169,59 +180,76 @@ export const SeasonalEventScreen: React.FC<Props> = ({ route }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32, gap: 14 },
+
+  navBar: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 14, gap: 8,
+  },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  navTitle: {
+    flex: 1, textAlign: 'center',
+    fontFamily: 'NunitoSans_800ExtraBold',
+    fontSize: 18, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.3,
+  },
+
+  scroll: { paddingHorizontal: 16, paddingTop: 0, paddingBottom: 32, gap: 14 },
 
   hero: {
     alignItems: 'center', borderRadius: 22, padding: 28, gap: 8,
-    borderWidth: 1, borderColor: '#00C06033',
+    borderWidth: 1, borderColor: 'rgba(0,192,96,0.30)',
   },
   heroIconWrap: {
     width: 68, height: 68, borderRadius: 20, borderWidth: 1,
-    borderColor: '#00C06055', backgroundColor: '#00C06020',
+    borderColor: 'rgba(0,192,96,0.40)', backgroundColor: 'rgba(0,192,96,0.18)',
     justifyContent: 'center', alignItems: 'center',
   },
-  heroTitle: { fontSize: 20, fontWeight: '900', color: COLORS.text, textAlign: 'center' },
-  heroSubtitle: { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', lineHeight: 19, paddingHorizontal: 10 },
+  heroTitle: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 20, fontWeight: '900', color: COLORS.text, textAlign: 'center' },
+  heroSubtitle: { fontFamily: 'NunitoSans_400Regular', fontSize: 13, color: COLORS.textMuted, textAlign: 'center', lineHeight: 19, paddingHorizontal: 10 },
   endsRow: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: '#00C06020', paddingHorizontal: 14, paddingVertical: 5, borderRadius: 100,
-    borderWidth: 1, borderColor: '#00C06033',
+    backgroundColor: 'rgba(0,192,96,0.15)', paddingHorizontal: 14, paddingVertical: 5, borderRadius: 100,
+    borderWidth: 1, borderColor: 'rgba(0,192,96,0.30)',
   },
-  endsText: { fontSize: 12, color: '#00C060', fontWeight: '700' },
+  endsText: { fontFamily: 'NunitoSans_700Bold', fontSize: 12, color: '#00C060', fontWeight: '700' },
 
   card: {
-    backgroundColor: COLORS.surface, borderRadius: 18, padding: 18,
-    borderWidth: 1, borderColor: COLORS.border, gap: 12,
+    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 18, padding: 18,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', gap: 12,
   },
-  cardTitle: { fontSize: 10, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.2 },
+  cardTitle: { fontFamily: 'NunitoSans_700Bold', fontSize: 10, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.2, textTransform: 'uppercase' },
 
   statsRow: { flexDirection: 'row', alignItems: 'center' },
   statBox: { flex: 1, alignItems: 'center', gap: 4 },
-  statDivider: { width: 1, height: 40, backgroundColor: COLORS.border },
-  statValue: { fontSize: 28, fontWeight: '900', color: COLORS.text },
-  statLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  statDivider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.14)' },
+  statValue: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 28, fontWeight: '900', color: COLORS.text },
+  statLabel: { fontFamily: 'NunitoSans_600SemiBold', fontSize: 10, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  progressBarBg: { height: 10, backgroundColor: COLORS.surface2, borderRadius: 5, overflow: 'hidden' },
+  progressBarBg: { height: 10, backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 5, overflow: 'hidden' },
   progressBarFill: { height: '100%', borderRadius: 5 },
-  progressLabel: { fontSize: 12, color: COLORS.textMuted, textAlign: 'center' },
+  progressLabel: { fontFamily: 'NunitoSans_400Regular', fontSize: 12, color: COLORS.textMuted, textAlign: 'center' },
 
   milestone: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
-  milestoneBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  milestoneBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.10)' },
   milestoneIcon: {
     width: 44, height: 44, borderRadius: 13, borderWidth: 1,
     justifyContent: 'center', alignItems: 'center',
   },
   milestoneText: { flex: 1 },
-  milestoneName: { fontSize: 14, fontWeight: '700', color: COLORS.text },
-  milestoneReq: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
+  milestoneName: { fontFamily: 'NunitoSans_700Bold', fontSize: 14, fontWeight: '700', color: COLORS.text },
+  milestoneReq: { fontFamily: 'NunitoSans_400Regular', fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
 
   errorWrap: { alignItems: 'center', gap: 8, paddingVertical: 8 },
-  errorText: { color: COLORS.textMuted, fontSize: 14 },
+  errorText: { fontFamily: 'NunitoSans_400Regular', color: COLORS.textMuted, fontSize: 14 },
 
   infoCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8,
-    backgroundColor: COLORS.surface, borderRadius: 14, padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14, padding: 14,
     borderWidth: 1, borderColor: COLORS.timerSafe + '30',
   },
-  infoText: { flex: 1, fontSize: 13, color: COLORS.textMuted, lineHeight: 19 },
+  infoText: { flex: 1, fontFamily: 'NunitoSans_400Regular', fontSize: 13, color: COLORS.textMuted, lineHeight: 19 },
 });

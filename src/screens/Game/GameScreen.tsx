@@ -35,48 +35,60 @@ function getStars(accuracy: number): 0 | 1 | 2 | 3 {
 }
 
 // ─── Ambient background particles ─────────────────────────────────────────────
-const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
+const PARTICLES = Array.from({ length: 24 }, (_, i) => ({
   id: i,
   x: Math.random() * W,
   size: 2 + (i % 4) * 1.5,
-  duration: 8000 + i * 700,
-  delay: i * 350,
-  opacity: 0.08 + (i % 3) * 0.06,
+  duration: 7000 + i * 600,
+  delay: i * 320,
+  opacity: 0.1 + (i % 4) * 0.07,
+  isSquare: i % 4 === 3,                          // every 4th is a square
+  driftX: Math.sin(i) * 28,                       // horizontal sway amplitude
 }));
 
 const AmbientBg: React.FC<{ color: string }> = ({ color }) => {
-  const anims = useRef(PARTICLES.map(() => new Animated.Value(0))).current;
+  const anims  = useRef(PARTICLES.map(() => new Animated.Value(0))).current;
+  const drifts = useRef(PARTICLES.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
     anims.forEach((anim, i) => {
-      const loop = Animated.loop(
+      Animated.loop(
         Animated.sequence([
           Animated.delay(PARTICLES[i].delay),
           Animated.timing(anim, { toValue: 1, duration: PARTICLES[i].duration, useNativeDriver: true }),
           Animated.timing(anim, { toValue: 0, duration: 0, useNativeDriver: true }),
         ])
-      );
-      loop.start();
+      ).start();
+      // Lateral sway — independent loop
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(drifts[i], { toValue: 1, duration: PARTICLES[i].duration * 0.6, useNativeDriver: true }),
+          Animated.timing(drifts[i], { toValue: -1, duration: PARTICLES[i].duration * 0.6, useNativeDriver: true }),
+        ])
+      ).start();
     });
-    return () => anims.forEach(a => a.stopAnimation());
+    return () => { anims.forEach(a => a.stopAnimation()); drifts.forEach(d => d.stopAnimation()); };
   }, []);
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <LinearGradient
-        colors={['#09071A', '#0D0A28', '#09071A']}
+        colors={['#4F46E5', '#4338CA', '#3B35BC']}
         style={StyleSheet.absoluteFill}
       />
       {PARTICLES.map((p, i) => {
-        const ty = anims[i].interpolate({ inputRange: [0, 1], outputRange: [H, -p.size * 4] });
-        const op = anims[i].interpolate({ inputRange: [0, 0.1, 0.85, 1], outputRange: [0, p.opacity, p.opacity, 0] });
+        const ty  = anims[i].interpolate({ inputRange: [0, 1], outputRange: [H, -p.size * 4] });
+        const op  = anims[i].interpolate({ inputRange: [0, 0.1, 0.85, 1], outputRange: [0, p.opacity, p.opacity, 0] });
+        const tx  = drifts[i].interpolate({ inputRange: [-1, 1], outputRange: [-p.driftX, p.driftX] });
+        const particleColor = i % 2 === 0 ? color + '55' : color + '33';
         return (
           <Animated.View
             key={p.id}
             style={{
               position: 'absolute', left: p.x, width: p.size, height: p.size,
-              borderRadius: p.size / 2, backgroundColor: color,
-              opacity: op, transform: [{ translateY: ty }],
+              borderRadius: p.isSquare ? 2 : p.size / 2,
+              backgroundColor: particleColor,
+              opacity: op, transform: [{ translateY: ty }, { translateX: tx }],
             }}
           />
         );
@@ -110,10 +122,18 @@ const CircleTimer: React.FC<{ timeLeft: number; total: number }> = ({ timeLeft, 
     }
   }, [timeLeft <= Math.ceil(total * 0.25)]);
 
+  const timerGlow = {
+    shadowColor: color,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: pct < 0.25 ? 0.8 : 0.3,
+    shadowRadius: pct < 0.25 ? 16 : 8,
+    elevation: 8,
+  };
+
   return (
-    <Animated.View style={[tStyles.wrap, { transform: [{ scale: pulseAnim }] }]}>
+    <Animated.View style={[tStyles.wrap, timerGlow, { transform: [{ scale: pulseAnim }] }]}>
       <LinearGradient
-        colors={pct > 0.5 ? ['#1040A0', COLORS.timerSafe] : pct > 0.25 ? ['#A04000', COLORS.timerWarning] : ['#8B001C', COLORS.timerDanger]}
+        colors={pct > 0.5 ? ['#1D4ED8', COLORS.timerSafe] : pct > 0.25 ? ['#C2410C', COLORS.timerWarning] : ['#9F1239', COLORS.timerDanger]}
         style={tStyles.grad}
       >
         <View style={tStyles.innerMask}>
@@ -131,11 +151,11 @@ const tStyles = StyleSheet.create({
   },
   grad: { flex: 1, padding: 3 },
   innerMask: {
-    flex: 1, borderRadius: 30, backgroundColor: '#09071A',
+    flex: 1, borderRadius: 30, backgroundColor: COLORS.background,
     justifyContent: 'center', alignItems: 'center',
   },
-  num:  { fontSize: 22, fontWeight: '900', lineHeight: 24 },
-  unit: { fontSize: 8, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  num:  { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 24, fontWeight: '900', lineHeight: 26 },
+  unit: { fontFamily: 'NunitoSans_700Bold', fontSize: 8, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
 });
 
 // ─── Score display ─────────────────────────────────────────────────────────────
@@ -168,7 +188,7 @@ const sStyles = StyleSheet.create({
     backgroundColor: COLORS.surface2, paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 20, borderWidth: 1, borderColor: COLORS.border,
   },
-  val: { fontSize: 16, fontWeight: '900' },
+  val: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 17, fontWeight: '900' },
 });
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
@@ -474,11 +494,18 @@ export const GameScreen: React.FC<Props> = ({ navigation, route }) => {
       <Animated.View
         style={[
           styles.questionCard,
-          { opacity: fadeAnim, transform: [{ translateY: slideAnim }], borderColor: theme.color + '44' },
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+            borderColor: theme.color + '44',
+            shadowColor: theme.color,
+            shadowOpacity: 0.18,
+            shadowRadius: 16,
+          },
         ]}
       >
         <LinearGradient
-          colors={['rgba(255,255,255,0.05)', 'transparent']}
+          colors={['rgba(255,255,255,0.18)', 'transparent']}
           style={styles.cardShine}
           pointerEvents="none"
         />
@@ -549,14 +576,14 @@ const styles = StyleSheet.create({
   gateCard: {
     width: '100%', backgroundColor: COLORS.surface, borderRadius: 24, padding: 28,
     alignItems: 'center', gap: 16, borderWidth: 1, borderColor: COLORS.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 16, elevation: 10,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 8,
   },
   gateIcon: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
   gateTitle: { fontSize: 24, fontWeight: '900', color: COLORS.text },
   gateBody: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 21 },
   adBtnWrap: { width: '100%', borderRadius: 16, overflow: 'hidden' },
   adBtnGrad: { height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  adBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  adBtnText: { color: '#1E1B4B', fontSize: 16, fontWeight: '700' },
   ghostBtn: { paddingVertical: 12 },
   ghostBtnText: { color: COLORS.textMuted, fontSize: 14, fontWeight: '500' },
 
@@ -601,27 +628,28 @@ const styles = StyleSheet.create({
 
   streakBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'center',
-    backgroundColor: COLORS.surface2, paddingHorizontal: 12, paddingVertical: 5,
-    borderRadius: 20, borderWidth: 1, borderColor: COLORS.streak + '55', marginBottom: 8, zIndex: 1,
+    backgroundColor: COLORS.streak + '20', paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.streak, marginBottom: 8, zIndex: 1,
+    shadowColor: COLORS.streak, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 10, elevation: 6,
   },
-  streakText: { fontSize: 12, fontWeight: '800', color: COLORS.streak },
+  streakText: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 13, fontWeight: '800', color: COLORS.streak },
 
   questionCard: {
     marginHorizontal: 14, marginBottom: 14,
-    backgroundColor: COLORS.surface, borderRadius: 22, padding: 22,
+    backgroundColor: COLORS.surface, borderRadius: 24, padding: 22,
     minHeight: 138, justifyContent: 'center', borderWidth: 1.5,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 16, elevation: 8,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.30, shadowRadius: 14, elevation: 6,
     overflow: 'hidden', zIndex: 1,
   },
   cardShine: {
     position: 'absolute', top: 0, left: 0, right: 0, height: '60%',
-    borderTopLeftRadius: 22, borderTopRightRadius: 22,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
   },
   levelTag: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 10 },
-  levelTagText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+  levelTagText: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
   questionText: {
-    fontSize: 20, fontWeight: '700', color: COLORS.text,
-    textAlign: 'center', lineHeight: 28, letterSpacing: -0.3,
+    fontFamily: 'SpaceGrotesk_600SemiBold', fontSize: 20, fontWeight: '700', color: COLORS.text,
+    textAlign: 'center', lineHeight: 30, letterSpacing: -0.3,
   },
 
   options: { paddingHorizontal: 14, gap: 10, zIndex: 1 },

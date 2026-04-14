@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, RADIUS } from '../constants';
@@ -34,56 +34,119 @@ const BannerInner: React.FC<{ challenge: DailyChallenge; onPress?: () => void }>
 }) => {
   const { t } = useI18n();
   const countdown = useCountdown(challenge.expiresAt, t('expired'));
+
+  // Mount bounce: slides up + overshoot
+  const slideAnim = useRef(new Animated.Value(12)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  // Breathing glow border
+  const glowAnim = useRef(new Animated.Value(0.2)).current;
+
+  useEffect(() => {
+    // Mount entrance
+    Animated.parallel([
+      Animated.spring(slideAnim, { toValue: 0, tension: 80, friction: 7, useNativeDriver: true }),
+      Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]).start();
+
+    // Glow breathe — useNativeDriver:false (shadow props)
+    const glow = Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 0.65, duration: 1800, useNativeDriver: false }),
+        Animated.timing(glowAnim, { toValue: 0.2, duration: 1800, useNativeDriver: false }),
+      ])
+    );
+    glow.start();
+    return () => glow.stop();
+  }, []);
+
   return (
-    <TouchableOpacity
-      style={styles.banner}
-      onPress={onPress}
-      activeOpacity={0.85}
-      accessibilityRole="button"
-      accessibilityLabel={t('dailyChallenge')}
+    // Outer: animated glow border — useNativeDriver:false (shadow props)
+    <Animated.View
+      style={[
+        styles.glowWrap,
+        {
+          shadowColor: COLORS.primary,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: glowAnim,
+          shadowRadius: 14,
+          elevation: 6,
+        },
+      ]}
     >
-      <LinearGradient
-        colors={['#1E1040', '#120E30']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradient}
+      {/* Inner: entrance slide + fade — useNativeDriver:true (transforms) */}
+      <Animated.View
+        style={[
+          styles.bannerWrap,
+          { transform: [{ translateY: slideAnim }], opacity: opacityAnim },
+        ]}
       >
-        {/* Left stripe */}
-        <View style={styles.accentStripe} />
+      <TouchableOpacity
+        style={styles.banner}
+        onPress={onPress}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel={t('dailyChallenge')}
+      >
+        <LinearGradient
+          colors={['#FF4C5E', '#FFD700', '#FF6D00']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.accentStripe}
+        />
 
-        <View style={styles.content}>
-          {/* Top row */}
-          <View style={styles.topRow}>
-            <Ionicons name="flash" size={13} color={COLORS.primaryLight} />
-            <Text style={styles.badgeLabel}>{t('dailyChallengeLabel')}</Text>
-            <View style={styles.countdownBadge}>
-              <Ionicons name="time-outline" size={10} color={COLORS.warning} />
-              <Text style={styles.countdownText}>{countdown}</Text>
+        <LinearGradient
+          colors={['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.07)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradient}
+        >
+          <View style={styles.content}>
+            {/* Top row */}
+            <View style={styles.topRow}>
+              <Ionicons name="flash" size={13} color={COLORS.primaryLight} />
+              <Text style={styles.badgeLabel}>{t('dailyChallengeLabel')}</Text>
+              <View style={styles.countdownBadge}>
+                <Ionicons name="time-outline" size={10} color={COLORS.warning} />
+                <Text style={styles.countdownText}>{countdown}</Text>
+              </View>
+            </View>
+
+            {/* Title */}
+            <Text style={styles.title}>{challenge.title}</Text>
+            <Text style={styles.description} numberOfLines={2}>{challenge.description}</Text>
+
+            {/* Bottom stats */}
+            <View style={styles.bottomRow}>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{challenge.targetScore.toLocaleString()}</Text>
+                <Text style={styles.statLabel}>{t('targetLabel')}</Text>
+              </View>
+              <View style={[styles.stat, styles.statSeparated]}>
+                <Text style={styles.statValue}>{challenge.participants.toLocaleString()}</Text>
+                <Text style={styles.statLabel}>{t('playersLabel')}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.ctaBtn}
+                onPress={onPress}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={['#FEF08A', '#FDE047']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.ctaBtnInner}
+                >
+                  <Text style={styles.ctaText}>{t('play')}</Text>
+                  <Ionicons name="arrow-forward" size={13} color="#1E1B4B" />
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
           </View>
-
-          {/* Title */}
-          <Text style={styles.title}>{challenge.title}</Text>
-          <Text style={styles.description} numberOfLines={2}>{challenge.description}</Text>
-
-          {/* Bottom stats */}
-          <View style={styles.bottomRow}>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{challenge.targetScore.toLocaleString()}</Text>
-              <Text style={styles.statLabel}>{t('targetLabel')}</Text>
-            </View>
-            <View style={[styles.stat, styles.statSeparated]}>
-              <Text style={styles.statValue}>{challenge.participants.toLocaleString()}</Text>
-              <Text style={styles.statLabel}>{t('playersLabel')}</Text>
-            </View>
-            <View style={styles.ctaBtn}>
-              <Text style={styles.ctaText}>{t('play')}</Text>
-              <Ionicons name="arrow-forward" size={13} color="#fff" />
-            </View>
-          </View>
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
+        </LinearGradient>
+      </TouchableOpacity>
+      </Animated.View>
+    </Animated.View>
   );
 };
 
@@ -117,23 +180,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  banner: {
+  // Outer: shadow glow layer (overflow visible so shadow renders)
+  glowWrap: {
     borderRadius: RADIUS.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
+  },
+  // Inner: clip content to border radius
+  bannerWrap: {
+    borderRadius: RADIUS.lg,
+    borderWidth: 1.5,
     borderColor: COLORS.primary + '55',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    overflow: 'hidden',
+  },
+  banner: {
+    overflow: 'hidden',
+  },
+  accentStripe: {
+    height: 3,
   },
   gradient: {
     flexDirection: 'row',
-  },
-  accentStripe: {
-    width: 4,
-    backgroundColor: COLORS.primaryLight,
   },
   content: {
     flex: 1,
@@ -146,6 +211,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   badgeLabel: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
     fontSize: 10,
     fontWeight: '800',
     color: COLORS.primaryLight,
@@ -162,16 +228,19 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.full,
   },
   countdownText: {
+    fontFamily: 'NunitoSans_700Bold',
     fontSize: 10,
     fontWeight: '700',
     color: COLORS.warning,
   },
   title: {
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 15,
     fontWeight: '800',
     color: COLORS.text,
   },
   description: {
+    fontFamily: 'NunitoSans_400Regular',
     fontSize: 12,
     color: COLORS.textMuted,
     lineHeight: 17,
@@ -191,11 +260,13 @@ const styles = StyleSheet.create({
     borderLeftColor: COLORS.border,
   },
   statValue: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
     fontSize: 14,
     fontWeight: '800',
     color: COLORS.text,
   },
   statLabel: {
+    fontFamily: 'NunitoSans_400Regular',
     fontSize: 9,
     color: COLORS.textMuted,
     textTransform: 'uppercase',
@@ -204,17 +275,25 @@ const styles = StyleSheet.create({
   },
   ctaBtn: {
     marginLeft: 'auto',
+    borderRadius: RADIUS.full,
+    overflow: 'hidden',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  ctaBtnInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: RADIUS.full,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   ctaText: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
     fontSize: 12,
     fontWeight: '700',
-    color: '#fff',
+    color: '#1E1B4B',
   },
 });

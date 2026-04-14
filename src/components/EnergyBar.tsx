@@ -20,24 +20,43 @@ function formatTime(secs: number): string {
 }
 
 // Single heart icon
-const Heart: React.FC<{ filled: boolean; size: number; pulsing: Animated.Value }> = ({
+const Heart: React.FC<{ filled: boolean; size: number; pulsing: Animated.Value; index: number }> = ({
   filled,
   size,
   pulsing,
+  index,
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const prevFilled = useRef(filled);
 
   useEffect(() => {
     if (filled) {
+      // Fill bounce — more dramatic
       Animated.sequence([
-        Animated.timing(scaleAnim, { toValue: 1.3, duration: 100, useNativeDriver: true }),
-        Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 10 }),
+        Animated.timing(scaleAnim, { toValue: 1.45, duration: 80, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 400, friction: 7 }),
+      ]).start();
+    } else if (prevFilled.current && !filled) {
+      // Lose animation: shake + small bounce down
+      Animated.sequence([
+        ...[-5, 5, -3, 3, 0].map(v =>
+          Animated.timing(shakeAnim, { toValue: v, duration: 50, useNativeDriver: true })
+        ),
       ]).start();
     }
+    prevFilled.current = filled;
   }, [filled]);
 
+  const glowStyle = filled
+    ? { shadowColor: COLORS.danger, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.35, shadowRadius: 6, elevation: 3 }
+    : {};
+
   return (
-    <Animated.View style={{ transform: [{ scale: filled ? scaleAnim : 1 }], opacity: filled ? 1 : pulsing }}>
+    <Animated.View style={[
+      { transform: [{ scale: filled ? scaleAnim : 1 }, { translateX: shakeAnim }] },
+      filled ? glowStyle : { opacity: pulsing },
+    ]}>
       <Ionicons
         name={filled ? 'heart' : 'heart-outline'}
         size={size}
@@ -80,7 +99,7 @@ export const EnergyBar: React.FC<EnergyBarProps> = ({
       {/* Hearts row */}
       <View style={styles.row}>
         {Array.from({ length: maxHearts }, (_, i) => (
-          <Heart key={i} filled={i < hearts} size={size} pulsing={pulseAnim} />
+          <Heart key={i} filled={i < hearts} size={size} pulsing={pulseAnim} index={i} />
         ))}
       </View>
 
@@ -120,7 +139,7 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    gap: 3,
+    gap: 4,
     alignItems: 'center',
   },
   countdownRow: {

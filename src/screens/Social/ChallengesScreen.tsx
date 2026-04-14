@@ -5,6 +5,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../../constants';
 import { useI18n } from '../../i18n';
 import {
@@ -15,6 +16,7 @@ type Tab = 'incoming' | 'outgoing';
 
 export const ChallengesScreen: React.FC = () => {
   const { t: tr } = useI18n();
+  const navigation = useNavigation();
   const [tab, setTab] = useState<Tab>('incoming');
   const [incoming, setIncoming] = useState<Challenge[]>([]);
   const [outgoing, setOutgoing] = useState<Challenge[]>([]);
@@ -47,19 +49,25 @@ export const ChallengesScreen: React.FC = () => {
   const list = tab === 'incoming' ? incoming : outgoing;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <LinearGradient colors={['#4F46E5', '#4338CA', '#3B35BC']} style={StyleSheet.absoluteFill} pointerEvents="none" />
 
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <Ionicons name="flash" size={22} color={COLORS.primary} />
-          <Text style={styles.heading}>{tr('challenges')}</Text>
-          {incoming.length > 0 && (
-            <View style={styles.incomingBadge}>
-              <Text style={styles.incomingBadgeText}>{incoming.length}</Text>
-            </View>
-          )}
-        </View>
+      {/* Nav bar */}
+      <View style={styles.navBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={tr('goBack')}>
+          <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>{tr('challenges')}</Text>
+        {incoming.length > 0 ? (
+          <View style={styles.navBadge}>
+            <Text style={styles.navBadgeText}>{incoming.length}</Text>
+          </View>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Tab switcher */}
         <View style={styles.tabs}>
@@ -73,7 +81,7 @@ export const ChallengesScreen: React.FC = () => {
               <Ionicons
                 name={t === 'incoming' ? 'arrow-down-circle' : 'arrow-up-circle'}
                 size={15}
-                color={tab === t ? '#fff' : COLORS.textMuted}
+                color={tab === t ? '#1E1B4B' : COLORS.textMuted}
               />
               <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
                 {t === 'incoming' ? `${tr('incomingTab')} (${incoming.length})` : `${tr('outgoingTab')} (${outgoing.length})`}
@@ -137,7 +145,6 @@ const ChallengeCard: React.FC<{
 
   return (
     <View style={styles.card}>
-      {/* Header row */}
       <View style={styles.cardHeader}>
         <View style={styles.cardOpponent}>
           <View style={[styles.opponentAvatar, {
@@ -158,7 +165,6 @@ const ChallengeCard: React.FC<{
         <StatusBadge status={challenge.status} />
       </View>
 
-      {/* Scores */}
       <View style={styles.scoresRow}>
         <View style={styles.scoreBox}>
           <Text style={styles.scoreValue}>{challenge.challengerScore}</Text>
@@ -184,9 +190,8 @@ const ChallengeCard: React.FC<{
         </View>
       </View>
 
-      {/* Result banner */}
       {challenge.status === 'completed' && (
-        <View style={[styles.resultBanner, { backgroundColor: won ? '#001F0A' : '#1F0008' }]}>
+        <View style={[styles.resultBanner, { backgroundColor: won ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)' }]}>
           <Ionicons name={won ? 'trophy' : 'refresh'} size={14} color={won ? COLORS.success : COLORS.danger} />
           <Text style={[styles.resultText, { color: won ? COLORS.success : COLORS.danger }]}>
             {won ? tr('youWonBattle') : tr('youLostBattle')}
@@ -194,11 +199,10 @@ const ChallengeCard: React.FC<{
         </View>
       )}
 
-      {/* Accept CTA */}
       {isIncoming && challenge.status === 'pending' && (
         <TouchableOpacity style={styles.acceptWrap} onPress={onAccept} activeOpacity={0.88}>
-          <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.acceptBtn}>
-            <Ionicons name="flash" size={16} color="#fff" />
+          <LinearGradient colors={['#FEF08A', '#FDE047']} style={styles.acceptBtn}>
+            <Ionicons name="flash" size={16} color="#1E1B4B" />
             <Text style={styles.acceptBtnText}>{tr('acceptChallenge')}</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -209,32 +213,47 @@ const ChallengeCard: React.FC<{
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  scroll: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 32, gap: 12 },
 
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  heading: { flex: 1, fontSize: 26, fontWeight: '900', color: COLORS.text, letterSpacing: -0.5 },
-  incomingBadge: {
-    backgroundColor: COLORS.danger, width: 22, height: 22, borderRadius: 11,
+  navBar: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 14, gap: 8,
+  },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
     justifyContent: 'center', alignItems: 'center',
   },
-  incomingBadgeText: { fontSize: 11, fontWeight: '900', color: '#fff' },
+  navTitle: {
+    flex: 1, textAlign: 'center',
+    fontFamily: 'NunitoSans_800ExtraBold',
+    fontSize: 18, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.3,
+  },
+  navBadge: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: COLORS.danger,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  navBadgeText: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 13, fontWeight: '900', color: '#fff' },
+
+  scroll: { paddingHorizontal: 16, paddingTop: 0, paddingBottom: 32, gap: 12 },
 
   tabs: {
-    flexDirection: 'row', backgroundColor: COLORS.surface,
+    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.10)',
     borderRadius: 14, padding: 4, gap: 4,
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
   },
   tab: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     paddingVertical: 10, borderRadius: 11, gap: 6,
   },
   tabActive: { backgroundColor: COLORS.primary },
-  tabText: { fontSize: 13, fontWeight: '600', color: COLORS.textMuted },
-  tabTextActive: { color: '#fff', fontWeight: '700' },
+  tabText: { fontFamily: 'NunitoSans_600SemiBold', fontSize: 13, fontWeight: '600', color: COLORS.textMuted },
+  tabTextActive: { fontFamily: 'NunitoSans_700Bold', color: '#1E1B4B', fontWeight: '700' },
 
   card: {
-    backgroundColor: COLORS.surface, borderRadius: 18, padding: 16,
-    gap: 12, borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 18, padding: 16,
+    gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   cardOpponent: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -242,40 +261,40 @@ const styles = StyleSheet.create({
     width: 36, height: 36, borderRadius: 10, borderWidth: 1,
     justifyContent: 'center', alignItems: 'center',
   },
-  opponentName: { fontSize: 15, fontWeight: '700', color: COLORS.text },
-  cardMeta: { fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
+  opponentName: { fontFamily: 'NunitoSans_700Bold', fontSize: 15, fontWeight: '700', color: COLORS.text },
+  cardMeta: { fontFamily: 'NunitoSans_400Regular', fontSize: 11, color: COLORS.textMuted, marginTop: 2 },
 
   badge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1,
   },
-  badgeText: { fontSize: 11, fontWeight: '700' },
+  badgeText: { fontFamily: 'NunitoSans_700Bold', fontSize: 11, fontWeight: '700' },
 
   scoresRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.background, borderRadius: 12, padding: 14,
+    backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: 12, padding: 14,
   },
   scoreBox: { flex: 1, alignItems: 'center', gap: 4 },
-  scoreValue: { fontSize: 24, fontWeight: '900', color: COLORS.text },
-  scoreValueDash: { fontSize: 24, fontWeight: '900', color: COLORS.textMuted },
-  scoreLabel: { fontSize: 10, color: COLORS.textMuted, textTransform: 'uppercase', fontWeight: '600', letterSpacing: 0.5 },
+  scoreValue: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 24, fontWeight: '900', color: COLORS.text },
+  scoreValueDash: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 24, fontWeight: '900', color: COLORS.textMuted },
+  scoreLabel: { fontFamily: 'NunitoSans_600SemiBold', fontSize: 10, color: COLORS.textMuted, textTransform: 'uppercase', fontWeight: '600', letterSpacing: 0.5 },
   vsWrap: { paddingHorizontal: 16 },
-  vs: { fontSize: 12, fontWeight: '900', color: COLORS.textMuted, letterSpacing: 1 },
+  vs: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 12, fontWeight: '900', color: COLORS.textMuted, letterSpacing: 1 },
 
   resultBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     borderRadius: 10, padding: 10,
   },
-  resultText: { fontSize: 13, fontWeight: '700' },
+  resultText: { fontFamily: 'NunitoSans_700Bold', fontSize: 13, fontWeight: '700' },
 
   acceptWrap: { borderRadius: 12, overflow: 'hidden' },
   acceptBtn: { height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  acceptBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  acceptBtnText: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 15, fontWeight: '700', color: '#1E1B4B' },
 
   emptyState: { alignItems: 'center', paddingVertical: 32, gap: 12 },
   emptyIconWrap: {
-    width: 80, height: 80, borderRadius: 24, backgroundColor: COLORS.surface2,
-    borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center',
+    width: 80, height: 80, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center',
   },
-  emptyText: { fontSize: 15, color: COLORS.textMuted, textAlign: 'center' },
+  emptyText: { fontFamily: 'NunitoSans_600SemiBold', fontSize: 15, color: COLORS.textMuted, textAlign: 'center' },
 });

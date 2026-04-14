@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
+import { COLORS } from '../../constants';
 
 interface TimerRingProps {
   /** Total duration in seconds */
@@ -30,7 +31,8 @@ export const TimerRing: React.FC<TimerRingProps> = ({
   strokeWidth = 7,
 }) => {
   // progress 1 → 0 as time drains
-  const progress = useRef(new Animated.Value(timeLeft / duration)).current;
+  const progress      = useRef(new Animated.Value(timeLeft / duration)).current;
+  const glowPulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.timing(progress, {
@@ -40,11 +42,27 @@ export const TimerRing: React.FC<TimerRingProps> = ({
     }).start();
   }, [timeLeft, duration, progress]);
 
+  // Danger zone: fast scale+glow pulse
+  useEffect(() => {
+    if (timeLeft <= 3) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(glowPulseAnim, { toValue: 1.08, duration: 150, useNativeDriver: true }),
+          Animated.timing(glowPulseAnim, { toValue: 1.0,  duration: 150, useNativeDriver: true }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    } else {
+      glowPulseAnim.setValue(1);
+    }
+  }, [timeLeft <= 3]);
+
   const ringColor =
-    timeLeft <= 3 ? '#ef4444' : timeLeft <= 5 ? '#f97316' : '#22c55e';
+    timeLeft <= 3 ? COLORS.timerDanger : timeLeft <= 5 ? COLORS.timerWarning : COLORS.success;
 
   const textColor =
-    timeLeft <= 3 ? '#ef4444' : timeLeft <= 5 ? '#f97316' : '#f8fafc';
+    timeLeft <= 3 ? COLORS.timerDanger : timeLeft <= 5 ? COLORS.timerWarning : COLORS.text;
 
   /**
    * Two-half-circle technique:
@@ -65,9 +83,13 @@ export const TimerRing: React.FC<TimerRingProps> = ({
 
   const half = size / 2;
 
+  const glowShadow = timeLeft <= 5
+    ? { shadowColor: ringColor, shadowOffset: { width: 0, height: 0 }, shadowOpacity: timeLeft <= 3 ? 0.7 : 0.4, shadowRadius: timeLeft <= 3 ? 16 : 8, elevation: 8 }
+    : {};
+
   return (
-    <View
-      style={[styles.container, { width: size, height: size }]}
+    <Animated.View
+      style={[styles.container, { width: size, height: size }, glowShadow, { transform: [{ scale: glowPulseAnim }] }]}
       accessibilityLabel={`${timeLeft} seconds remaining`}
     >
       {/* Track circle */}
@@ -79,7 +101,7 @@ export const TimerRing: React.FC<TimerRingProps> = ({
             height: size,
             borderRadius: half,
             borderWidth: strokeWidth,
-            borderColor: '#1e293b',
+            borderColor: COLORS.border,
           },
         ]}
       />
@@ -135,7 +157,7 @@ export const TimerRing: React.FC<TimerRingProps> = ({
             width: size - strokeWidth * 2,
             height: size - strokeWidth * 2,
             borderRadius: (size - strokeWidth * 2) / 2,
-            backgroundColor: '#0f172a',
+            backgroundColor: COLORS.background,
             left: strokeWidth,
             top: strokeWidth,
           },
@@ -148,7 +170,7 @@ export const TimerRing: React.FC<TimerRingProps> = ({
       >
         {timeLeft}
       </Text>
-    </View>
+    </Animated.View>
   );
 };
 
@@ -171,6 +193,7 @@ const styles = StyleSheet.create({
     top: 0,
   },
   label: {
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontWeight: 'bold',
     textAlign: 'center',
     zIndex: 1,

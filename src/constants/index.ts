@@ -1,165 +1,178 @@
-// ─── Design System v3 — Game-Quality ─────────────────────────────────────────
-// Research basis: Duolingo, HQ Trivia, Candy Crush, Monument Valley
-// Core principle: warm purple-black base makes all reactive colors POP
+// ─── Design System v7 — "Pixel Festival" ─────────────────────────────────────
+// Vivid indigo mid-tone base + electric yellow + hot pink
+// NOT dark/black, NOT light/white — pure vibrant gaming palette
+// Inspired by Brawl Stars / Clash Royale energy
 
 export const COLORS = {
-  // ── Core backgrounds — warm purple-black (game feel, not corporate dark) ──
-  background: '#09071A',
-  surface:    '#130F2A',
-  surface2:   '#1D1840',
-  surface3:   '#271F58',
-  border:     '#2D2760',
-  borderLight:'#3D359C',
+  // ── Core — vivid indigo (mid-tone, NOT dark navy) ──
+  background:   '#4338CA',
+  surfaceSolid: '#3730A3',
+  surface:      'rgba(255,255,255,0.11)',
+  surface2:     'rgba(255,255,255,0.07)',
+  surface3:     'rgba(255,255,255,0.04)',
+  border:       'rgba(255,255,255,0.18)',
+  borderLight:  'rgba(255,255,255,0.09)',
 
-  // ── Primary: vivid coral — energetic, fun, NOT AI ──
-  primary:      '#FF4C5E',
-  primaryLight: '#FF7A89',
-  primaryDark:  '#CC2E3E',
-  primaryGlow:  'rgba(255,76,94,0.22)',
+  // ── Primary: electric yellow — max contrast, max energy ──
+  primary:      '#FDE047',
+  primaryLight: '#FEF08A',
+  primaryDark:  '#CA8A04',
+  primaryGlow:  'rgba(253,224,71,0.28)',
 
-  // ── Accent: electric teal ──
-  accent:      '#00D4CF',
-  accentLight: '#26EDE7',
-  accentDark:  '#00A8A4',
+  // ── Accent: hot pink/fuchsia ──
+  accent:      '#F471B5',
+  accentLight: '#FBCFE8',
+  accentDark:  '#BE185D',
 
-  // ── Gold for XP, stars, rewards ──
-  gold:      '#FFD700',
-  goldLight: '#FFE44D',
-  goldDark:  '#CC9F00',
+  // ── Gold ──
+  gold:      '#FDE047',
+  goldLight: '#FEF08A',
+  goldDark:  '#CA8A04',
 
-  // ── Text ──
-  text:          '#F4F3FF',
-  textSecondary: '#A09FCC',
-  textMuted:     '#5C5A88',
-  textOnColor:   '#FFFFFF',
+  // ── Text — white hierarchy on indigo ──
+  text:          '#FFFFFF',
+  textSecondary: 'rgba(255,255,255,0.75)',
+  textMuted:     'rgba(255,255,255,0.45)',
+  textOnColor:   '#1E1B4B',
+  textOnPrimary: '#1E1B4B',
 
-  // ── Game-state colors: VIVID, reactive ──
-  // Correct answer — electric green (not muted sage)
-  success:       '#00E676',
-  successBg:     '#00291A',
-  successBorder: '#00E676',
-  // Wrong answer — vivid red (distinct from primary coral)
-  danger:       '#FF1744',
-  dangerBg:     '#2A0010',
-  dangerBorder: '#FF1744',
-  // Warning / timer midpoint
-  warning: '#FF9100',
+  // ── Game states ──
+  success:       '#4ADE80',
+  successBg:     'rgba(74,222,128,0.18)',
+  successBorder: 'rgba(74,222,128,0.45)',
 
-  // ── Answer card states ──
-  correctBg:     '#00291A',
-  correctBorder: '#00E676',
-  wrongBg:       '#2A0010',
-  wrongBorder:   '#FF1744',
-  // Selected-but-unrevealed: violet — creates visible tension
-  selectedBg:     '#150A38',
-  selectedBorder: '#9B6DFF',
+  danger:       '#F87171',
+  dangerBg:     'rgba(248,113,113,0.18)',
+  dangerBorder: 'rgba(248,113,113,0.45)',
 
-  // ── Timer states (blue → orange → red) ──
-  timerSafe:    '#2979FF',
-  timerWarning: '#FF9100',
-  timerDanger:  '#FF1744',
+  warning: '#FB923C',
+
+  // ── Answer states ──
+  correctBg:     'rgba(74,222,128,0.20)',
+  correctBorder: '#4ADE80',
+  wrongBg:       'rgba(248,113,113,0.20)',
+  wrongBorder:   '#F87171',
+  selectedBg:    'rgba(253,224,71,0.18)',
+  selectedBorder:'#FDE047',
+
+  // ── Timer ──
+  timerSafe:    '#4ADE80',
+  timerWarning: '#FB923C',
+  timerDanger:  '#F87171',
 
   // ── Streak ──
-  streak:    '#FF6D00',
-  streakHot: '#FF3D00',
+  streak:    '#FB923C',
+  streakHot: '#F87171',
 
-  // ── Legacy compat — mapped to new palette ──
-  yellow:               '#FFD700',
-  brandGreen:           '#00E676',
-  brandGreenDark:       '#00C060',
-  brandGreenAccessible: '#008060',
-  brandBlue:            '#2979FF',
-  brandBlueAccessible:  '#0060CC',
-  brandPurple:          '#9B6DFF',
-  brandOrange:          '#FF6D00',
-  brandOrangeText:      '#CC4400',
-  brandRed:             '#FF1744',
-  brandRedDark:         '#CC0030',
-  brandYellow:          '#FFD700',
-  placeholderText:      '#767699',
-  lockedText:           '#45436A',
-  cyan:                 '#00D4CF',
+  // ── Legacy compat ──
+  yellow:               '#FDE047',
+  brandGreen:           '#4ADE80',
+  brandGreenDark:       '#16A34A',
+  brandGreenAccessible: '#15803D',
+  brandBlue:            '#60A5FA',
+  brandBlueAccessible:  '#3B82F6',
+  brandPurple:          '#C084FC',
+  brandOrange:          '#FB923C',
+  brandOrangeText:      '#EA580C',
+  brandRed:             '#F87171',
+  brandRedDark:         '#DC2626',
+  brandYellow:          '#FDE047',
+  placeholderText:      'rgba(255,255,255,0.40)',
+  lockedText:           'rgba(255,255,255,0.40)',
+  cyan:                 '#22D3EE',
 } as const;
 
 // ─── Gradients ────────────────────────────────────────────────────────────────
 export const GRADIENTS = {
-  primary:     ['#FF4C5E', '#FF7A40'] as const,
-  primaryDark: ['#CC2E3E', '#E04020'] as const,
-  accent:      ['#00D4CF', '#26EDE7'] as const,
-  // Game-state gradients (left-to-right sweep on reveal)
-  correct:     ['#00BF5A', '#00E676', '#69FFB0'] as const,
-  wrong:       ['#CC0030', '#FF1744'] as const,
-  // Neutral selected (violet)
-  selected:    ['#6B3FCC', '#9B6DFF'] as const,
-  gold:        ['#CC9F00', '#FFD700', '#FFE44D'] as const,
-  dark:        ['#130F2A', '#09071A'] as const,
-  surface:     ['#1D1840', '#130F2A'] as const,
-  // Atmospheric backgrounds
-  gameBase:    ['#09071A', '#0D0A28', '#09071A'] as const,
-  heroGlow:    ['rgba(255,76,94,0.12)', 'rgba(155,109,255,0.08)', 'transparent'] as const,
+  primary:      ['#FEF08A', '#FDE047'] as const,
+  primaryDark:  ['#CA8A04', '#92400E'] as const,
+  accent:       ['#F9A8D4', '#F471B5'] as const,
+  correct:      ['rgba(74,222,128,0.35)', 'rgba(74,222,128,0.10)'] as const,
+  wrong:        ['rgba(248,113,113,0.35)', 'rgba(248,113,113,0.10)'] as const,
+  selected:     ['rgba(253,224,71,0.30)', 'rgba(253,224,71,0.10)'] as const,
+  gold:         ['#FEF08A', '#FDE047', '#CA8A04'] as const,
+  dark:         ['#4F46E5', '#4338CA'] as const,
+  surface:      ['rgba(255,255,255,0.13)', 'rgba(255,255,255,0.06)'] as const,
+  gameBase:     ['#4338CA', '#3B35BC', '#4338CA'] as const,
+  heroGlow:     ['rgba(253,224,71,0.14)', 'rgba(244,113,181,0.08)', 'transparent'] as const,
+  correctGlow:  ['rgba(74,222,128,0.45)', 'rgba(74,222,128,0.10)'] as const,
+  primarySheen: ['#FEF08A', '#FDE047', '#F59E0B'] as const,
+  accentSheen:  ['#F471B5', '#4ADE80'] as const,
+  podium1:      ['#CA8A04', '#FDE047', '#FEF08A'] as const,
+  podium2:      ['#4B5563', '#6B7280', '#9CA3AF'] as const,
+  podium3:      ['#78350F', '#CD7F32'] as const,
+  light:        ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.06)'] as const,
 } as const;
 
 // ─── Typography ───────────────────────────────────────────────────────────────
 export const TYPOGRAPHY = {
-  displayXL: { fontSize: 40, fontWeight: '900' as const, letterSpacing: -1.5 },
-  displayL:  { fontSize: 32, fontWeight: '800' as const, letterSpacing: -1 },
-  displayM:  { fontSize: 26, fontWeight: '700' as const, letterSpacing: -0.5 },
-  heading:   { fontSize: 22, fontWeight: '700' as const, letterSpacing: -0.3 },
-  subheading:{ fontSize: 18, fontWeight: '600' as const },
-  body:      { fontSize: 16, fontWeight: '500' as const },
-  bodySmall: { fontSize: 14, fontWeight: '400' as const },
-  caption:   { fontSize: 12, fontWeight: '500' as const },
-  label:     { fontSize: 11, fontWeight: '700' as const, letterSpacing: 1.2, textTransform: 'uppercase' as const },
-  score:     { fontSize: 48, fontWeight: '900' as const, letterSpacing: -2 },
+  displayXL: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 42, fontWeight: '900' as const, letterSpacing: -1.5 },
+  displayL:  { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 34, fontWeight: '800' as const, letterSpacing: -1 },
+  displayM:  { fontFamily: 'NunitoSans_700Bold',      fontSize: 28, fontWeight: '700' as const, letterSpacing: -0.5 },
+  heading:   { fontFamily: 'NunitoSans_700Bold',      fontSize: 22, fontWeight: '700' as const, letterSpacing: -0.2 },
+  subheading:{ fontFamily: 'NunitoSans_600SemiBold',  fontSize: 18, fontWeight: '600' as const },
+  body:      { fontFamily: 'NunitoSans_600SemiBold',  fontSize: 16, fontWeight: '600' as const },
+  bodySmall: { fontFamily: 'NunitoSans_400Regular',   fontSize: 14, fontWeight: '400' as const },
+  caption:   { fontFamily: 'NunitoSans_700Bold',      fontSize: 12, fontWeight: '700' as const },
+  label:     { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 11, fontWeight: '800' as const, letterSpacing: 1.2, textTransform: 'uppercase' as const },
+  score:     { fontFamily: 'SpaceGrotesk_700Bold',    fontSize: 52, fontWeight: '900' as const, letterSpacing: -3 },
+  btnLabel:  { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 17, fontWeight: '800' as const, letterSpacing: 0.4 },
 } as const;
 
-// ─── Spacing ──────────────────────────────────────────────────────────────────
 export const SPACING = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 } as const;
 
-// ─── Shadows ──────────────────────────────────────────────────────────────────
 export const SHADOWS = {
   small:   { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.35, shadowRadius: 4,  elevation: 3 },
-  medium:  { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.45, shadowRadius: 8,  elevation: 6 },
-  large:   { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.55, shadowRadius: 16, elevation: 10 },
-  primary: { shadowColor: '#FF4C5E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 10, elevation: 6 },
-  gold:    { shadowColor: '#FFD700', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 10, elevation: 6 },
-  correct: { shadowColor: '#00E676', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 6 },
-  wrong:   { shadowColor: '#FF1744', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 6 },
+  medium:  { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.40, shadowRadius: 8,  elevation: 5 },
+  large:   { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 14, elevation: 8 },
+  primary: { shadowColor: '#FDE047', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.55, shadowRadius: 14, elevation: 10 },
+  gold:    { shadowColor: '#FDE047', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.55, shadowRadius: 14, elevation: 10 },
+  correct: { shadowColor: '#4ADE80', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 10, elevation: 6  },
+  wrong:   { shadowColor: '#F87171', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 10, elevation: 6  },
 } as const;
 
-// ─── Border radius ────────────────────────────────────────────────────────────
+export const GLOW = {
+  primary: { shadowColor: '#FDE047', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.65, shadowRadius: 16, elevation: 12 },
+  success: { shadowColor: '#4ADE80', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.60, shadowRadius: 12, elevation: 8  },
+  danger:  { shadowColor: '#F87171', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.60, shadowRadius: 12, elevation: 8  },
+  gold:    { shadowColor: '#FDE047', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.65, shadowRadius: 16, elevation: 12 },
+  accent:  { shadowColor: '#F471B5', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.60, shadowRadius: 12, elevation: 8  },
+  purple:  { shadowColor: '#C084FC', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 10, elevation: 6  },
+  streak:  { shadowColor: '#FB923C', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.55, shadowRadius: 10, elevation: 6  },
+  subtle:  { shadowColor: '#000',    shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.35, shadowRadius: 6,  elevation: 4  },
+} as const;
+
 export const RADIUS = { sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, full: 999 } as const;
 
-// ─── World themes ─────────────────────────────────────────────────────────────
 export const WORLD_THEMES = {
   easy: {
     name: 'Jungle',
     icon: 'leaf',
-    color: '#00E676',
-    dimColor: '#004D2E',
-    tint: '#002918',
-    gradient: ['#003D2E', '#006650'] as const,
-    nodeGradient: ['#008060', '#00E676'] as const,
+    color: '#4ADE80',
+    dimColor: 'rgba(74,222,128,0.22)',
+    tint: 'rgba(74,222,128,0.10)',
+    gradient: ['#166534', '#16A34A', '#4ADE80'] as const,
+    nodeGradient: ['#166534', '#4ADE80'] as const,
     emoji: '🌿',
   },
   medium: {
     name: 'Volcano',
     icon: 'flame',
-    color: '#FF6D00',
-    dimColor: '#7A2D00',
-    tint: '#3D1200',
-    gradient: ['#5C1800', '#A02800'] as const,
-    nodeGradient: ['#D04000', '#FF6D00'] as const,
+    color: '#FB923C',
+    dimColor: 'rgba(251,146,60,0.22)',
+    tint: 'rgba(251,146,60,0.10)',
+    gradient: ['#7C2D12', '#C2410C', '#FB923C'] as const,
+    nodeGradient: ['#7C2D12', '#FB923C'] as const,
     emoji: '🌋',
   },
   hard: {
     name: 'Ocean',
     icon: 'water',
-    color: '#2979FF',
-    dimColor: '#0A1E6E',
-    tint: '#060E3A',
-    gradient: ['#071040', '#0D2280'] as const,
-    nodeGradient: ['#1040C0', '#2979FF'] as const,
+    color: '#60A5FA',
+    dimColor: 'rgba(96,165,250,0.22)',
+    tint: 'rgba(96,165,250,0.10)',
+    gradient: ['#1E3A8A', '#1D4ED8', '#60A5FA'] as const,
+    nodeGradient: ['#1E3A8A', '#60A5FA'] as const,
     emoji: '🌊',
   },
 } as const;

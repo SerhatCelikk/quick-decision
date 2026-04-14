@@ -44,38 +44,38 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen
           name="Friends"
           component={FriendsScreen}
-          options={{ animation: 'slide_from_right', headerShown: true, title: 'Friends' }}
+          options={{ animation: 'slide_from_right', headerShown: false }}
         />
         <Stack.Screen
           name="Challenges"
           component={ChallengesScreen}
-          options={{ animation: 'slide_from_right', headerShown: true, title: 'Challenges' }}
+          options={{ animation: 'slide_from_right', headerShown: false }}
         />
         <Stack.Screen
           name="ShareCard"
           component={ShareCardScreen}
-          options={{ animation: 'slide_from_right', headerShown: true, title: 'Share Card' }}
+          options={{ animation: 'slide_from_right', headerShown: false }}
         />
         {/* v1.1 screens */}
         <Stack.Screen
           name="Achievements"
           component={AchievementsScreen}
-          options={{ animation: 'slide_from_right', headerShown: true, title: 'Achievements' }}
+          options={{ animation: 'slide_from_right', headerShown: false }}
         />
         <Stack.Screen
           name="SeasonalEvent"
           component={SeasonalEventScreen}
-          options={{ animation: 'slide_from_right', headerShown: true, title: 'Spring Event' }}
+          options={{ animation: 'slide_from_right', headerShown: false }}
         />
         <Stack.Screen
           name="Paywall"
           component={PaywallScreen}
-          options={{ presentation: 'modal', headerShown: true, title: 'Go Premium' }}
+          options={{ presentation: 'modal', headerShown: false }}
         />
         <Stack.Screen
           name="MultiplayerLobby"
           component={MultiplayerLobbyScreen}
-          options={{ animation: 'slide_from_right', headerShown: true, title: 'Multiplayer' }}
+          options={{ animation: 'slide_from_right', headerShown: false }}
         />
         <Stack.Screen
           name="Matchmaking"
@@ -95,7 +95,7 @@ export const RootNavigator: React.FC = () => {
         <Stack.Screen
           name="Referral"
           component={ReferralScreen}
-          options={{ animation: 'slide_from_right', headerShown: true, title: 'Refer Friends' }}
+          options={{ animation: 'slide_from_right', headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

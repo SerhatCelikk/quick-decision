@@ -18,10 +18,10 @@ const PLANS = {
 };
 
 const BENEFITS: { icon: string; color: string; text: string; key: string }[] = [
-  { icon: 'ban',           color: COLORS.danger,   text: 'premiumBenefit1', key: 'ads' },
-  { icon: 'flash',         color: COLORS.gold,     text: 'premiumBenefit2', key: 'energy' },
-  { icon: 'diamond',       color: COLORS.accent,   text: 'premiumBenefit3', key: 'content' },
-  { icon: 'flask',         color: COLORS.timerSafe, text: 'premiumBenefit4', key: 'stats' },
+  { icon: 'ban',     color: COLORS.danger,    text: 'premiumBenefit1', key: 'ads' },
+  { icon: 'flash',   color: COLORS.gold,      text: 'premiumBenefit2', key: 'energy' },
+  { icon: 'diamond', color: COLORS.accent,    text: 'premiumBenefit3', key: 'content' },
+  { icon: 'flask',   color: COLORS.timerSafe, text: 'premiumBenefit4', key: 'stats' },
 ];
 
 export const PaywallScreen: React.FC<Props> = ({ navigation }) => {
@@ -47,11 +47,24 @@ export const PaywallScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <LinearGradient colors={['#4F46E5', '#4338CA', '#3B35BC']} style={StyleSheet.absoluteFill} pointerEvents="none" />
+      {/* Gold glow at top */}
+      <LinearGradient colors={['rgba(253,224,71,0.12)', 'transparent']} style={styles.goldGlow} pointerEvents="none" />
+
+      {/* Nav bar — close button on right (modal style) */}
+      <View style={styles.navBar}>
+        <View style={{ width: 40 }} />
+        <Text style={styles.navTitle}>{t('premiumTitle')}</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel={t('goBack')}>
+          <Ionicons name="close" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Hero */}
-        <LinearGradient colors={['#2A1A00', '#3D2800']} style={styles.hero}>
+        <LinearGradient colors={['rgba(253,224,71,0.18)', 'rgba(253,224,71,0.06)']} style={styles.hero}>
           <View style={styles.heroIconWrap}>
             <Ionicons name="diamond" size={40} color={COLORS.gold} />
           </View>
@@ -82,7 +95,7 @@ export const PaywallScreen: React.FC<Props> = ({ navigation }) => {
               activeOpacity={0.85}
             >
               {key === 'yearly' && (
-                <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.popularBadge}>
+                <LinearGradient colors={['#FEF08A', '#FDE047']} style={styles.popularBadge}>
                   <Text style={styles.popularText}>{t('bestValue')}</Text>
                 </LinearGradient>
               )}
@@ -107,7 +120,7 @@ export const PaywallScreen: React.FC<Props> = ({ navigation }) => {
           disabled={purchasing}
           activeOpacity={0.88}
         >
-          <LinearGradient colors={['#CC9F00', COLORS.gold]} style={styles.ctaBtn}>
+          <LinearGradient colors={['#FEF08A', '#FDE047']} style={styles.ctaBtn}>
             {purchasing ? (
               <ActivityIndicator color="#1A1200" />
             ) : (
@@ -131,6 +144,24 @@ export const PaywallScreen: React.FC<Props> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+  goldGlow: { position: 'absolute', top: 0, left: 0, right: 0, height: 200 },
+
+  navBar: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 14, gap: 8,
+  },
+  navTitle: {
+    flex: 1, textAlign: 'center',
+    fontFamily: 'NunitoSans_800ExtraBold',
+    fontSize: 18, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.3,
+  },
+  closeBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+
   scroll: { paddingHorizontal: 20, paddingTop: 0, paddingBottom: 40, gap: 16 },
 
   hero: {
@@ -142,24 +173,24 @@ const styles = StyleSheet.create({
     borderColor: COLORS.gold + '55', backgroundColor: COLORS.gold + '20',
     justifyContent: 'center', alignItems: 'center',
   },
-  heroTitle: { fontSize: 26, fontWeight: '900', color: COLORS.gold, letterSpacing: -0.5 },
-  heroSubtitle: { fontSize: 14, color: COLORS.textMuted, textAlign: 'center' },
+  heroTitle: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 26, fontWeight: '900', color: COLORS.gold, letterSpacing: -0.5 },
+  heroSubtitle: { fontFamily: 'NunitoSans_400Regular', fontSize: 14, color: COLORS.textMuted, textAlign: 'center' },
 
   benefitsCard: {
-    backgroundColor: COLORS.surface, borderRadius: 20, padding: 20,
-    borderWidth: 1, borderColor: COLORS.border, gap: 14,
+    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 20, padding: 20,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', gap: 14,
   },
   benefitRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   benefitIcon: {
     width: 36, height: 36, borderRadius: 10, borderWidth: 1,
     justifyContent: 'center', alignItems: 'center',
   },
-  benefitText: { flex: 1, fontSize: 14, color: COLORS.text, fontWeight: '600' },
+  benefitText: { flex: 1, fontFamily: 'NunitoSans_600SemiBold', fontSize: 14, color: COLORS.text, fontWeight: '600' },
 
   plansRow: { flexDirection: 'row', gap: 12 },
   planCard: {
-    flex: 1, backgroundColor: COLORS.surface, borderRadius: 18, padding: 16,
-    alignItems: 'center', borderWidth: 2, borderColor: COLORS.border,
+    flex: 1, backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 18, padding: 16,
+    alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.18)',
     position: 'relative', overflow: 'hidden', gap: 4,
   },
   planCardSelected: { borderColor: COLORS.gold },
@@ -167,11 +198,11 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 0, left: 0, right: 0,
     paddingVertical: 5, alignItems: 'center',
   },
-  popularText: { fontSize: 9, fontWeight: '800', color: '#fff', letterSpacing: 1 },
+  popularText: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 9, fontWeight: '800', color: '#1E1B4B', letterSpacing: 1 },
   checkCircle: { position: 'absolute', top: 10, right: 10 },
-  planLabel: { fontSize: 11, color: COLORS.textMuted, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
-  planPrice: { fontSize: 28, fontWeight: '900', color: COLORS.text, marginTop: 4 },
-  planPeriod: { fontSize: 12, color: COLORS.textMuted },
+  planLabel: { fontFamily: 'NunitoSans_700Bold', fontSize: 11, color: COLORS.textMuted, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  planPrice: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 28, fontWeight: '900', color: COLORS.text, marginTop: 4 },
+  planPeriod: { fontFamily: 'NunitoSans_400Regular', fontSize: 12, color: COLORS.textMuted },
 
   ctaWrap: {
     borderRadius: 18, overflow: 'hidden',
@@ -180,11 +211,12 @@ const styles = StyleSheet.create({
   ctaBtn: {
     height: 62, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
   },
-  ctaText: { fontSize: 17, fontWeight: '800', color: '#1A1200' },
+  ctaText: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 17, fontWeight: '800', color: '#1A1200' },
 
   restoreButton: { alignItems: 'center', paddingVertical: 8 },
-  restoreText: { fontSize: 14, color: COLORS.textMuted },
+  restoreText: { fontFamily: 'NunitoSans_400Regular', fontSize: 14, color: COLORS.textMuted },
   legal: {
+    fontFamily: 'NunitoSans_400Regular',
     fontSize: 11, color: COLORS.textMuted, textAlign: 'center',
     lineHeight: 16, opacity: 0.7,
   },

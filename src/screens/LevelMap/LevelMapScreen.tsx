@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   trophyWrap: {
     width: 76, height: 76, borderRadius: 38,
     borderWidth: 2, justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
+    shadowColor: '#1C1917', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.10, shadowRadius: 8, elevation: 4,
   },
   worldTopTitle: { fontSize: 18, fontWeight: '800' },
   worldTopSub: { fontSize: 12, color: COLORS.textMuted, textAlign: 'center', lineHeight: 17 },

@@ -21,13 +21,23 @@ function getWorldTheme(worldId: number) {
 }
 
 // ─── Confetti ──────────────────────────────────────────────────────────────────
-const CONFETTI_COLORS = ['#FF4C5E','#FF9100','#00E676','#2979FF','#FFD700','#00D4CF','#FF6D00','#C84DFF','#69FFB0'];
+const CONFETTI_COLORS = ['#FF4D00','#F97316','#10B981','#3B82F6','#F59E0B','#5B4BF5','#F43F5E','#06B6D4','#22C55E'];
 const SHAPES = Array.from({ length: 50 }, (_, i) => ({
   id: i, x: Math.random() * W, delay: Math.random() * 600,
   color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
   size: 5 + Math.random() * 9,
   isCircle: i % 3 !== 0,
   duration: 1600 + Math.random() * 600,
+}));
+
+// Emoji confetti pieces
+const EMOJIS = ['🎉','⭐','🔥','💥','✨','🏆','💫','🎊'];
+const EMOJI_SHAPES = Array.from({ length: 20 }, (_, i) => ({
+  id: i + 100,
+  x: Math.random() * W,
+  delay: Math.random() * 400 + 100,
+  emoji: EMOJIS[i % EMOJIS.length],
+  duration: 1800 + Math.random() * 500,
 }));
 
 const Piece: React.FC<{ delay: number; x: number; color: string; size: number; isCircle: boolean; duration: number }> = ({
@@ -70,11 +80,49 @@ const Piece: React.FC<{ delay: number; x: number; color: string; size: number; i
   );
 };
 
+const EmojiPiece: React.FC<{ delay: number; x: number; emoji: string; duration: number }> = ({
+  delay, x, emoji, duration,
+}) => {
+  const ty  = useRef(new Animated.Value(-20)).current;
+  const op  = useRef(new Animated.Value(0)).current;
+  const rot = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.delay(delay),
+      Animated.parallel([
+        Animated.timing(op,  { toValue: 1, duration: 80, useNativeDriver: true }),
+        Animated.timing(ty,  { toValue: 400 + Math.random() * 80, duration, useNativeDriver: true }),
+        Animated.timing(rot, { toValue: 1, duration, useNativeDriver: true }),
+      ]),
+      Animated.timing(op, { toValue: 0, duration: 350, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  const spin = rot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '30deg'] });
+
+  return (
+    <Animated.Text
+      pointerEvents="none"
+      style={{
+        position: 'absolute', left: x, top: 0,
+        fontSize: 20, opacity: op,
+        transform: [{ translateY: ty }, { rotate: spin }],
+      }}
+      importantForAccessibility="no"
+      accessibilityElementsHidden
+    >
+      {emoji}
+    </Animated.Text>
+  );
+};
+
 const Confetti: React.FC<{ active: boolean }> = ({ active }) => {
   if (!active) return null;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {SHAPES.map(s => <Piece key={s.id} {...s} />)}
+      {EMOJI_SHAPES.map(s => <EmojiPiece key={s.id} {...s} />)}
     </View>
   );
 };
@@ -118,7 +166,7 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
   useEffect(() => { if (passed) maybeRequestReview(); }, [passed, maybeRequestReview]);
 
   // Card entrance
-  const cardScale = useRef(new Animated.Value(reduceMotion ? 1 : 0.75)).current;
+  const cardScale = useRef(new Animated.Value(reduceMotion ? 1 : 0.6)).current;
   const cardOpacity = useRef(new Animated.Value(0)).current;
   const iconBounce = useRef(new Animated.Value(0)).current;
   // XP bar fill
@@ -132,13 +180,13 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
       return;
     }
     Animated.parallel([
-      Animated.spring(cardScale, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
+      Animated.spring(cardScale, { toValue: 1, tension: 60, friction: 6, useNativeDriver: true }),
       Animated.timing(cardOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
     ]).start();
     Animated.sequence([
       Animated.delay(350),
-      Animated.timing(iconBounce, { toValue: -20, duration: 200, useNativeDriver: true }),
-      Animated.spring(iconBounce, { toValue: 0, tension: 120, friction: 5, useNativeDriver: true }),
+      Animated.timing(iconBounce, { toValue: -28, duration: 200, useNativeDriver: true }),
+      Animated.spring(iconBounce, { toValue: 0, tension: 100, friction: 4, useNativeDriver: true }),
     ]).start();
     Animated.sequence([
       Animated.delay(600),
@@ -177,7 +225,16 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
 
           {/* Result icon */}
           <Animated.View
-            style={[styles.resultIconBg, { backgroundColor: passed ? theme.dimColor : COLORS.dangerBg, transform: [{ translateY: iconBounce }] }]}
+            style={[
+              styles.resultIconBg,
+              {
+                backgroundColor: passed ? theme.dimColor : COLORS.dangerBg,
+                transform: [{ translateY: iconBounce }],
+                shadowColor: passed ? theme.color : COLORS.danger,
+                shadowOpacity: 0.6,
+                shadowRadius: 24,
+              },
+            ]}
           >
             <LinearGradient
               colors={passed ? theme.nodeGradient : ['#BE123C', '#F43F5E']}
@@ -281,31 +338,31 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface, borderRadius: 28, padding: 24,
     alignItems: 'center', borderWidth: 1, borderColor: COLORS.border,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.55, shadowRadius: 24, elevation: 14,
+    shadowColor: '#1C1917', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.10, shadowRadius: 18, elevation: 8,
     gap: 16,
   },
 
   worldBadge: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
   worldBadgeText: { fontSize: 13, fontWeight: '700' },
 
-  resultIconBg: { width: 100, height: 100, borderRadius: 28, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 10 },
+  resultIconBg: { width: 100, height: 100, borderRadius: 28, overflow: 'hidden', shadowColor: '#1C1917', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 12, elevation: 6 },
   resultIconGrad: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  resultTitle: { fontSize: 30, fontWeight: '900', textAlign: 'center', letterSpacing: -0.5 },
+  resultTitle: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 34, fontWeight: '900', textAlign: 'center', letterSpacing: -1 },
   resultSub: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
 
   starsRow: { flexDirection: 'row', gap: 8 },
 
   xpRow: { width: '100%', alignItems: 'center', gap: 8 },
-  xpBadge: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, shadowColor: COLORS.gold, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 8, elevation: 5 },
-  xpText: { color: '#1A1200', fontSize: 16, fontWeight: '800' },
-  xpTrack: { width: '100%', height: 6, backgroundColor: COLORS.surface2, borderRadius: 3, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.border },
-  xpFill: { position: 'absolute', left: 0, top: 0, height: '100%', borderRadius: 3, backgroundColor: COLORS.gold },
+  xpBadge: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, shadowColor: COLORS.gold, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.7, shadowRadius: 12, elevation: 6 },
+  xpText: { fontFamily: 'SpaceGrotesk_700Bold', color: '#1A1200', fontSize: 16, fontWeight: '800' },
+  xpTrack: { width: '100%', height: 10, backgroundColor: COLORS.surface2, borderRadius: 5, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.border },
+  xpFill: { position: 'absolute', left: 0, top: 0, height: '100%', borderRadius: 5, backgroundColor: COLORS.gold, shadowColor: COLORS.gold, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 6 },
 
   statsGrid: { flexDirection: 'row', gap: 8, width: '100%' },
   statCard: { flex: 1, backgroundColor: COLORS.surface2, borderRadius: 16, paddingVertical: 16, paddingHorizontal: 8, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border, gap: 4 },
-  statValue: { fontSize: 20, fontWeight: '900', color: COLORS.text },
-  statLabel: { fontSize: 10, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.7, fontWeight: '600' },
+  statValue: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 22, fontWeight: '900', color: COLORS.text },
+  statLabel: { fontFamily: 'NunitoSans_700Bold', fontSize: 10, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.7, fontWeight: '700' },
 
   // Accuracy bar
   accSection: { width: '100%', gap: 6 },

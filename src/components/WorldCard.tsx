@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   Animated,
   StyleSheet,
@@ -46,18 +46,35 @@ export const WorldCard: React.FC<WorldCardProps> = ({
   const { t } = useI18n();
   const progressPct = totalLevels > 0 ? (levelsCompleted / totalLevels) * 100 : 0;
   const pressAnim = useRef(new Animated.Value(0)).current;
+  const shineAnim = useRef(new Animated.Value(0)).current;
 
   const handlePressIn = () => {
     if (locked) return;
-    Animated.timing(pressAnim, { toValue: 1, duration: 80, useNativeDriver: true }).start();
+    Animated.timing(pressAnim, { toValue: 1, duration: 65, useNativeDriver: true }).start();
   };
 
   const handlePressOut = () => {
     if (locked) return;
-    Animated.spring(pressAnim, { toValue: 0, useNativeDriver: true, tension: 300, friction: 20 }).start();
+    Animated.spring(pressAnim, { toValue: 0, useNativeDriver: true, tension: 450, friction: 22 }).start();
   };
 
-  const scale = pressAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.97] });
+  // Periodic shine sweep across card header
+  useEffect(() => {
+    if (locked) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(2000),
+        Animated.timing(shineAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(shineAnim, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.delay(2500),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [locked]);
+
+  const scale = pressAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.96] });
+  const shineTranslateX = shineAnim.interpolate({ inputRange: [0, 1], outputRange: [-200, 400] });
 
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
@@ -75,11 +92,18 @@ export const WorldCard: React.FC<WorldCardProps> = ({
       >
         {/* Gradient header */}
         <LinearGradient
-          colors={locked ? ['#12122A', '#1A1A3E'] : gradient}
+          colors={locked ? ['#EDE8DC', '#F5F0E8'] : gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
+          {/* Shine sweep */}
+          {!locked && (
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.shineSweep, { transform: [{ translateX: shineTranslateX }] }]}
+            />
+          )}
           {/* Icon circle */}
           <View style={[styles.iconCircle, { backgroundColor: locked ? COLORS.border : color + '22', borderColor: locked ? COLORS.border : color + '55' }]}>
             <Ionicons
@@ -168,9 +192,9 @@ export const WorldCard: React.FC<WorldCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
+    borderRadius: RADIUS.xxl,
     overflow: 'hidden',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -185,13 +209,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 20,
     gap: 12,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  shineSweep: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 80,
+    backgroundColor: 'rgba(255,255,255,0.09)',
+    transform: [{ skewX: '-20deg' }],
   },
   iconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 56,
+    height: 56,
+    borderRadius: 20,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -200,11 +234,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   worldName: {
-    fontSize: 20,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 21,
     fontWeight: '800',
     letterSpacing: -0.3,
   },
   levelCount: {
+    fontFamily: 'NunitoSans_600SemiBold',
     fontSize: 13,
     fontWeight: '600',
     marginTop: 3,
@@ -235,9 +271,9 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     flex: 1,
-    height: 8,
+    height: 10,
     backgroundColor: COLORS.background,
-    borderRadius: 4,
+    borderRadius: 5,
     overflow: 'visible',
     position: 'relative',
   },
@@ -246,19 +282,23 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 5,
   },
   progressDot: {
     position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     top: -2,
-    marginLeft: -6,
+    marginLeft: -7,
     borderWidth: 2,
     borderColor: COLORS.surface,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
   },
   progressLabel: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
     fontSize: 12,
     fontWeight: '700',
     minWidth: 36,

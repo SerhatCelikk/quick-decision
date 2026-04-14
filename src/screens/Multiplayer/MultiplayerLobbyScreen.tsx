@@ -23,11 +23,11 @@ function getRankFromElo(elo: number): PlayerStats['rank'] {
   return 'Bronze';
 }
 
-const RANK_CONFIG: Record<PlayerStats['rank'], { color: string; icon: string; gradient: readonly [string,string] }> = {
-  Bronze:  { color: '#CD7F32', icon: 'ribbon',  gradient: ['#2A1500', '#3D2200'] },
-  Silver:  { color: '#C0C0C0', icon: 'medal',   gradient: ['#1A1A1A', '#2A2A2A'] },
-  Gold:    { color: '#FFD700', icon: 'trophy',  gradient: ['#2A2000', '#3D3000'] },
-  Diamond: { color: '#6EC6F5', icon: 'diamond', gradient: ['#001820', '#002535'] },
+const RANK_CONFIG: Record<PlayerStats['rank'], { color: string; icon: string; gradient: readonly [string, string] }> = {
+  Bronze:  { color: '#CD7F32', icon: 'ribbon',  gradient: ['#78350F', '#92400E'] },
+  Silver:  { color: '#C0C0C0', icon: 'medal',   gradient: ['#334155', '#475569'] },
+  Gold:    { color: '#FFD700', icon: 'trophy',  gradient: ['#78350F', '#CA8A04'] },
+  Diamond: { color: '#6EC6F5', icon: 'diamond', gradient: ['#1E3A8A', '#1D4ED8'] },
 };
 
 export const MultiplayerLobbyScreen: React.FC<Props> = ({ navigation }) => {
@@ -70,6 +70,17 @@ export const MultiplayerLobbyScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <LinearGradient colors={['#4F46E5', '#4338CA', '#3B35BC']} style={StyleSheet.absoluteFill} pointerEvents="none" />
+
+      {/* Nav bar */}
+      <View style={styles.navBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('goBack')}>
+          <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>{t('multiplayerTitle')}</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       {/* Rank banner */}
       <LinearGradient colors={rc.gradient} style={styles.rankBanner}>
         <View style={[styles.rankIconWrap, { borderColor: rc.color + '55', backgroundColor: rc.color + '20' }]}>
@@ -112,8 +123,8 @@ export const MultiplayerLobbyScreen: React.FC<Props> = ({ navigation }) => {
 
           {/* Match buttons */}
           <TouchableOpacity style={styles.primaryBtnWrap} onPress={() => navigation.navigate('Matchmaking')} activeOpacity={0.88}>
-            <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.primaryBtn}>
-              <Ionicons name="flash" size={22} color="#fff" />
+            <LinearGradient colors={['#FEF08A', '#FDE047']} style={styles.primaryBtn}>
+              <Ionicons name="flash" size={22} color="#1E1B4B" />
               <Text style={styles.primaryBtnText}>{t('quickMatch')}</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -157,59 +168,81 @@ export const MultiplayerLobbyScreen: React.FC<Props> = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+
+  navBar: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 14, gap: 8,
+  },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  navTitle: {
+    flex: 1, textAlign: 'center',
+    fontFamily: 'NunitoSans_800ExtraBold',
+    fontSize: 18, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.3,
+  },
+
   rankBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    paddingHorizontal: 20, paddingVertical: 16,
+    marginHorizontal: 16, borderRadius: 18,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
   },
   rankIconWrap: {
     width: 56, height: 56, borderRadius: 18, borderWidth: 1,
     justifyContent: 'center', alignItems: 'center',
   },
-  rankLabel: { fontSize: 22, fontWeight: '900', letterSpacing: -0.3 },
-  eloText: { fontSize: 13, color: COLORS.textMuted, marginTop: 2 },
+  rankLabel: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 22, fontWeight: '900', letterSpacing: -0.3 },
+  eloText: { fontFamily: 'NunitoSans_400Regular', fontSize: 13, color: COLORS.textMuted, marginTop: 2 },
   eloBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5,
   },
-  eloRank: { fontSize: 11, fontWeight: '700' },
+  eloRank: { fontFamily: 'NunitoSans_700Bold', fontSize: 11, fontWeight: '700' },
 
-  content: { flex: 1, paddingHorizontal: 16, paddingTop: 16, gap: 12 },
+  content: { flex: 1, paddingHorizontal: 16, paddingTop: 14, gap: 12 },
   statsRow: {
-    flexDirection: 'row', backgroundColor: COLORS.surface, borderRadius: 18,
-    padding: 16, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border,
+    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 18,
+    padding: 16, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
   },
   statItem: { flex: 1, alignItems: 'center', gap: 3 },
-  statDivider: { width: 1, height: 40, backgroundColor: COLORS.border },
-  statValue: { fontSize: 24, fontWeight: '900' },
-  statLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  statDivider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.14)' },
+  statValue: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 24, fontWeight: '900' },
+  statLabel: { fontFamily: 'NunitoSans_600SemiBold', fontSize: 10, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  primaryBtnWrap: { borderRadius: 18, overflow: 'hidden', shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.45, shadowRadius: 10, elevation: 6 },
+  primaryBtnWrap: {
+    borderRadius: 18, overflow: 'hidden',
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.45, shadowRadius: 10, elevation: 6,
+  },
   primaryBtn: { height: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  primaryBtnText: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  primaryBtnText: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 18, fontWeight: '800', color: '#1E1B4B' },
 
   secondaryBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    backgroundColor: COLORS.surface, borderRadius: 16, height: 52,
+    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 16, height: 52,
     borderWidth: 1.5, borderColor: COLORS.accent + '55',
   },
-  secondaryBtnText: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+  secondaryBtnText: { fontFamily: 'NunitoSans_700Bold', fontSize: 16, fontWeight: '700', color: COLORS.text },
 
   recentCard: {
-    backgroundColor: COLORS.surface, borderRadius: 18, padding: 16,
-    borderWidth: 1, borderColor: COLORS.border, gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 18, padding: 16,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', gap: 4,
   },
-  sectionTitle: { fontSize: 10, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.2, marginBottom: 8 },
+  sectionTitle: { fontFamily: 'NunitoSans_700Bold', fontSize: 10, fontWeight: '800', color: COLORS.textMuted, letterSpacing: 1.2, marginBottom: 8, textTransform: 'uppercase' },
   opponentRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
-  opponentRowBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  opponentName: { flex: 1, fontSize: 14, color: COLORS.text, fontWeight: '600' },
+  opponentRowBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.10)' },
+  opponentName: { flex: 1, fontFamily: 'NunitoSans_600SemiBold', fontSize: 14, color: COLORS.text, fontWeight: '600' },
   resultBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  resultText: { fontSize: 11, fontWeight: '800' },
-  eloChange: { fontSize: 13, fontWeight: '700', minWidth: 36, textAlign: 'right' },
+  resultText: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 11, fontWeight: '800' },
+  eloChange: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 13, fontWeight: '700', minWidth: 36, textAlign: 'right' },
 
   infoCard: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: COLORS.surface, borderRadius: 14, padding: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14, padding: 14,
     borderWidth: 1, borderColor: COLORS.timerSafe + '30',
   },
-  infoText: { flex: 1, fontSize: 12, color: COLORS.textMuted, lineHeight: 17 },
+  infoText: { flex: 1, fontFamily: 'NunitoSans_400Regular', fontSize: 12, color: COLORS.textMuted, lineHeight: 17 },
 });

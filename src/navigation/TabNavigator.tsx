@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { WorldMapScreen } from '../screens/WorldMap/WorldMapScreen';
@@ -11,54 +11,79 @@ import { COLORS } from '../constants';
 import type { TabParamList } from '../types';
 
 const Tab = createBottomTabNavigator<TabParamList>();
-
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
-const ICONS: Record<string, { active: IoniconName; inactive: IoniconName }> = {
-  WorldMap:    { active: 'compass',       inactive: 'compass-outline' },
-  Leaderboard: { active: 'trophy',        inactive: 'trophy-outline' },
-  Social:      { active: 'people',        inactive: 'people-outline' },
-  Profile:     { active: 'person-circle', inactive: 'person-circle-outline' },
-};
-
-// Tab bar height: 60px visible + safe area bottom
-const TAB_HEIGHT = 60;
+const TABS: Array<{
+  name: keyof TabParamList;
+  activeIcon: IoniconName;
+  inactiveIcon: IoniconName;
+}> = [
+  { name: 'WorldMap',    activeIcon: 'compass',       inactiveIcon: 'compass-outline'       },
+  { name: 'Leaderboard', activeIcon: 'trophy',        inactiveIcon: 'trophy-outline'        },
+  { name: 'Social',      activeIcon: 'people',        inactiveIcon: 'people-outline'        },
+  { name: 'Profile',     activeIcon: 'person-circle', inactiveIcon: 'person-circle-outline' },
+];
 
 export const TabNavigator: React.FC = () => {
   const { t } = useI18n();
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        // The tabBar itself must be tall enough to fit icons + label
-        tabBarStyle: {
-          backgroundColor: COLORS.surface,
-          borderTopColor: COLORS.border,
-          borderTopWidth: 1,
-          height: TAB_HEIGHT + (Platform.OS === 'ios' ? 24 : 0),
-          paddingTop: 8,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
-        },
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.textMuted,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-          marginTop: 2,
-        },
-        // Icon: plain Ionicons, no wrapper View with extra padding
-        tabBarIcon: ({ focused, color }) => {
-          const icons = ICONS[route.name] ?? { active: 'help-circle', inactive: 'help-circle-outline' };
-          return (
-            <Ionicons
-              name={focused ? icons.active : icons.inactive}
-              size={26}
-              color={color}
+      screenOptions={({ route }) => {
+        const tab = TABS.find(tb => tb.name === route.name)!;
+        return {
+          headerShown: false,
+          tabBarShowLabel: false,
+          tabBarStyle: {
+            position: 'absolute',
+            bottom: Platform.OS === 'ios' ? 28 : 16,
+            left: 48,
+            right: 48,
+            height: 62,
+            borderRadius: 31,
+            backgroundColor: '#312E81',
+            borderWidth: 1.5,
+            borderColor: 'rgba(255,255,255,0.20)',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.45,
+            shadowRadius: 22,
+            elevation: 24,
+            paddingBottom: 0,
+            paddingTop: 0,
+          },
+          tabBarItemStyle: {
+            flex: 1,
+            paddingBottom: 0,
+            paddingTop: 0,
+            marginBottom: 0,
+            marginTop: 0,
+          },
+          tabBarActiveTintColor: COLORS.primary,
+          tabBarInactiveTintColor: 'rgba(255,255,255,0.38)',
+          tabBarIcon: ({ focused, color }) => {
+            const iconName = focused
+              ? (tab?.activeIcon ?? 'help-circle')
+              : (tab?.inactiveIcon ?? 'help-circle-outline');
+            return (
+              <View style={styles.iconWrap}>
+                {focused && <View style={styles.pill} />}
+                <Ionicons name={iconName} size={26} color={color} />
+              </View>
+            );
+          },
+          tabBarButton: (props) => (
+            <TouchableOpacity
+              {...(props as any)}
+              activeOpacity={0.75}
+              style={[
+                (props as any).style,
+                { justifyContent: 'center', alignItems: 'center', paddingBottom: 0, paddingTop: 0 },
+              ]}
             />
-          );
-        },
-      })}
+          ),
+        };
+      }}
     >
       <Tab.Screen
         name="WorldMap"
@@ -83,3 +108,18 @@ export const TabNavigator: React.FC = () => {
     </Tab.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  iconWrap: {
+    width: 52,
+    height: 52,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pill: {
+    position: 'absolute',
+    width: 48, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(253,224,71,0.18)',
+    borderWidth: 1, borderColor: 'rgba(253,224,71,0.32)',
+  },
+});

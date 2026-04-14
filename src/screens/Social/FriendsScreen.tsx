@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../../constants';
 import { useI18n } from '../../i18n';
 import { StreakCounter } from '../../components/StreakCounter';
@@ -15,6 +16,7 @@ import {
 
 export const FriendsScreen: React.FC = () => {
   const { t } = useI18n();
+  const navigation = useNavigation();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [shareCode, setShareCode] = useState('');
   const [addCode, setAddCode] = useState('');
@@ -51,14 +53,24 @@ export const FriendsScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <LinearGradient colors={['#4F46E5', '#4338CA', '#3B35BC']} style={StyleSheet.absoluteFill} pointerEvents="none" />
+
+      {/* Nav bar */}
+      <View style={styles.navBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('goBack')}>
+          <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>{t('friends')}</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <Text style={styles.heading}>{t('friends')}</Text>
+        {/* Friend count */}
+        <View style={styles.countRow}>
           <View style={[styles.countBadge, friends.length > 0 && { backgroundColor: COLORS.primary + '22', borderColor: COLORS.primary + '55' }]}>
-            <Text style={[styles.countText, friends.length > 0 && { color: COLORS.primary }]}>{friends.length}</Text>
+            <Text style={[styles.countText, friends.length > 0 && { color: COLORS.primary }]}>{friends.length} {t('friends')}</Text>
           </View>
         </View>
 
@@ -68,8 +80,8 @@ export const FriendsScreen: React.FC = () => {
           <View style={styles.codeRow}>
             <Text style={styles.code}>{shareCode || '------'}</Text>
             <TouchableOpacity style={styles.shareWrap} onPress={handleShare} activeOpacity={0.88}>
-              <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.shareBtn}>
-                <Ionicons name="share-social" size={16} color="#fff" />
+              <LinearGradient colors={['#FEF08A', '#FDE047']} style={styles.shareBtn}>
+                <Ionicons name="share-social" size={16} color="#1E1B4B" />
                 <Text style={styles.shareBtnText}>{t('share')}</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -96,7 +108,7 @@ export const FriendsScreen: React.FC = () => {
               disabled={!addCode.trim() || adding}
             >
               {adding
-                ? <ActivityIndicator color="#fff" size="small" />
+                ? <ActivityIndicator color="#1E1B4B" size="small" />
                 : <Text style={styles.addBtnText}>{t('add')}</Text>
               }
             </TouchableOpacity>
@@ -132,7 +144,7 @@ const FriendRow: React.FC<{ friend: Friend }> = ({ friend }) => {
   const initials = (p?.username ?? 'P').slice(0, 2).toUpperCase();
   return (
     <View style={styles.friendRow}>
-      <LinearGradient colors={[COLORS.surface2, COLORS.border]} style={styles.friendAvatar}>
+      <LinearGradient colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.08)']} style={styles.friendAvatar}>
         <Text style={styles.friendInitials}>{initials}</Text>
       </LinearGradient>
       <View style={styles.friendInfo}>
@@ -153,73 +165,93 @@ const FriendRow: React.FC<{ friend: Friend }> = ({ friend }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  scroll: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 32, gap: 12 },
 
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  heading: { fontSize: 26, fontWeight: '900', color: COLORS.text, letterSpacing: -0.5 },
-  countBadge: {
-    paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10,
-    backgroundColor: COLORS.surface2, borderWidth: 1, borderColor: COLORS.border,
+  navBar: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 14, gap: 8,
   },
-  countText: { fontSize: 14, fontWeight: '800', color: COLORS.textMuted },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  navTitle: {
+    flex: 1, textAlign: 'center',
+    fontFamily: 'NunitoSans_800ExtraBold',
+    fontSize: 18, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.3,
+  },
+
+  scroll: { paddingHorizontal: 16, paddingTop: 0, paddingBottom: 32, gap: 12 },
+
+  countRow: { flexDirection: 'row' },
+  countBadge: {
+    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+  },
+  countText: { fontFamily: 'NunitoSans_700Bold', fontSize: 13, fontWeight: '800', color: COLORS.textMuted },
 
   codeCard: {
-    backgroundColor: COLORS.surface, borderRadius: 18, padding: 18,
+    backgroundColor: 'rgba(255,255,255,0.11)', borderRadius: 18, padding: 18,
     borderWidth: 1.5, borderColor: COLORS.primary + '44', gap: 8,
   },
   card: {
-    backgroundColor: COLORS.surface, borderRadius: 18, padding: 18,
-    borderWidth: 1, borderColor: COLORS.border, gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.11)', borderRadius: 18, padding: 18,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', gap: 10,
   },
   cardTitle: {
+    fontFamily: 'NunitoSans_700Bold',
     fontSize: 10, fontWeight: '800', color: COLORS.textMuted,
     textTransform: 'uppercase', letterSpacing: 1.2,
   },
   codeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  code: { flex: 1, fontSize: 28, fontWeight: '900', color: COLORS.primary, letterSpacing: 6 },
+  code: { flex: 1, fontFamily: 'SpaceGrotesk_700Bold', fontSize: 28, fontWeight: '900', color: COLORS.primary, letterSpacing: 6 },
   shareWrap: { borderRadius: 12, overflow: 'hidden' },
   shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10 },
-  shareBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  cardHint: { fontSize: 12, color: COLORS.textMuted },
+  shareBtnText: { fontFamily: 'NunitoSans_700Bold', fontSize: 13, fontWeight: '700', color: '#1E1B4B' },
+  cardHint: { fontFamily: 'NunitoSans_400Regular', fontSize: 12, color: COLORS.textMuted },
 
   addRow: { flexDirection: 'row', gap: 10 },
   input: {
-    flex: 1, backgroundColor: COLORS.background, borderRadius: 12,
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.20)', borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12, color: COLORS.text,
-    fontSize: 16, fontWeight: '700', letterSpacing: 3,
-    borderWidth: 1, borderColor: COLORS.border,
+    fontFamily: 'SpaceGrotesk_700Bold', fontSize: 16, fontWeight: '700', letterSpacing: 3,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
   },
   addBtn: {
     backgroundColor: COLORS.primary, paddingHorizontal: 20,
     borderRadius: 12, justifyContent: 'center', minWidth: 70, alignItems: 'center',
   },
   addBtnDisabled: { opacity: 0.35 },
-  addBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  addBtnText: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 15, fontWeight: '700', color: '#1E1B4B' },
 
-  sectionTitle: { fontSize: 12, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.5, textTransform: 'uppercase' },
+  sectionTitle: {
+    fontFamily: 'NunitoSans_700Bold',
+    fontSize: 12, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.5, textTransform: 'uppercase',
+  },
 
   friendRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.surface, borderRadius: 14, padding: 14,
-    gap: 12, borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 14, padding: 14,
+    gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)',
   },
   friendAvatar: {
     width: 44, height: 44, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
   },
-  friendInitials: { fontSize: 16, fontWeight: '900', color: COLORS.text },
+  friendInitials: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 16, fontWeight: '900', color: COLORS.text },
   friendInfo: { flex: 1 },
-  friendName: { fontSize: 15, fontWeight: '700', color: COLORS.text },
+  friendName: { fontFamily: 'NunitoSans_700Bold', fontSize: 15, fontWeight: '700', color: COLORS.text },
   friendMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  friendLevel: { fontSize: 12, color: COLORS.textMuted },
+  friendLevel: { fontFamily: 'NunitoSans_400Regular', fontSize: 12, color: COLORS.textMuted },
   friendRight: { alignItems: 'flex-end', gap: 2 },
-  friendScore: { fontSize: 17, fontWeight: '900', color: COLORS.text },
-  friendScoreLabel: { fontSize: 10, color: COLORS.textMuted },
+  friendScore: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 17, fontWeight: '900', color: COLORS.text },
+  friendScoreLabel: { fontFamily: 'NunitoSans_400Regular', fontSize: 10, color: COLORS.textMuted },
 
   emptyState: { alignItems: 'center', paddingVertical: 32, gap: 12 },
   emptyIconWrap: {
-    width: 80, height: 80, borderRadius: 24, backgroundColor: COLORS.surface2,
-    borderWidth: 1, borderColor: COLORS.border, alignItems: 'center', justifyContent: 'center',
+    width: 80, height: 80, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center',
   },
-  emptyText: { fontSize: 15, color: COLORS.textMuted, textAlign: 'center' },
+  emptyText: { fontFamily: 'NunitoSans_600SemiBold', fontSize: 15, color: COLORS.textMuted, textAlign: 'center' },
 });

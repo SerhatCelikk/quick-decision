@@ -5,19 +5,19 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../../constants';
 import { useI18n } from '../../i18n';
 import { StreakCounter } from '../../components/StreakCounter';
 import { getShareData, type ShareData } from '../../services/socialService';
 
-// Tier config — no emojis, Ionicons only
 type TierKey = 'tierLegendary' | 'tierElite' | 'tierPro' | 'tierRising';
 type Tier = { labelKey: TierKey; color: string; icon: string; gradient: readonly [string, string] };
 function getTier(score: number): Tier {
-  if (score >= 10_000) return { labelKey: 'tierLegendary', color: COLORS.gold,      icon: 'trophy',  gradient: ['#2A2000', '#3D3000'] };
-  if (score >= 5_000)  return { labelKey: 'tierElite',     color: COLORS.accent,    icon: 'diamond', gradient: ['#001820', '#002530'] };
-  if (score >= 1_000)  return { labelKey: 'tierPro',       color: COLORS.timerSafe, icon: 'flash',   gradient: ['#001040', '#001A60'] };
-  return                      { labelKey: 'tierRising',    color: COLORS.success,   icon: 'leaf',    gradient: ['#001A08', '#002510'] };
+  if (score >= 10_000) return { labelKey: 'tierLegendary', color: COLORS.gold,      icon: 'trophy',  gradient: ['#78350F', '#CA8A04'] };
+  if (score >= 5_000)  return { labelKey: 'tierElite',     color: COLORS.accent,    icon: 'diamond', gradient: ['#831843', '#BE185D'] };
+  if (score >= 1_000)  return { labelKey: 'tierPro',       color: COLORS.timerSafe, icon: 'flash',   gradient: ['#1E3A8A', '#1D4ED8'] };
+  return                      { labelKey: 'tierRising',    color: COLORS.success,   icon: 'leaf',    gradient: ['#166534', '#16A34A'] };
 }
 
 const ShareCard: React.FC<{ data: ShareData }> = ({ data }) => {
@@ -51,11 +51,9 @@ const ShareCard: React.FC<{ data: ShareData }> = ({ data }) => {
         </View>
       </View>
 
-      {/* Username */}
       <Text style={styles.cardUsername}>{data.username}</Text>
       <Text style={styles.cardTagline}>{t('thinkFastTagline')}</Text>
 
-      {/* Stats grid */}
       <View style={styles.statsGrid}>
         <View style={styles.statCell}>
           <Text style={[styles.statBig, { color: COLORS.primary }]}>
@@ -73,8 +71,7 @@ const ShareCard: React.FC<{ data: ShareData }> = ({ data }) => {
         </View>
       </View>
 
-      {/* Share code */}
-      <LinearGradient colors={['#0A0820', '#12102E']} style={styles.codeSection}>
+      <LinearGradient colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.15)']} style={styles.codeSection}>
         <Text style={styles.codeSectionLabel}>{t('challengeMeWithCode')}</Text>
         <Text style={styles.codeText}>{data.shareCode}</Text>
       </LinearGradient>
@@ -84,6 +81,7 @@ const ShareCard: React.FC<{ data: ShareData }> = ({ data }) => {
 
 export const ShareCardScreen: React.FC = () => {
   const { t } = useI18n();
+  const navigation = useNavigation();
   const [shareData, setShareData] = useState<ShareData | null>(null);
   const [loading, setLoading]     = useState(true);
 
@@ -107,19 +105,27 @@ export const ShareCardScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.inner}>
-        <Text style={styles.heading}>{t('shareYourStats')}</Text>
-        <Text style={styles.subheading}>{t('showOffProgress')}</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <LinearGradient colors={['#4F46E5', '#4338CA', '#3B35BC']} style={StyleSheet.absoluteFill} pointerEvents="none" />
 
+      {/* Nav bar */}
+      <View style={styles.navBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} accessibilityRole="button" accessibilityLabel={t('goBack')}>
+          <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>{t('shareYourStats')}</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <View style={styles.inner}>
         {loading ? (
           <ActivityIndicator color={COLORS.primary} style={{ marginTop: 60 }} size="large" />
         ) : shareData ? (
           <>
             <ShareCard data={shareData} />
             <TouchableOpacity style={styles.shareBtnWrap} onPress={handleShare} activeOpacity={0.88}>
-              <LinearGradient colors={[COLORS.primary, COLORS.primaryDark]} style={styles.shareBtn}>
-                <Ionicons name="share-social" size={20} color="#fff" />
+              <LinearGradient colors={['#FEF08A', '#FDE047']} style={styles.shareBtn}>
+                <Ionicons name="share-social" size={20} color="#1E1B4B" />
                 <Text style={styles.shareBtnText}>{t('shareCard')}</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -137,18 +143,33 @@ export const ShareCardScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+
+  navBar: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 14, gap: 8,
+  },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  navTitle: {
+    flex: 1, textAlign: 'center',
+    fontFamily: 'NunitoSans_800ExtraBold',
+    fontSize: 18, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.3,
+  },
+
   inner: {
-    flex: 1, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 32,
+    flex: 1, paddingHorizontal: 20, paddingTop: 4, paddingBottom: 32,
     alignItems: 'center', gap: 16,
   },
-  heading:    { fontSize: 26, fontWeight: '900', color: COLORS.text, alignSelf: 'flex-start', letterSpacing: -0.5 },
-  subheading: { fontSize: 13, color: COLORS.textMuted, alignSelf: 'flex-start', marginTop: -10 },
 
   card: {
-    width: '100%', backgroundColor: COLORS.surface, borderRadius: 24, overflow: 'hidden',
+    width: '100%', backgroundColor: 'rgba(255,255,255,0.11)', borderRadius: 24, overflow: 'hidden',
     shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35, shadowRadius: 18, elevation: 12,
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
   },
   cardStripe: { height: 6 },
   cardHeader: {
@@ -156,47 +177,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 16,
   },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  cardLogo: { fontSize: 14, fontWeight: '800', color: COLORS.text },
+  cardLogo: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 14, fontWeight: '800', color: COLORS.text },
   tierBadge: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: 10, borderWidth: 1, gap: 4,
   },
-  tierLabel: { fontSize: 12, fontWeight: '700' },
+  tierLabel: { fontFamily: 'NunitoSans_700Bold', fontSize: 12, fontWeight: '700' },
   cardUsername: {
+    fontFamily: 'SpaceGrotesk_700Bold',
     fontSize: 28, fontWeight: '900', color: COLORS.text, paddingHorizontal: 20, marginTop: 12,
   },
   cardTagline: {
+    fontFamily: 'NunitoSans_400Regular',
     fontSize: 12, color: COLORS.textMuted, paddingHorizontal: 20, marginTop: 2, fontStyle: 'italic',
   },
 
   statsGrid: {
     flexDirection: 'row', marginHorizontal: 20, marginTop: 20,
-    backgroundColor: COLORS.background, borderRadius: 16, overflow: 'hidden',
-    borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: 'rgba(0,0,0,0.20)', borderRadius: 16, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
   },
   statCell: { flex: 1, paddingVertical: 16, alignItems: 'center', gap: 6 },
-  statCellMid: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: COLORS.border },
-  statBig: { fontSize: 20, fontWeight: '900' },
+  statCellMid: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
+  statBig: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 20, fontWeight: '900' },
   statSub: {
+    fontFamily: 'NunitoSans_600SemiBold',
     fontSize: 9, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '600',
   },
 
   codeSection: {
     margin: 20, padding: 14, borderRadius: 14, alignItems: 'center', gap: 4,
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
   },
   codeSectionLabel: {
+    fontFamily: 'NunitoSans_700Bold',
     fontSize: 10, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: '700',
   },
-  codeText: { fontSize: 24, fontWeight: '900', color: COLORS.primary, letterSpacing: 6 },
+  codeText: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 24, fontWeight: '900', color: COLORS.primary, letterSpacing: 6 },
 
   shareBtnWrap: {
     width: '100%', borderRadius: 18, overflow: 'hidden',
     shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
   },
   shareBtn: { height: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  shareBtnText: { fontSize: 17, fontWeight: '800', color: '#fff' },
+  shareBtnText: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 17, fontWeight: '800', color: '#1E1B4B' },
 
   emptyWrap: { alignItems: 'center', gap: 12, marginTop: 60 },
-  errorText: { fontSize: 15, color: COLORS.textMuted },
+  errorText: { fontFamily: 'NunitoSans_600SemiBold', fontSize: 15, color: COLORS.textMuted },
 });
