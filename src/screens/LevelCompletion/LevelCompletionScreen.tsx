@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import type { RootStackScreenProps } from '../../types';
 import { COLORS, PASS_THRESHOLD, WORLD_THEMES, WORLDS } from '../../constants';
+import { getCategoryId } from '../../services/gameService';
 import { useI18n } from '../../i18n';
 import { EnergyBar } from '../../components/EnergyBar';
 import { StarRating } from '../../components/StarRating';
@@ -17,7 +18,7 @@ const { width: W } = Dimensions.get('window');
 
 function getWorldTheme(worldId: number) {
   const w = WORLDS.find(w => w.worldId === worldId);
-  return w ? WORLD_THEMES[w.key] : WORLD_THEMES.easy;
+  return w ? WORLD_THEMES[w.key] : WORLD_THEMES.jungle;
 }
 
 // ─── Confetti ──────────────────────────────────────────────────────────────────
@@ -199,8 +200,20 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
     }
   }, []);
 
-  const handleNext = () => navigation.replace('Game', { worldId, worldLevelNumber: worldLevelNumber + 1, levelNumber: nextLevel, categoryId: 'general' });
-  const handleRetry = () => navigation.replace('Game', { worldId, worldLevelNumber, levelNumber, categoryId: 'general' });
+  const resolveCategoryId = async (): Promise<string> => {
+    const worldEntry = WORLDS.find(w => w.worldId === worldId);
+    const categoryName = worldEntry ? WORLD_THEMES[worldEntry.key].categoryName : null;
+    return categoryName ? (await getCategoryId(categoryName)) ?? 'general' : 'general';
+  };
+
+  const handleNext = async () => {
+    const categoryId = await resolveCategoryId();
+    navigation.replace('Game', { worldId, worldLevelNumber: worldLevelNumber + 1, levelNumber: nextLevel, categoryId });
+  };
+  const handleRetry = async () => {
+    const categoryId = await resolveCategoryId();
+    navigation.replace('Game', { worldId, worldLevelNumber, levelNumber, categoryId });
+  };
   const handleMap = () => navigation.navigate('Main');
 
   const bgColors: readonly [string, string] = passed

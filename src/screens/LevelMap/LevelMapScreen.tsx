@@ -17,6 +17,7 @@ import { useLevelProgress } from '../../hooks/useLevelProgress';
 import { LevelNode, type LevelNodeState } from '../../components/LevelNode';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useI18n, type TranslationKey } from '../../i18n';
+import { getCategoryId } from '../../services/gameService';
 
 type Props = RootStackScreenProps<'LevelMap'>;
 const { width: W } = Dimensions.get('window');
@@ -41,7 +42,7 @@ function getMockStars(wln: number, cur: number): 0 | 1 | 2 | 3 {
 }
 function getWorldTheme(worldId: number) {
   const w = WORLDS.find(w => w.worldId === worldId);
-  return w ? WORLD_THEMES[w.key] : WORLD_THEMES.easy;
+  return w ? WORLD_THEMES[w.key] : WORLD_THEMES.jungle;
 }
 
 // ─── Path dots between two node centres ──────────────────────────────────────
@@ -214,12 +215,15 @@ export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
     return () => clearTimeout(timer);
   }, [currentWorldLevel, reduceMotion]);
 
-  const handleNodePress = useCallback((wln: number) => {
+  const handleNodePress = useCallback(async (wln: number) => {
+    const worldEntry = WORLDS.find(w => w.worldId === worldId);
+    const categoryName = worldEntry ? WORLD_THEMES[worldEntry.key].categoryName : null;
+    const resolvedCategoryId = categoryName ? (await getCategoryId(categoryName)) : null;
     navigation.navigate('Game', {
       worldId,
       worldLevelNumber: wln,
       levelNumber: worldStart + wln - 1,
-      categoryId: 'general',
+      categoryId: resolvedCategoryId ?? 'general',
     });
   }, [navigation, worldId, worldStart]);
 

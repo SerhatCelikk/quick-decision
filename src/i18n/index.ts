@@ -54,6 +54,7 @@ const translations = {
 
     // ── Multiplayer / lobby ───────────────────────────────────────────────────
     multiplayer: 'Multiplayer',
+    multiplayerTitle: 'Multiplayer',
     findOpponent: 'Find Opponent',
     quickMatch: 'Quick Match',
     challengeFriend: 'Challenge Friend',
@@ -374,6 +375,7 @@ const translations = {
 
     // ── Multiplayer / lobby ───────────────────────────────────────────────────
     multiplayer: 'Çok Oyunculu',
+    multiplayerTitle: 'Çok Oyunculu',
     findOpponent: 'Rakip Bul',
     quickMatch: 'Hızlı Eşleşme',
     challengeFriend: 'Arkadaşa Meydan Oku',

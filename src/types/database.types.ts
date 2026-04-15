@@ -79,6 +79,7 @@ export interface Database {
           correct_answer: string;
           wrong_answer: string;
           difficulty: 'easy' | 'medium' | 'hard';
+          language: 'en' | 'tr';
           is_active: boolean;
           created_at: string;
         };
@@ -89,6 +90,7 @@ export interface Database {
           correct_answer: string;
           wrong_answer: string;
           difficulty: 'easy' | 'medium' | 'hard';
+          language?: 'en' | 'tr';
           is_active?: boolean;
           created_at?: string;
         };
@@ -99,6 +101,7 @@ export interface Database {
           correct_answer?: string;
           wrong_answer?: string;
           difficulty?: 'easy' | 'medium' | 'hard';
+          language?: 'en' | 'tr';
           is_active?: boolean;
           created_at?: string;
         };

@@ -4,8 +4,8 @@ import type { Question } from '../types';
 import type { QuestionRow, LevelRow } from '../types/database.types';
 
 // ─── Cache keys ───────────────────────────────────────────────────────────────
-const questionCacheKey = (categoryId: string, difficulty: string) =>
-  `@questions_${categoryId}_${difficulty}`;
+const questionCacheKey = (categoryId: string, difficulty: string, lang: string) =>
+  `@questions_${categoryId}_${difficulty}_${lang}`;
 const PENDING_SCORES_KEY = '@pending_scores';
 const PENDING_ATTEMPTS_KEY = '@pending_level_attempts';
 
@@ -30,6 +30,39 @@ function difficultyForLevel(levelNumber: number): 'easy' | 'medium' | 'hard' {
   if (levelNumber <= 5) return 'easy';
   if (levelNumber <= 10) return 'medium';
   return 'hard';
+}
+
+// ─── Category resolver ────────────────────────────────────────────────────────
+
+export async function getCategoryId(categoryName: string): Promise<string | null> {
+  try {
+    const { data } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('name', categoryName)
+      .single();
+    return data?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ─── User language ────────────────────────────────────────────────────────────
+
+async function getUserLanguage(): Promise<'en' | 'tr'> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return 'en';
+    const { data } = await supabase
+      .from('users')
+      .select('preferred_language')
+      .eq('id', user.id)
+      .single();
+    const lang = (data as { preferred_language?: string } | null)?.preferred_language;
+    return (lang === 'tr' ? 'tr' : 'en');
+  } catch {
+    return 'en';
+  }
 }
 
 // ─── Level config ─────────────────────────────────────────────────────────────
@@ -95,7 +128,8 @@ export async function fetchQuestionsForLevel(
   categoryId: string,
   config: LevelConfig
 ): Promise<Question[]> {
-  const cacheKey = questionCacheKey(categoryId, config.difficulty);
+  const lang = await getUserLanguage();
+  const cacheKey = questionCacheKey(categoryId, config.difficulty, lang);
   const needed = config.questionCount;
 
   try {
@@ -104,6 +138,7 @@ export async function fetchQuestionsForLevel(
       .select('*')
       .eq('is_active', true)
       .eq('difficulty', config.difficulty)
+      .eq('language', lang)
       .limit(needed * 3); // fetch surplus for random selection
 
     if (categoryId !== 'general') {
@@ -111,8 +146,32 @@ export async function fetchQuestionsForLevel(
     }
 
     const { data, error } = await query;
-    if (error) throw error;
-    if (!data || data.length === 0) throw new Error('No questions found');
+
+    // If language-specific query returns nothing, fall back without language filter
+    if (error || !data || data.length === 0) {
+      let fallbackQuery = supabase
+        .from('questions')
+        .select('*')
+        .eq('is_active', true)
+        .eq('difficulty', config.difficulty)
+        .limit(needed * 3);
+
+      if (categoryId !== 'general') {
+        fallbackQuery = fallbackQuery.eq('category_id', categoryId);
+      }
+
+      const { data: fallbackData, error: fallbackError } = await fallbackQuery;
+      if (fallbackError) throw fallbackError;
+      if (!fallbackData || fallbackData.length === 0) throw new Error('No questions found');
+
+      const rows = (fallbackData as QuestionRow[])
+        .sort(() => Math.random() - 0.5)
+        .slice(0, needed);
+
+      const questions = rows.map(mapDbQuestion);
+      await AsyncStorage.setItem(cacheKey, JSON.stringify(questions)).catch(() => null);
+      return questions;
+    }
 
     // Shuffle and take what we need
     const rows = (data as QuestionRow[])

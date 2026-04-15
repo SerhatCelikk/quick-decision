@@ -145,8 +145,11 @@ export const GLOW = {
 export const RADIUS = { sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, full: 999 } as const;
 
 export const WORLD_THEMES = {
-  easy: {
+  jungle: {
     name: 'Jungle',
+    nameTR: 'Orman',
+    difficulty: 'easy' as const,
+    categoryName: 'Animals',
     icon: 'leaf',
     color: '#4ADE80',
     dimColor: 'rgba(74,222,128,0.22)',
@@ -155,18 +158,37 @@ export const WORLD_THEMES = {
     nodeGradient: ['#166534', '#4ADE80'] as const,
     emoji: '🌿',
   },
-  medium: {
-    name: 'Volcano',
-    icon: 'flame',
-    color: '#FB923C',
-    dimColor: 'rgba(251,146,60,0.22)',
-    tint: 'rgba(251,146,60,0.10)',
-    gradient: ['#7C2D12', '#C2410C', '#FB923C'] as const,
-    nodeGradient: ['#7C2D12', '#FB923C'] as const,
-    emoji: '🌋',
+  space: {
+    name: 'Space',
+    nameTR: 'Uzay',
+    difficulty: 'easy' as const,
+    categoryName: 'Science',
+    icon: 'planet',
+    color: '#818CF8',
+    dimColor: 'rgba(129,140,248,0.22)',
+    tint: 'rgba(129,140,248,0.10)',
+    gradient: ['#1E1B4B', '#3730A3', '#818CF8'] as const,
+    nodeGradient: ['#1E1B4B', '#818CF8'] as const,
+    emoji: '🚀',
   },
-  hard: {
+  ruins: {
+    name: 'Ancient Ruins',
+    nameTR: 'Antik Kalıntılar',
+    difficulty: 'medium' as const,
+    categoryName: 'History',
+    icon: 'business',
+    color: '#F59E0B',
+    dimColor: 'rgba(245,158,11,0.22)',
+    tint: 'rgba(245,158,11,0.10)',
+    gradient: ['#78350F', '#B45309', '#F59E0B'] as const,
+    nodeGradient: ['#78350F', '#F59E0B'] as const,
+    emoji: '🏛️',
+  },
+  ocean: {
     name: 'Ocean',
+    nameTR: 'Okyanus',
+    difficulty: 'medium' as const,
+    categoryName: 'Geography',
     icon: 'water',
     color: '#60A5FA',
     dimColor: 'rgba(96,165,250,0.22)',
@@ -175,14 +197,43 @@ export const WORLD_THEMES = {
     nodeGradient: ['#1E3A8A', '#60A5FA'] as const,
     emoji: '🌊',
   },
+  volcano: {
+    name: 'Volcano',
+    nameTR: 'Volkan',
+    difficulty: 'hard' as const,
+    categoryName: 'Technology',
+    icon: 'flame',
+    color: '#FB923C',
+    dimColor: 'rgba(251,146,60,0.22)',
+    tint: 'rgba(251,146,60,0.10)',
+    gradient: ['#7C2D12', '#C2410C', '#FB923C'] as const,
+    nodeGradient: ['#7C2D12', '#FB923C'] as const,
+    emoji: '🌋',
+  },
+  cyber: {
+    name: 'Cyber City',
+    nameTR: 'Siber Şehir',
+    difficulty: 'hard' as const,
+    categoryName: 'Pop Culture',
+    icon: 'hardware-chip',
+    color: '#F471B5',
+    dimColor: 'rgba(244,113,181,0.22)',
+    tint: 'rgba(244,113,181,0.10)',
+    gradient: ['#831843', '#BE185D', '#F471B5'] as const,
+    nodeGradient: ['#831843', '#F471B5'] as const,
+    emoji: '💻',
+  },
 } as const;
 
 export type WorldKey = keyof typeof WORLD_THEMES;
 
 export const WORLDS: Array<{ worldId: number; key: WorldKey; unlockAfterLevel: number }> = [
-  { worldId: 1, key: 'easy',   unlockAfterLevel: 0  },
-  { worldId: 2, key: 'medium', unlockAfterLevel: 10 },
-  { worldId: 3, key: 'hard',   unlockAfterLevel: 20 },
+  { worldId: 1, key: 'jungle',  unlockAfterLevel: 0  },
+  { worldId: 2, key: 'space',   unlockAfterLevel: 5  },
+  { worldId: 3, key: 'ruins',   unlockAfterLevel: 10 },
+  { worldId: 4, key: 'ocean',   unlockAfterLevel: 15 },
+  { worldId: 5, key: 'volcano', unlockAfterLevel: 20 },
+  { worldId: 6, key: 'cyber',   unlockAfterLevel: 25 },
 ];
 
 export const LEVELS_PER_WORLD = 20;

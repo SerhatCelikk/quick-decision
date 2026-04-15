@@ -25,7 +25,7 @@ const { width: W, height: H } = Dimensions.get('window');
 
 function getWorldTheme(worldId: number) {
   const w = WORLDS.find(w => w.worldId === worldId);
-  return w ? WORLD_THEMES[w.key] : WORLD_THEMES.easy;
+  return w ? WORLD_THEMES[w.key] : WORLD_THEMES.jungle;
 }
 function getStars(accuracy: number): 0 | 1 | 2 | 3 {
   if (accuracy >= 1.0) return 3;

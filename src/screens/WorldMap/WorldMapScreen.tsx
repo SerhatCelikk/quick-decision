@@ -123,7 +123,7 @@ const WorldCard: React.FC<WorldCardProps> = ({
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { progress } = useLevelProgress();
   const { hearts, maxHearts, secondsUntilRegen, refillHearts } = useEnergy();
 
@@ -160,6 +160,10 @@ export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
   const handleWorldPress = useCallback((worldId: number, name: string, color: string) => {
     navigation.navigate('LevelMap', { worldId, worldName: name, worldColor: color });
   }, [navigation]);
+
+  const getWorldName = useCallback((theme: typeof WORLD_THEMES[keyof typeof WORLD_THEMES]) => {
+    return language === 'tr' ? theme.nameTR : theme.name;
+  }, [language]);
 
   return (
     <SafeAreaView testID="world-map-screen" style={styles.container} edges={['top']}>
@@ -229,11 +233,12 @@ export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
         {/* World cards */}
         {WORLDS.map((world, i) => {
           const theme = WORLD_THEMES[world.key];
+          const worldName = getWorldName(theme);
           const { completed, locked, isCurrent } = getWorldProgress(world.worldId);
           return (
             <WorldCard
               key={world.worldId}
-              name={theme.name}
+              name={worldName}
               icon={theme.icon}
               color={theme.color}
               gradient={theme.gradient}
@@ -243,7 +248,7 @@ export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
               isCurrent={isCurrent}
               animO={cardAnims[i].opacity}
               animY={cardAnims[i].y}
-              onPress={() => handleWorldPress(world.worldId, theme.name, theme.color)}
+              onPress={() => handleWorldPress(world.worldId, worldName, theme.color)}
             />
           );
         })}
