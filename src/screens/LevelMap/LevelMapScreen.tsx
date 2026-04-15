@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import type { RootStackScreenProps } from '../../types/navigation';
 import { COLORS, LEVELS_PER_WORLD, WORLD_THEMES, WORLDS } from '../../constants';
 import { useLevelProgress } from '../../hooks/useLevelProgress';
@@ -164,7 +165,14 @@ const MILESTONES: Record<number, { labelKey: TranslationKey; icon: string }> = {
 export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
   const { t } = useI18n();
   const { worldId, worldName, worldColor } = route.params;
-  const { progress } = useLevelProgress();
+  const { progress, refresh } = useLevelProgress();
+
+  // Re-fetch progress on focus so level nodes update after game completion
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
   const reduceMotion = useReducedMotion();
   const theme = getWorldTheme(worldId);
   const scrollRef = useRef<ScrollView>(null);

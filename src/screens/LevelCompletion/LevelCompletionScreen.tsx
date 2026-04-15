@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import type { RootStackScreenProps } from '../../types';
-import { COLORS, PASS_THRESHOLD, WORLD_THEMES, WORLDS } from '../../constants';
+import { COLORS, PASS_THRESHOLD, WORLD_THEMES, WORLDS, LEVELS_PER_WORLD } from '../../constants';
 import { getCategoryId } from '../../services/gameService';
 import { useI18n } from '../../i18n';
 import { EnergyBar } from '../../components/EnergyBar';
@@ -207,6 +207,11 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
   };
 
   const handleNext = async () => {
+    // If this was the last level in the world, go back to WorldMap
+    if (worldLevelNumber >= LEVELS_PER_WORLD) {
+      navigation.navigate('Main');
+      return;
+    }
     const categoryId = await resolveCategoryId();
     navigation.replace('Game', { worldId, worldLevelNumber: worldLevelNumber + 1, levelNumber: nextLevel, categoryId });
   };

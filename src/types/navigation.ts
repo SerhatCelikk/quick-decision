@@ -31,6 +31,7 @@ export type RootStackParamList = {
   LiveBattle: { matchId: string; opponentUsername: string };
   BattleResults: { matchId: string; won: boolean; myScore: number; opponentScore: number; opponentUsername: string };
   Referral: undefined;
+  AccountLink: undefined;
 };
 
 // Bottom tab param list — Home tab now renders WorldMapScreen

@@ -17,8 +17,18 @@ const translations = {
 
     // ── General / shared ───────────────────────────────────────────────────────
     loading: 'Loading…',
+    error: 'Error',
     errorRetry: 'Something went wrong. Tap to retry.',
     goBack: 'Go Back',
+    // ── AccountLink ────────────────────────────────────────────────────────────
+    accountLinkTitle: 'Link Your Account',
+    accountLinkSubtitle: 'Save your progress and unlock social features by linking your Google account.',
+    accountLinkPerk1: 'Keep your progress forever',
+    accountLinkPerk2: 'Add friends & challenge players',
+    accountLinkPerk3: 'Secure cloud backup',
+    accountLinkPerk4: 'Access leaderboards worldwide',
+    accountLinkGoogle: 'Continue with Google',
+    accountLinkDisclaimer: 'Your existing progress will be preserved. We never post without permission.',
     cancel: 'Cancel',
     share: 'Share',
     add: 'Add',
@@ -347,8 +357,18 @@ const translations = {
 
     // ── General / shared ───────────────────────────────────────────────────────
     loading: 'Yükleniyor…',
+    error: 'Hata',
     errorRetry: 'Bir şeyler yanlış gitti. Tekrar denemek için dokun.',
     goBack: 'Geri Dön',
+    // ── AccountLink ────────────────────────────────────────────────────────────
+    accountLinkTitle: 'Hesabını İlişkilendir',
+    accountLinkSubtitle: 'Google hesabını bağlayarak ilerlemenizi kaydet ve sosyal özelliklerin kilidini aç.',
+    accountLinkPerk1: 'İlerlemenizi sonsuza dek koru',
+    accountLinkPerk2: 'Arkadaş ekle ve oyuncularla yarış',
+    accountLinkPerk3: 'Güvenli bulut yedekleme',
+    accountLinkPerk4: 'Dünya geneli lider tablolarına eriş',
+    accountLinkGoogle: 'Google ile Devam Et',
+    accountLinkDisclaimer: 'Mevcut ilerlemeniz korunacak. İzinsiz hiçbir zaman paylaşım yapılmaz.',
     cancel: 'İptal',
     share: 'Paylaş',
     add: 'Ekle',

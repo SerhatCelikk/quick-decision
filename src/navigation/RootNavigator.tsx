@@ -17,6 +17,7 @@ import { MatchmakingScreen } from '../screens/Multiplayer/MatchmakingScreen';
 import { LiveBattleScreen } from '../screens/Multiplayer/LiveBattleScreen';
 import { BattleResultsScreen } from '../screens/Multiplayer/BattleResultsScreen';
 import { ReferralScreen } from '../screens/Referral/ReferralScreen';
+import { AccountLinkScreen } from '../screens/AccountLink/AccountLinkScreen';
 import type { RootStackParamList } from '../types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -96,6 +97,11 @@ export const RootNavigator: React.FC = () => {
           name="Referral"
           component={ReferralScreen}
           options={{ animation: 'slide_from_right', headerShown: false }}
+        />
+        <Stack.Screen
+          name="AccountLink"
+          component={AccountLinkScreen}
+          options={{ presentation: 'modal', headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

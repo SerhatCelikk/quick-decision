@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import type { TabScreenProps } from '../../types/navigation';
 import { COLORS, WORLD_THEMES, WORLDS, LEVELS_PER_WORLD } from '../../constants';
 import { useI18n } from '../../i18n';
@@ -124,12 +125,20 @@ const WorldCard: React.FC<WorldCardProps> = ({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
   const { t, language } = useI18n();
-  const { progress } = useLevelProgress();
+  const { progress, refresh } = useLevelProgress();
   const { hearts, maxHearts, secondsUntilRegen, refillHearts } = useEnergy();
 
-  const currentLevel = progress?.current_level ?? 1;
-  const xpPct        = ((currentLevel - 1) % 10) / 10;
-  const streak       = 3;
+  // Re-fetch progress whenever the screen comes into focus (e.g., after a level is completed)
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
+
+  const currentLevel        = progress?.current_level ?? 1;
+  const highestLevelUnlocked = progress?.highest_level_unlocked ?? 1;
+  const xpPct               = ((currentLevel - 1) % 10) / 10;
+  const streak               = 3;
 
   const headerAnim = useRef(new Animated.Value(0)).current;
   const cardAnims  = useRef(WORLDS.map(() => ({
@@ -150,9 +159,12 @@ export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
   function getWorldProgress(worldId: number) {
+    const worldEntry = WORLDS.find(w => w.worldId === worldId);
+    const unlockThreshold = worldEntry?.unlockAfterLevel ?? 0;
     const start     = (worldId - 1) * LEVELS_PER_WORLD + 1;
-    const completed = Math.max(0, Math.min(currentLevel - start, LEVELS_PER_WORLD));
-    const locked    = currentLevel < start && worldId > 1;
+    // World is locked if the player hasn't reached the unlock threshold yet
+    const locked    = worldId > 1 && highestLevelUnlocked < unlockThreshold + 1;
+    const completed = locked ? 0 : Math.max(0, Math.min(highestLevelUnlocked - start, LEVELS_PER_WORLD));
     const isCurrent = !locked && completed < LEVELS_PER_WORLD;
     return { completed, locked, isCurrent };
   }

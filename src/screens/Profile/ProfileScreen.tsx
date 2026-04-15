@@ -84,6 +84,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [stats, setStats]         = useState<UserStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [username, setUsername]   = useState<string | null>(null);
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,6 +92,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
       setStatsLoading(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
+        if (!cancelled && user) setIsAnonymous(user.is_anonymous ?? false);
         if (user && !cancelled) {
           const { data: ud } = await supabase.from('users').select('username').eq('id', user.id).single();
           if (!cancelled && ud) setUsername(ud.username);
@@ -232,6 +234,28 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.refText}>{t('referral')}</Text>
               <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.30)" />
             </TouchableOpacity>
+
+            {/* ── Link Account (anonymous users only) ── */}
+            {isAnonymous && (
+              <TouchableOpacity
+                style={styles.linkAccountBtn}
+                onPress={() => navigation.navigate('AccountLink')}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel={t('accountLinkTitle')}
+              >
+                <LinearGradient
+                  colors={['#FEF08A', '#FDE047']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.linkAccountGrad}
+                >
+                  <Ionicons name="link" size={20} color="#1E1B4B" />
+                  <Text style={styles.linkAccountText}>{t('accountLinkTitle')}</Text>
+                  <Ionicons name="chevron-forward" size={16} color="rgba(30,27,75,0.55)" />
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
 
             {/* ── Sign out ── */}
             <TouchableOpacity
@@ -393,6 +417,20 @@ const styles = StyleSheet.create({
   refText: {
     fontFamily: 'NunitoSans_700Bold',
     flex: 1, fontSize: 15, fontWeight: '700', color: '#FFFFFF',
+  },
+  linkAccountBtn: {
+    marginHorizontal: 18, marginBottom: 10,
+    borderRadius: 16, overflow: 'hidden',
+    shadowColor: '#FDE047', shadowOpacity: 0.3, shadowRadius: 10,
+    elevation: 6,
+  },
+  linkAccountGrad: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 16, paddingVertical: 14,
+  },
+  linkAccountText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    flex: 1, fontSize: 15, color: '#1E1B4B',
   },
   signOutBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 10,

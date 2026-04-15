@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { I18nProvider } from './src/i18n';
+import { supabase } from './src/services/supabase';
 
 // ── Font imports (requires: npx expo install @expo-google-fonts/space-grotesk @expo-google-fonts/nunito-sans) ──
 let fontMap: Record<string, number> = {};
@@ -25,6 +27,27 @@ try {
 
 export default function App() {
   const [fontsLoaded] = useFonts(fontMap);
+
+  // Handle Google OAuth deep link callback
+  useEffect(() => {
+    const handleUrl = async ({ url }: { url: string }) => {
+      if (url.startsWith('quickdecision://') && url.includes('code=')) {
+        try {
+          await supabase.auth.exchangeCodeForSession(url);
+        } catch {
+          // Session exchange failed silently
+        }
+      }
+    };
+
+    Linking.getInitialURL().then((url) => {
+      if (url) handleUrl({ url });
+    });
+
+    const sub = Linking.addEventListener('url', handleUrl);
+    return () => sub.remove();
+  }, []);
+
   // Only block render if we actually have fonts to load
   if (Object.keys(fontMap).length > 0 && !fontsLoaded) return null;
 

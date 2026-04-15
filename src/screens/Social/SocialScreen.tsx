@@ -9,6 +9,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../constants';
 import { useI18n } from '../../i18n';
 import { getSocialStats, type SocialStats } from '../../services/socialService';
+import { supabase } from '../../services/supabase';
 import type { RootStackParamList } from '../../types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -111,6 +112,16 @@ export const SocialScreen: React.FC = () => {
     battles: 0,
   });
 
+  // Check if user is anonymous — redirect to AccountLink for social features
+  const requireLinkedAccount = useCallback(async (action: () => void) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.is_anonymous) {
+      navigation.navigate('AccountLink');
+      return;
+    }
+    action();
+  }, [navigation]);
+
   useFocusEffect(
     useCallback(() => {
       getSocialStats().then(setSocialStats).catch(() => {});
@@ -186,14 +197,14 @@ export const SocialScreen: React.FC = () => {
             key={card.screen}
             card={card}
             index={i}
-            onPress={() => navigation.navigate(card.screen as any)}
+            onPress={() => requireLinkedAccount(() => navigation.navigate(card.screen as any))}
           />
         ))}
 
         {/* Live Battle CTA */}
         <TouchableOpacity
           activeOpacity={0.88}
-          onPress={() => navigation.navigate('MultiplayerLobby' as any)}
+          onPress={() => requireLinkedAccount(() => navigation.navigate('MultiplayerLobby' as any))}
           style={styles.battleWrap}
         >
           <LinearGradient

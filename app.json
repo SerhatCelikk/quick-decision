@@ -2,6 +2,7 @@
   "expo": {
     "name": "Quick Decision",
     "slug": "quick-decision",
+    "scheme": "quickdecision",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
