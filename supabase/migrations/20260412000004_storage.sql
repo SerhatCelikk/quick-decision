@@ -26,8 +26,17 @@ VALUES (
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
--- Storage RLS Policies
+-- Storage RLS Policies (idempotent — drop before recreate)
 -- ============================================================
+
+DROP POLICY IF EXISTS "game_assets_public_read"    ON storage.objects;
+DROP POLICY IF EXISTS "game_assets_service_write"  ON storage.objects;
+DROP POLICY IF EXISTS "game_assets_service_update" ON storage.objects;
+DROP POLICY IF EXISTS "game_assets_service_delete" ON storage.objects;
+DROP POLICY IF EXISTS "avatars_public_read"        ON storage.objects;
+DROP POLICY IF EXISTS "avatars_user_upload"        ON storage.objects;
+DROP POLICY IF EXISTS "avatars_user_update"        ON storage.objects;
+DROP POLICY IF EXISTS "avatars_user_delete"        ON storage.objects;
 
 -- game-assets: public read access
 CREATE POLICY "game_assets_public_read"

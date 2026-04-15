@@ -22,6 +22,12 @@ CREATE INDEX IF NOT EXISTS share_codes_code_idx    ON public.share_codes(code);
 
 ALTER TABLE public.share_codes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "share_codes_select_own"          ON public.share_codes;
+DROP POLICY IF EXISTS "share_codes_select_authenticated" ON public.share_codes;
+DROP POLICY IF EXISTS "share_codes_insert_own"          ON public.share_codes;
+DROP POLICY IF EXISTS "share_codes_update_own"          ON public.share_codes;
+DROP POLICY IF EXISTS "share_codes_service"             ON public.share_codes;
+
 CREATE POLICY "share_codes_select_own"
   ON public.share_codes FOR SELECT
   USING (auth.uid() = user_id);
@@ -62,6 +68,12 @@ CREATE INDEX IF NOT EXISTS friendships_friend_id_idx ON public.friendships(frien
 CREATE INDEX IF NOT EXISTS friendships_status_idx    ON public.friendships(status);
 
 ALTER TABLE public.friendships ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "friendships_select_own"  ON public.friendships;
+DROP POLICY IF EXISTS "friendships_insert_own"  ON public.friendships;
+DROP POLICY IF EXISTS "friendships_update_own"  ON public.friendships;
+DROP POLICY IF EXISTS "friendships_delete_own"  ON public.friendships;
+DROP POLICY IF EXISTS "friendships_service"     ON public.friendships;
 
 -- A user can see friendships where they are either party
 CREATE POLICY "friendships_select_own"
@@ -109,6 +121,11 @@ CREATE INDEX IF NOT EXISTS challenges_status_idx        ON public.challenges(sta
 
 ALTER TABLE public.challenges ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "challenges_select_own" ON public.challenges;
+DROP POLICY IF EXISTS "challenges_insert_own" ON public.challenges;
+DROP POLICY IF EXISTS "challenges_update_own" ON public.challenges;
+DROP POLICY IF EXISTS "challenges_service"    ON public.challenges;
+
 CREATE POLICY "challenges_select_own"
   ON public.challenges FOR SELECT
   USING (auth.uid() = challenger_id OR auth.uid() = challenged_id);
@@ -145,6 +162,12 @@ CREATE INDEX IF NOT EXISTS multiplayer_stats_elo_idx     ON public.multiplayer_s
 
 ALTER TABLE public.multiplayer_stats ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "multiplayer_stats_select_own"           ON public.multiplayer_stats;
+DROP POLICY IF EXISTS "multiplayer_stats_select_authenticated" ON public.multiplayer_stats;
+DROP POLICY IF EXISTS "multiplayer_stats_insert_own"           ON public.multiplayer_stats;
+DROP POLICY IF EXISTS "multiplayer_stats_update_own"           ON public.multiplayer_stats;
+DROP POLICY IF EXISTS "multiplayer_stats_service"              ON public.multiplayer_stats;
+
 CREATE POLICY "multiplayer_stats_select_own"
   ON public.multiplayer_stats FOR SELECT
   USING (auth.uid() = user_id);
@@ -167,6 +190,7 @@ CREATE POLICY "multiplayer_stats_service"
   USING (auth.role() = 'service_role');
 
 -- Auto-update updated_at
+DROP TRIGGER IF EXISTS multiplayer_stats_updated_at ON public.multiplayer_stats;
 CREATE TRIGGER multiplayer_stats_updated_at
   BEFORE UPDATE ON public.multiplayer_stats
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
@@ -191,6 +215,10 @@ CREATE INDEX IF NOT EXISTS multiplayer_matches_user_id_idx      ON public.multip
 CREATE INDEX IF NOT EXISTS multiplayer_matches_completed_at_idx ON public.multiplayer_matches(completed_at DESC);
 
 ALTER TABLE public.multiplayer_matches ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "multiplayer_matches_select_own" ON public.multiplayer_matches;
+DROP POLICY IF EXISTS "multiplayer_matches_insert_own" ON public.multiplayer_matches;
+DROP POLICY IF EXISTS "multiplayer_matches_service"    ON public.multiplayer_matches;
 
 CREATE POLICY "multiplayer_matches_select_own"
   ON public.multiplayer_matches FOR SELECT
@@ -222,6 +250,12 @@ CREATE INDEX IF NOT EXISTS referrals_user_id_idx ON public.referrals(user_id);
 CREATE INDEX IF NOT EXISTS referrals_code_idx    ON public.referrals(code);
 
 ALTER TABLE public.referrals ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "referrals_select_own"  ON public.referrals;
+DROP POLICY IF EXISTS "referrals_select_code" ON public.referrals;
+DROP POLICY IF EXISTS "referrals_insert_own"  ON public.referrals;
+DROP POLICY IF EXISTS "referrals_update_own"  ON public.referrals;
+DROP POLICY IF EXISTS "referrals_service"     ON public.referrals;
 
 CREATE POLICY "referrals_select_own"
   ON public.referrals FOR SELECT
@@ -259,6 +293,10 @@ CREATE INDEX IF NOT EXISTS user_badges_user_id_idx ON public.user_badges(user_id
 
 ALTER TABLE public.user_badges ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "user_badges_select_own" ON public.user_badges;
+DROP POLICY IF EXISTS "user_badges_insert_own" ON public.user_badges;
+DROP POLICY IF EXISTS "user_badges_service"    ON public.user_badges;
+
 CREATE POLICY "user_badges_select_own"
   ON public.user_badges FOR SELECT
   USING (auth.uid() = user_id);
@@ -289,6 +327,11 @@ CREATE INDEX IF NOT EXISTS seasonal_event_progress_user_id_idx  ON public.season
 CREATE INDEX IF NOT EXISTS seasonal_event_progress_event_key_idx ON public.seasonal_event_progress(event_key);
 
 ALTER TABLE public.seasonal_event_progress ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "seasonal_event_progress_select_own" ON public.seasonal_event_progress;
+DROP POLICY IF EXISTS "seasonal_event_progress_insert_own" ON public.seasonal_event_progress;
+DROP POLICY IF EXISTS "seasonal_event_progress_update_own" ON public.seasonal_event_progress;
+DROP POLICY IF EXISTS "seasonal_event_progress_service"    ON public.seasonal_event_progress;
 
 CREATE POLICY "seasonal_event_progress_select_own"
   ON public.seasonal_event_progress FOR SELECT
@@ -322,6 +365,9 @@ CREATE TABLE IF NOT EXISTS public.daily_challenges (
 CREATE INDEX IF NOT EXISTS daily_challenges_date_idx ON public.daily_challenges(date DESC);
 
 ALTER TABLE public.daily_challenges ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "daily_challenges_select_authenticated" ON public.daily_challenges;
+DROP POLICY IF EXISTS "daily_challenges_service"             ON public.daily_challenges;
 
 CREATE POLICY "daily_challenges_select_authenticated"
   ON public.daily_challenges FOR SELECT
