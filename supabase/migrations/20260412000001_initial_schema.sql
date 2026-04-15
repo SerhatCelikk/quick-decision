@@ -3,15 +3,13 @@
 -- Description: Initial database schema for the Quick Decision Game
 -- ============================================================
 
--- Enable necessary extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+-- gen_random_uuid() is built-in from PostgreSQL 13+ (no extension needed)
 
 -- ============================================================
 -- USERS TABLE
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT UNIQUE,
     username TEXT UNIQUE NOT NULL,
     avatar_url TEXT,
@@ -37,7 +35,7 @@ CREATE TRIGGER users_updated_at
 -- CATEGORIES TABLE
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.categories (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE,
     description TEXT,
     icon_url TEXT,
@@ -49,7 +47,7 @@ CREATE TABLE IF NOT EXISTS public.categories (
 -- QUESTIONS TABLE
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.questions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     category_id UUID NOT NULL REFERENCES public.categories(id) ON DELETE CASCADE,
     text TEXT NOT NULL,
     correct_answer TEXT NOT NULL,
@@ -63,13 +61,14 @@ CREATE INDEX IF NOT EXISTS questions_category_id_idx ON public.questions(categor
 CREATE INDEX IF NOT EXISTS questions_difficulty_idx ON public.questions(difficulty);
 
 -- ============================================================
--- LEVELS TABLE
+-- LEVELS TABLE (game level configuration)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.levels (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name TEXT NOT NULL UNIQUE,
-    required_score INTEGER NOT NULL,
-    badge_url TEXT,
+    id INTEGER PRIMARY KEY,
+    level_number INTEGER NOT NULL UNIQUE,
+    question_count INTEGER NOT NULL,
+    timer_seconds INTEGER NOT NULL,
+    difficulty_weight FLOAT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -77,9 +76,9 @@ CREATE TABLE IF NOT EXISTS public.levels (
 -- SCORES TABLE
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.scores (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    session_id UUID NOT NULL DEFAULT uuid_generate_v4(),
+    session_id UUID NOT NULL DEFAULT gen_random_uuid(),
     score INTEGER NOT NULL DEFAULT 0,
     streak INTEGER NOT NULL DEFAULT 0,
     category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
