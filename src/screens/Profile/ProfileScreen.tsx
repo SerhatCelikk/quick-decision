@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Animated, Text, StyleSheet, View, ActivityIndicator,
+  Alert, Animated, Text, StyleSheet, View, ActivityIndicator,
   ScrollView, TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
+import { updatePreferredLanguage, signOut } from '../../services/profileService';
 import { useLevelProgress } from '../../hooks/useLevelProgress';
 import { COLORS } from '../../constants';
 import { useI18n } from '../../i18n';
@@ -188,7 +189,10 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
                   <TouchableOpacity
                     key={lang}
                     style={[styles.langBtn, language === lang && styles.langBtnActive]}
-                    onPress={() => setLanguage(lang)}
+                    onPress={() => {
+                      setLanguage(lang);
+                      updatePreferredLanguage(lang).catch(() => {});
+                    }}
                   >
                     <Text style={styles.langFlag}>{lang === 'en' ? '🇬🇧' : '🇹🇷'}</Text>
                     <Text style={[styles.langText, language === lang && { color: COLORS.primary }]}>
@@ -227,6 +231,31 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
               <Ionicons name="people" size={20} color="#60A5FA" />
               <Text style={styles.refText}>{t('referral')}</Text>
               <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.30)" />
+            </TouchableOpacity>
+
+            {/* ── Sign out ── */}
+            <TouchableOpacity
+              style={styles.signOutBtn}
+              onPress={() => {
+                Alert.alert(
+                  t('signOutConfirmTitle'),
+                  t('signOutConfirmBody'),
+                  [
+                    { text: t('cancel'), style: 'cancel' },
+                    {
+                      text: t('signOut'),
+                      style: 'destructive',
+                      onPress: async () => {
+                        await signOut();
+                      },
+                    },
+                  ],
+                );
+              }}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="log-out-outline" size={20} color={COLORS.danger} />
+              <Text style={styles.signOutText}>{t('signOut')}</Text>
             </TouchableOpacity>
           </>
         )}
@@ -364,5 +393,17 @@ const styles = StyleSheet.create({
   refText: {
     fontFamily: 'NunitoSans_700Bold',
     flex: 1, fontSize: 15, fontWeight: '700', color: '#FFFFFF',
+  },
+  signOutBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 18, marginBottom: 10,
+    backgroundColor: 'rgba(248,113,113,0.10)',
+    borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14,
+    borderWidth: 1.5, borderColor: 'rgba(248,113,113,0.25)',
+    justifyContent: 'center',
+  },
+  signOutText: {
+    fontFamily: 'NunitoSans_700Bold',
+    fontSize: 15, fontWeight: '700', color: COLORS.danger,
   },
 });

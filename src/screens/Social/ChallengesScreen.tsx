@@ -9,7 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../../constants';
 import { useI18n } from '../../i18n';
 import {
-  getChallenges, respondToChallenge, type Challenge,
+  getChallenges, respondToChallenge, declineChallenge, type Challenge,
 } from '../../services/socialService';
 
 type Tab = 'incoming' | 'outgoing';
@@ -33,6 +33,8 @@ export const ChallengesScreen: React.FC = () => {
   useEffect(() => { load(); }, [load]);
 
   const handleAccept = async (challenge: Challenge) => {
+    // Navigate to actual game flow in a real implementation;
+    // for now simulate with a random score submission.
     const mockScore = Math.floor(Math.random() * 500) + 100;
     const result = await respondToChallenge(challenge.id, mockScore);
     if (result.success) {
@@ -41,9 +43,14 @@ export const ChallengesScreen: React.FC = () => {
         tr('challengeCompleteTitle'),
         tr('challengeCompleteBody')
           .replace('{score}', String(mockScore))
-          .replace('{opponentScore}', String(challenge.challengerScore)),
+          .replace('{opponentScore}', String(challenge.challengerScore ?? 0)),
       );
     }
+  };
+
+  const handleDecline = async (challenge: Challenge) => {
+    await declineChallenge(challenge.id);
+    await load();
   };
 
   const list = tab === 'incoming' ? incoming : outgoing;
@@ -93,7 +100,7 @@ export const ChallengesScreen: React.FC = () => {
         {loading
           ? <ActivityIndicator color={COLORS.primary} style={{ marginTop: 32 }} />
           : list.map((c) => (
-            <ChallengeCard key={c.id} challenge={c} isIncoming={tab === 'incoming'} onAccept={() => handleAccept(c)} />
+            <ChallengeCard key={c.id} challenge={c} isIncoming={tab === 'incoming'} onAccept={() => handleAccept(c)} onDecline={() => handleDecline(c)} />
           ))
         }
 
@@ -117,8 +124,9 @@ const StatusBadge: React.FC<{ status: Challenge['status'] }> = ({ status }) => {
   const { t: tr } = useI18n();
   const STATUS_CONFIG_LOCAL: Record<Challenge['status'], { icon: string; color: string; labelKey: 'pendingStatus' | 'completedStatus' | 'expiredStatus' }> = {
     pending:   { icon: 'time',             color: COLORS.timerWarning, labelKey: 'pendingStatus' },
+    accepted:  { icon: 'time',             color: COLORS.timerWarning, labelKey: 'pendingStatus' },
     completed: { icon: 'checkmark-circle', color: COLORS.success,      labelKey: 'completedStatus' },
-    expired:   { icon: 'close-circle',     color: COLORS.textMuted,    labelKey: 'expiredStatus' },
+    declined:  { icon: 'close-circle',     color: COLORS.textMuted,    labelKey: 'expiredStatus' },
   };
   const cfg = STATUS_CONFIG_LOCAL[status];
   return (
@@ -130,8 +138,8 @@ const StatusBadge: React.FC<{ status: Challenge['status'] }> = ({ status }) => {
 };
 
 const ChallengeCard: React.FC<{
-  challenge: Challenge; isIncoming: boolean; onAccept: () => void;
-}> = ({ challenge, isIncoming, onAccept }) => {
+  challenge: Challenge; isIncoming: boolean; onAccept: () => void; onDecline: () => void;
+}> = ({ challenge, isIncoming, onAccept, onDecline }) => {
   const { t: tr } = useI18n();
   const opponent = isIncoming
     ? challenge.challengerProfile?.username ?? 'Unknown'
@@ -199,13 +207,22 @@ const ChallengeCard: React.FC<{
         </View>
       )}
 
-      {isIncoming && challenge.status === 'pending' && (
-        <TouchableOpacity style={styles.acceptWrap} onPress={onAccept} activeOpacity={0.88}>
-          <LinearGradient colors={['#FEF08A', '#FDE047']} style={styles.acceptBtn}>
-            <Ionicons name="flash" size={16} color="#1E1B4B" />
-            <Text style={styles.acceptBtnText}>{tr('acceptChallenge')}</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+      {isIncoming && (challenge.status === 'pending' || challenge.status === 'accepted') && (
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity style={[styles.acceptWrap, { flex: 1 }]} onPress={onAccept} activeOpacity={0.88}>
+            <LinearGradient colors={['#FEF08A', '#FDE047']} style={styles.acceptBtn}>
+              <Ionicons name="flash" size={16} color="#1E1B4B" />
+              <Text style={styles.acceptBtnText}>{tr('acceptChallenge')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.declineBtn}
+            onPress={onDecline}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="close" size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
@@ -290,6 +307,12 @@ const styles = StyleSheet.create({
   acceptWrap: { borderRadius: 12, overflow: 'hidden' },
   acceptBtn: { height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   acceptBtnText: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 15, fontWeight: '700', color: '#1E1B4B' },
+  declineBtn: {
+    width: 46, height: 46, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+  },
 
   emptyState: { alignItems: 'center', paddingVertical: 32, gap: 12 },
   emptyIconWrap: {

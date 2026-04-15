@@ -145,28 +145,30 @@ export const LeaderboardScreen: React.FC = () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!cancelled && user) setCurrentUserId(user.id);
 
-        const { data: scores } = await supabase.from('scores').select('user_id, score');
-        const scoreMap: Record<string, number> = {};
-        for (const s of scores ?? []) scoreMap[s.user_id] = (scoreMap[s.user_id] ?? 0) + (s.score ?? 0);
-        const topUsers = Object.entries(scoreMap).sort(([, a], [, b]) => b - a).slice(0, 20);
-        if (!topUsers.length) { if (!cancelled) { setEntries([]); setLoading(false); } return; }
+        // Use the get_leaderboard RPC for efficient server-side aggregation
+        const { data: rows, error } = await supabase.rpc('get_leaderboard', { p_limit: 50 });
 
-        const userIds = topUsers.map(([id]) => id);
-        const { data: users } = await supabase.from('users').select('id, username').in('id', userIds);
-        const { data: prog }  = await supabase.from('user_progress').select('user_id, highest_level_unlocked').in('user_id', userIds);
-
-        const usernameMap: Record<string, string> = {};
-        for (const u of users ?? []) usernameMap[u.id] = u.username;
-        const levelMap: Record<string, number> = {};
-        for (const p of prog ?? []) levelMap[p.user_id] = p.highest_level_unlocked;
-
-        if (!cancelled) {
-          setEntries(topUsers.map(([userId, totalScore], idx) => ({
-            rank: idx + 1, userId, totalScore,
-            username: usernameMap[userId] ?? 'Player',
-            level: levelMap[userId] ?? 1,
-          })));
+        if (error || !rows) {
+          if (!cancelled) setEntries([]);
+          return;
         }
+
+        const entries = (rows as Array<{
+          rank: number;
+          user_id: string;
+          username: string;
+          avatar_url: string | null;
+          score: number;
+          level: number;
+        }>).map((row) => ({
+          rank:       Number(row.rank),
+          userId:     row.user_id,
+          username:   row.username,
+          totalScore: Number(row.score),
+          level:      row.level,
+        }));
+
+        if (!cancelled) setEntries(entries);
       } catch {
         if (!cancelled) setEntries([]);
       } finally {

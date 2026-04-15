@@ -11,22 +11,36 @@ import { COLORS } from '../../constants';
 import { useI18n } from '../../i18n';
 import { StreakCounter } from '../../components/StreakCounter';
 import {
-  addFriendByCode, getFriends, getShareCode, type Friend,
+  addFriendByCode,
+  acceptFriendRequest,
+  declineFriendRequest,
+  getFriends,
+  getPendingRequests,
+  getShareCode,
+  type Friend,
+  type PendingRequest,
 } from '../../services/socialService';
 
 export const FriendsScreen: React.FC = () => {
   const { t } = useI18n();
   const navigation = useNavigation();
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [pending, setPending] = useState<PendingRequest[]>([]);
   const [shareCode, setShareCode] = useState('');
   const [addCode, setAddCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [tab, setTab] = useState<'friends' | 'requests'>('friends');
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [f, code] = await Promise.all([getFriends(), getShareCode()]);
+    const [f, p, code] = await Promise.all([
+      getFriends(),
+      getPendingRequests(),
+      getShareCode(),
+    ]);
     setFriends(f);
+    setPending(p);
     setShareCode(code);
     setLoading(false);
   }, []);
@@ -48,8 +62,29 @@ export const FriendsScreen: React.FC = () => {
     setAdding(true);
     const result = await addFriendByCode(code);
     setAdding(false);
-    if (result.success) { setAddCode(''); await load(); }
-    Alert.alert(result.success ? t('friendsSuccessTitle') : t('friendsErrorTitle'), result.message);
+    if (result.success) {
+      setAddCode('');
+      await load();
+    }
+    Alert.alert(
+      result.success ? t('friendsSuccessTitle') : t('friendsErrorTitle'),
+      result.message,
+    );
+  };
+
+  const handleAccept = async (req: PendingRequest) => {
+    const result = await acceptFriendRequest(req.id);
+    if (result.success) {
+      await load();
+      Alert.alert(t('friendsSuccessTitle'), t('friendRequestAccepted'));
+    }
+  };
+
+  const handleDecline = async (req: PendingRequest) => {
+    const result = await declineFriendRequest(req.id);
+    if (result.success) {
+      await load();
+    }
   };
 
   return (
@@ -62,17 +97,16 @@ export const FriendsScreen: React.FC = () => {
           <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.navTitle}>{t('friends')}</Text>
-        <View style={{ width: 40 }} />
+        {pending.length > 0 ? (
+          <View style={styles.navBadge}>
+            <Text style={styles.navBadgeText}>{pending.length}</Text>
+          </View>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-
-        {/* Friend count */}
-        <View style={styles.countRow}>
-          <View style={[styles.countBadge, friends.length > 0 && { backgroundColor: COLORS.primary + '22', borderColor: COLORS.primary + '55' }]}>
-            <Text style={[styles.countText, friends.length > 0 && { color: COLORS.primary }]}>{friends.length} {t('friends')}</Text>
-          </View>
-        </View>
 
         {/* My share code card */}
         <View style={styles.codeCard}>
@@ -115,23 +149,70 @@ export const FriendsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Friend list */}
-        <Text style={styles.sectionTitle}>
-          {friends.length > 0 ? t('friendsCountFmt').replace('{n}', String(friends.length)) : t('noFriendsHeading')}
-        </Text>
+        {/* Tab switcher */}
+        <View style={styles.tabs}>
+          <TouchableOpacity
+            style={[styles.tab, tab === 'friends' && styles.tabActive]}
+            onPress={() => setTab('friends')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="people" size={15} color={tab === 'friends' ? '#1E1B4B' : COLORS.textMuted} />
+            <Text style={[styles.tabText, tab === 'friends' && styles.tabTextActive]}>
+              {t('friends')} ({friends.length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, tab === 'requests' && styles.tabActive]}
+            onPress={() => setTab('requests')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="mail" size={15} color={tab === 'requests' ? '#1E1B4B' : COLORS.textMuted} />
+            <Text style={[styles.tabText, tab === 'requests' && styles.tabTextActive]}>
+              {t('requests')} ({pending.length})
+            </Text>
+            {pending.length > 0 && tab !== 'requests' && (
+              <View style={styles.tabBadge}>
+                <Text style={styles.tabBadgeText}>{pending.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
 
-        {loading
-          ? <ActivityIndicator color={COLORS.primary} style={{ marginTop: 32 }} />
-          : friends.map((friend) => <FriendRow key={friend.id} friend={friend} />)
-        }
-
-        {!loading && friends.length === 0 && (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIconWrap}>
-              <Ionicons name="people" size={40} color={COLORS.textMuted} />
-            </View>
-            <Text style={styles.emptyText}>{t('noFriendsYet')}</Text>
-          </View>
+        {loading ? (
+          <ActivityIndicator color={COLORS.primary} style={{ marginTop: 32 }} />
+        ) : tab === 'friends' ? (
+          <>
+            {friends.length === 0 ? (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIconWrap}>
+                  <Ionicons name="people" size={40} color={COLORS.textMuted} />
+                </View>
+                <Text style={styles.emptyText}>{t('noFriendsYet')}</Text>
+              </View>
+            ) : (
+              friends.map((friend) => <FriendRow key={friend.id} friend={friend} />)
+            )}
+          </>
+        ) : (
+          <>
+            {pending.length === 0 ? (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIconWrap}>
+                  <Ionicons name="mail-open" size={40} color={COLORS.textMuted} />
+                </View>
+                <Text style={styles.emptyText}>{t('noPendingRequests')}</Text>
+              </View>
+            ) : (
+              pending.map((req) => (
+                <PendingRow
+                  key={req.id}
+                  request={req}
+                  onAccept={() => handleAccept(req)}
+                  onDecline={() => handleDecline(req)}
+                />
+              ))
+            )}
+          </>
         )}
 
       </ScrollView>
@@ -163,6 +244,39 @@ const FriendRow: React.FC<{ friend: Friend }> = ({ friend }) => {
   );
 };
 
+const PendingRow: React.FC<{
+  request: PendingRequest;
+  onAccept: () => void;
+  onDecline: () => void;
+}> = ({ request, onAccept, onDecline }) => {
+  const { t } = useI18n();
+  const username = request.requesterProfile?.username ?? 'Player';
+  const initials = username.slice(0, 2).toUpperCase();
+
+  return (
+    <View style={styles.pendingRow}>
+      <LinearGradient
+        colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.08)']}
+        style={styles.friendAvatar}
+      >
+        <Text style={styles.friendInitials}>{initials}</Text>
+      </LinearGradient>
+      <View style={styles.friendInfo}>
+        <Text style={styles.friendName}>{username}</Text>
+        <Text style={styles.pendingLabel}>{t('wantsToBeYourFriend')}</Text>
+      </View>
+      <View style={styles.pendingActions}>
+        <TouchableOpacity style={styles.acceptBtn} onPress={onAccept} activeOpacity={0.85}>
+          <Ionicons name="checkmark" size={16} color="#1E1B4B" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.declineBtn} onPress={onDecline} activeOpacity={0.85}>
+          <Ionicons name="close" size={16} color={COLORS.textMuted} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
 
@@ -181,15 +295,16 @@ const styles = StyleSheet.create({
     fontFamily: 'NunitoSans_800ExtraBold',
     fontSize: 18, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.3,
   },
+  navBadge: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: COLORS.danger,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  navBadgeText: {
+    fontFamily: 'NunitoSans_800ExtraBold', fontSize: 13, fontWeight: '900', color: '#fff',
+  },
 
   scroll: { paddingHorizontal: 16, paddingTop: 0, paddingBottom: 32, gap: 12 },
-
-  countRow: { flexDirection: 'row' },
-  countBadge: {
-    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
-  },
-  countText: { fontFamily: 'NunitoSans_700Bold', fontSize: 13, fontWeight: '800', color: COLORS.textMuted },
 
   codeCard: {
     backgroundColor: 'rgba(255,255,255,0.11)', borderRadius: 18, padding: 18,
@@ -225,9 +340,24 @@ const styles = StyleSheet.create({
   addBtnDisabled: { opacity: 0.35 },
   addBtnText: { fontFamily: 'NunitoSans_800ExtraBold', fontSize: 15, fontWeight: '700', color: '#1E1B4B' },
 
-  sectionTitle: {
-    fontFamily: 'NunitoSans_700Bold',
-    fontSize: 12, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 0.5, textTransform: 'uppercase',
+  tabs: {
+    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 14, padding: 4, gap: 4,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+  },
+  tab: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 10, borderRadius: 11, gap: 6,
+  },
+  tabActive: { backgroundColor: COLORS.primary },
+  tabText: { fontFamily: 'NunitoSans_600SemiBold', fontSize: 13, fontWeight: '600', color: COLORS.textMuted },
+  tabTextActive: { fontFamily: 'NunitoSans_700Bold', color: '#1E1B4B', fontWeight: '700' },
+  tabBadge: {
+    backgroundColor: COLORS.danger, borderRadius: 8,
+    paddingHorizontal: 5, paddingVertical: 1,
+  },
+  tabBadgeText: {
+    fontFamily: 'NunitoSans_800ExtraBold', fontSize: 10, fontWeight: '900', color: '#fff',
   },
 
   friendRow: {
@@ -247,6 +377,26 @@ const styles = StyleSheet.create({
   friendRight: { alignItems: 'flex-end', gap: 2 },
   friendScore: { fontFamily: 'SpaceGrotesk_700Bold', fontSize: 17, fontWeight: '900', color: COLORS.text },
   friendScoreLabel: { fontFamily: 'NunitoSans_400Regular', fontSize: 10, color: COLORS.textMuted },
+
+  pendingRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 14, padding: 14,
+    gap: 12, borderWidth: 1, borderColor: 'rgba(253,224,71,0.25)',
+  },
+  pendingLabel: {
+    fontFamily: 'NunitoSans_400Regular', fontSize: 12, color: COLORS.textMuted, marginTop: 2,
+  },
+  pendingActions: { flexDirection: 'row', gap: 8 },
+  acceptBtn: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center',
+  },
+  declineBtn: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.20)',
+    alignItems: 'center', justifyContent: 'center',
+  },
 
   emptyState: { alignItems: 'center', paddingVertical: 32, gap: 12 },
   emptyIconWrap: {

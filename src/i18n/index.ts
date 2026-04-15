@@ -264,6 +264,15 @@ const translations = {
     noFriendsHeading: 'No friends yet',
     friendsSuccessTitle: 'Success',
     friendsErrorTitle: 'Error',
+    requests: 'Requests',
+    noPendingRequests: 'No pending friend requests',
+    wantsToBeYourFriend: 'Wants to be your friend',
+    friendRequestAccepted: 'Friend request accepted!',
+
+    // ── Sign out ──────────────────────────────────────────────────────────────
+    signOut: 'Sign Out',
+    signOutConfirmTitle: 'Sign Out',
+    signOutConfirmBody: 'Are you sure you want to sign out?',
 
     // ── Challenges ────────────────────────────────────────────────────────────
     challengeCompleteTitle: 'Challenge Complete!',
@@ -585,6 +594,15 @@ const translations = {
     noFriendsHeading: 'Henüz arkadaş yok',
     friendsSuccessTitle: 'Başarılı',
     friendsErrorTitle: 'Hata',
+    requests: 'İstekler',
+    noPendingRequests: 'Bekleyen arkadaşlık isteği yok',
+    wantsToBeYourFriend: 'Arkadaşın olmak istiyor',
+    friendRequestAccepted: 'Arkadaşlık isteği kabul edildi!',
+
+    // ── Sign out ──────────────────────────────────────────────────────────────
+    signOut: 'Çıkış Yap',
+    signOutConfirmTitle: 'Çıkış Yap',
+    signOutConfirmBody: 'Çıkış yapmak istediğinize emin misiniz?',
 
     // ── Challenges ────────────────────────────────────────────────────────────
     challengeCompleteTitle: 'Meydan Okuma Tamamlandı!',

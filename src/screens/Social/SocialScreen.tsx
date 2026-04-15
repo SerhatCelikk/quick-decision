@@ -1,12 +1,14 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { COLORS } from '../../constants';
 import { useI18n } from '../../i18n';
+import { getSocialStats, type SocialStats } from '../../services/socialService';
 import type { RootStackParamList } from '../../types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -64,7 +66,7 @@ const Card: React.FC<{ card: ActionCard; index: number; onPress: () => void }> =
           </View>
 
           {/* Right side */}
-          {card.badge && (
+          {card.badge && card.badge !== '0' && (
             <View style={[styles.badge, { backgroundColor: card.accentColor }]}>
               <Text style={styles.badgeText}>{card.badge}</Text>
             </View>
@@ -102,17 +104,48 @@ export const SocialScreen: React.FC = () => {
   const { t } = useI18n();
   const navigation = useNavigation<Nav>();
   const headerAnim = useRef(new Animated.Value(0)).current;
+  const [socialStats, setSocialStats] = useState<SocialStats>({
+    friends: 0,
+    pending: 0,
+    wins: 0,
+    battles: 0,
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      getSocialStats().then(setSocialStats).catch(() => {});
+    }, []),
+  );
 
   const ACTIONS: ActionCard[] = [
-    { icon: 'people',       label: t('friends'),           desc: t('socialFriendsDesc'),    screen: 'Friends',   accentColor: '#60A5FA' },
-    { icon: 'flash',        label: t('challenges'),        desc: t('socialChallengesDesc'), screen: 'Challenges',accentColor: '#FB923C', badge: '2' },
-    { icon: 'share-social', label: t('socialShareCardLabel'), desc: t('socialShareCardDesc'), screen: 'ShareCard', accentColor: '#4ADE80' },
+    {
+      icon: 'people',
+      label: t('friends'),
+      desc: t('socialFriendsDesc'),
+      screen: 'Friends',
+      accentColor: '#60A5FA',
+      badge: socialStats.pending > 0 ? String(socialStats.pending) : undefined,
+    },
+    {
+      icon: 'flash',
+      label: t('challenges'),
+      desc: t('socialChallengesDesc'),
+      screen: 'Challenges',
+      accentColor: '#FB923C',
+    },
+    {
+      icon: 'share-social',
+      label: t('socialShareCardLabel'),
+      desc: t('socialShareCardDesc'),
+      screen: 'ShareCard',
+      accentColor: '#4ADE80',
+    },
   ];
 
   const STATS = [
-    { label: t('friends'),           value: '12', icon: 'person' as IoniconName, color: '#60A5FA' },
-    { label: t('wins'),              value: '48', icon: 'trophy' as IoniconName, color: '#FDE047' },
-    { label: t('socialBattlesStat'), value: '63', icon: 'flash'  as IoniconName, color: '#FB923C' },
+    { label: t('friends'),           value: String(socialStats.friends), icon: 'person' as IoniconName, color: '#60A5FA' },
+    { label: t('wins'),              value: String(socialStats.wins),    icon: 'trophy' as IoniconName, color: '#FDE047' },
+    { label: t('socialBattlesStat'), value: String(socialStats.battles), icon: 'flash'  as IoniconName, color: '#FB923C' },
   ];
 
   useEffect(() => {

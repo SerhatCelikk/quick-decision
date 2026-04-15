@@ -21,6 +21,7 @@ export interface Database {
           username: string;
           avatar_url: string | null;
           is_anonymous: boolean;
+          preferred_language: 'en' | 'tr' | null;
           created_at: string;
           updated_at: string;
         };
@@ -30,6 +31,7 @@ export interface Database {
           username: string;
           avatar_url?: string | null;
           is_anonymous?: boolean;
+          preferred_language?: 'en' | 'tr' | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -39,6 +41,7 @@ export interface Database {
           username?: string;
           avatar_url?: string | null;
           is_anonymous?: boolean;
+          preferred_language?: 'en' | 'tr' | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -297,21 +300,21 @@ export interface Database {
           id: string;
           user_id: string;
           friend_id: string;
-          status: 'pending' | 'accepted';
+          status: 'pending' | 'accepted' | 'blocked';
           created_at: string;
         };
         Insert: {
           id?: string;
           user_id: string;
           friend_id: string;
-          status?: 'pending' | 'accepted';
+          status?: 'pending' | 'accepted' | 'blocked';
           created_at?: string;
         };
         Update: {
           id?: string;
           user_id?: string;
           friend_id?: string;
-          status?: 'pending' | 'accepted';
+          status?: 'pending' | 'accepted' | 'blocked';
           created_at?: string;
         };
         Relationships: [
@@ -334,31 +337,34 @@ export interface Database {
           id: string;
           challenger_id: string;
           challenged_id: string;
-          level_id: number;
-          challenger_score: number;
+          status: 'pending' | 'accepted' | 'completed' | 'declined';
+          challenger_score: number | null;
           challenged_score: number | null;
-          status: 'pending' | 'completed' | 'expired';
+          world_id: number | null;
           created_at: string;
+          completed_at: string | null;
         };
         Insert: {
           id?: string;
           challenger_id: string;
           challenged_id: string;
-          level_id: number;
-          challenger_score: number;
+          status?: 'pending' | 'accepted' | 'completed' | 'declined';
+          challenger_score?: number | null;
           challenged_score?: number | null;
-          status?: 'pending' | 'completed' | 'expired';
+          world_id?: number | null;
           created_at?: string;
+          completed_at?: string | null;
         };
         Update: {
           id?: string;
           challenger_id?: string;
           challenged_id?: string;
-          level_id?: number;
-          challenger_score?: number;
+          status?: 'pending' | 'accepted' | 'completed' | 'declined';
+          challenger_score?: number | null;
           challenged_score?: number | null;
-          status?: 'pending' | 'completed' | 'expired';
+          world_id?: number | null;
           created_at?: string;
+          completed_at?: string | null;
         };
         Relationships: [
           {
@@ -378,32 +384,26 @@ export interface Database {
       daily_challenges: {
         Row: {
           id: string;
-          title: string;
-          description: string;
-          level_id: number;
-          target_score: number;
-          participants: number | null;
-          expires_at: string;
+          date: string;
+          category_id: string | null;
+          question_count: number;
+          bonus_multiplier: number;
           created_at: string;
         };
         Insert: {
           id?: string;
-          title: string;
-          description: string;
-          level_id: number;
-          target_score: number;
-          participants?: number | null;
-          expires_at: string;
+          date?: string;
+          category_id?: string | null;
+          question_count?: number;
+          bonus_multiplier?: number;
           created_at?: string;
         };
         Update: {
           id?: string;
-          title?: string;
-          description?: string;
-          level_id?: number;
-          target_score?: number;
-          participants?: number | null;
-          expires_at?: string;
+          date?: string;
+          category_id?: string | null;
+          question_count?: number;
+          bonus_multiplier?: number;
           created_at?: string;
         };
         Relationships: [];
@@ -632,6 +632,54 @@ export interface Database {
           current_level: number;
           highest_level_unlocked: number;
         };
+      };
+      get_user_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          total_score: number;
+          best_streak: number;
+          games_played: number;
+          correct_answers: number;
+          total_answers: number;
+          level: number;
+          pass_rate: number;
+        };
+      };
+      get_leaderboard: {
+        Args: { p_limit?: number };
+        Returns: {
+          rank: number;
+          user_id: string;
+          username: string;
+          avatar_url: string | null;
+          score: number;
+          level: number;
+        }[];
+      };
+      get_social_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          friends: number;
+          pending: number;
+          wins: number;
+          battles: number;
+        };
+      };
+      send_friend_request: {
+        Args: { p_friend_username: string };
+        Returns: { success: boolean; error?: string };
+      };
+      accept_friend_request: {
+        Args: { p_friendship_id: string };
+        Returns: { success: boolean; error?: string };
+      };
+      decline_friend_request: {
+        Args: { p_friendship_id: string };
+        Returns: { success: boolean; error?: string };
+      };
+      add_friend_by_code: {
+        Args: { p_code: string };
+        Returns: { success: boolean; error?: string };
       };
       join_matchmaking: {
         Args: { p_user_id: string };
