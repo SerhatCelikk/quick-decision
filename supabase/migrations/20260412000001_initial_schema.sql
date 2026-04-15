@@ -1,14 +1,23 @@
 -- ============================================================
 -- Migration: 20260412000001_initial_schema.sql
 -- Description: Initial database schema for the Quick Decision Game
+-- gen_random_uuid() is built-in from PostgreSQL 13+ (no extension needed)
 -- ============================================================
 
--- gen_random_uuid() is built-in from PostgreSQL 13+ (no extension needed)
+-- Drop any stale tables from failed previous attempts (CASCADE clears dependents)
+DROP TABLE IF EXISTS public.scores          CASCADE;
+DROP TABLE IF EXISTS public.questions       CASCADE;
+DROP TABLE IF EXISTS public.categories      CASCADE;
+DROP TABLE IF EXISTS public.levels          CASCADE;
+DROP TABLE IF EXISTS public.users           CASCADE;
+
+-- Drop stale functions
+DROP FUNCTION IF EXISTS public.handle_updated_at() CASCADE;
 
 -- ============================================================
 -- USERS TABLE
 -- ============================================================
-CREATE TABLE IF NOT EXISTS public.users (
+CREATE TABLE public.users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT UNIQUE,
     username TEXT UNIQUE NOT NULL,
@@ -18,7 +27,6 @@ CREATE TABLE IF NOT EXISTS public.users (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Auto-update updated_at on row changes
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -34,7 +42,7 @@ CREATE TRIGGER users_updated_at
 -- ============================================================
 -- CATEGORIES TABLE
 -- ============================================================
-CREATE TABLE IF NOT EXISTS public.categories (
+CREATE TABLE public.categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL UNIQUE,
     description TEXT,
@@ -46,7 +54,7 @@ CREATE TABLE IF NOT EXISTS public.categories (
 -- ============================================================
 -- QUESTIONS TABLE
 -- ============================================================
-CREATE TABLE IF NOT EXISTS public.questions (
+CREATE TABLE public.questions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     category_id UUID NOT NULL REFERENCES public.categories(id) ON DELETE CASCADE,
     text TEXT NOT NULL,
@@ -57,13 +65,13 @@ CREATE TABLE IF NOT EXISTS public.questions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS questions_category_id_idx ON public.questions(category_id);
-CREATE INDEX IF NOT EXISTS questions_difficulty_idx ON public.questions(difficulty);
+CREATE INDEX questions_category_id_idx ON public.questions(category_id);
+CREATE INDEX questions_difficulty_idx  ON public.questions(difficulty);
 
 -- ============================================================
--- LEVELS TABLE (game level configuration)
+-- LEVELS TABLE (dropped and recreated by migration 005)
 -- ============================================================
-CREATE TABLE IF NOT EXISTS public.levels (
+CREATE TABLE public.levels (
     id INTEGER PRIMARY KEY,
     level_number INTEGER NOT NULL UNIQUE,
     question_count INTEGER NOT NULL,
@@ -75,7 +83,7 @@ CREATE TABLE IF NOT EXISTS public.levels (
 -- ============================================================
 -- SCORES TABLE
 -- ============================================================
-CREATE TABLE IF NOT EXISTS public.scores (
+CREATE TABLE public.scores (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     session_id UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -87,6 +95,6 @@ CREATE TABLE IF NOT EXISTS public.scores (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS scores_user_id_idx ON public.scores(user_id);
-CREATE INDEX IF NOT EXISTS scores_session_id_idx ON public.scores(session_id);
-CREATE INDEX IF NOT EXISTS scores_score_idx ON public.scores(score DESC);
+CREATE INDEX scores_user_id_idx  ON public.scores(user_id);
+CREATE INDEX scores_session_id_idx ON public.scores(session_id);
+CREATE INDEX scores_score_idx    ON public.scores(score DESC);
