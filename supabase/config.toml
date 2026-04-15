@@ -53,14 +53,8 @@ additional_redirect_urls = ["https://localhost:3000"]
 jwt_expiry = 3600
 # If disabled, the refresh token will never expire.
 enable_refresh_token_rotation = true
-# Allows session invalidation on all devices when a user logs out.
-enable_session_invalidation = true
-# How many seconds until an idle session expires.
-session_timeout_seconds = 0
 # If enabled, users need to confirm their email address before signing in.
 enable_signup = true
-# If enabled, users will need to confirm their email before signing in for the first time.
-double_confirm_changes = true
 # If enabled, users can only sign in if they've been invited.
 enable_manual_linking = false
 
@@ -72,8 +66,6 @@ enable_signup = true
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
 enable_confirmations = true
-# If enabled, users can sign in without providing a password.
-enable_anonymous_sign_ins = true
 
 [auth.email.template.invite]
 subject = "You have been invited"
