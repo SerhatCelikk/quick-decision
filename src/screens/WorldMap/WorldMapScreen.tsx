@@ -135,8 +135,8 @@ export const WorldMapScreen: React.FC<Props> = ({ navigation }) => {
     }, [refresh]),
   );
 
-  const currentLevel        = progress?.current_level ?? 1;
-  const highestLevelUnlocked = progress?.highest_level_unlocked ?? 1;
+  const currentLevel         = progress.current_level;
+  const highestLevelUnlocked = progress.highest_level_unlocked;
   const xpPct               = ((currentLevel - 1) % 10) / 10;
   const streak               = 3;
 

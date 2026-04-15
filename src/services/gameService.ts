@@ -8,6 +8,8 @@ const questionCacheKey = (categoryId: string, difficulty: string, lang: string) 
   `@questions_${categoryId}_${difficulty}_${lang}`;
 const PENDING_SCORES_KEY = '@pending_scores';
 const PENDING_ATTEMPTS_KEY = '@pending_level_attempts';
+// Local progress — source of truth when DB is unavailable
+const LOCAL_PROGRESS_KEY = '@local_highest_level_unlocked';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -105,6 +107,28 @@ export async function fetchLevelConfig(levelNumber: number): Promise<LevelConfig
   }
 }
 
+// ─── Local progress helpers ──────────────────────────────────────────────────
+
+async function getLocalHighest(): Promise<number> {
+  try {
+    const raw = await AsyncStorage.getItem(LOCAL_PROGRESS_KEY);
+    return raw ? Math.max(1, parseInt(raw, 10)) : 1;
+  } catch {
+    return 1;
+  }
+}
+
+async function setLocalHighest(value: number): Promise<void> {
+  try {
+    const current = await getLocalHighest();
+    if (value > current) {
+      await AsyncStorage.setItem(LOCAL_PROGRESS_KEY, String(value));
+    }
+  } catch {
+    // best-effort
+  }
+}
+
 // ─── User progress ────────────────────────────────────────────────────────────
 
 export interface UserProgress {
@@ -112,14 +136,28 @@ export interface UserProgress {
   highest_level_unlocked: number;
 }
 
-export async function fetchUserProgress(): Promise<UserProgress | null> {
+export async function fetchUserProgress(): Promise<UserProgress> {
+  const localHighest = await getLocalHighest();
+
   try {
     const { data, error } = await supabase.rpc('get_user_progress');
-    if (error || !data) return null;
-    return data as UserProgress;
+    if (!error && data) {
+      const dbProgress = data as UserProgress;
+      // Use the higher of DB and local — they can drift if RPC was offline
+      const merged: UserProgress = {
+        current_level: dbProgress.current_level,
+        highest_level_unlocked: Math.max(dbProgress.highest_level_unlocked, localHighest),
+      };
+      // Sync local up if DB is ahead
+      await setLocalHighest(merged.highest_level_unlocked);
+      return merged;
+    }
   } catch {
-    return null;
+    // fall through to local
   }
+
+  // DB unavailable — return purely local progress
+  return { current_level: localHighest, highest_level_unlocked: localHighest };
 }
 
 // ─── Questions ────────────────────────────────────────────────────────────────
@@ -260,14 +298,28 @@ export interface LevelAttemptResult {
 
 export async function submitLevelAttempt(
   attempt: LevelAttemptPayload
-): Promise<LevelAttemptResult | null> {
+): Promise<LevelAttemptResult> {
+  const accuracy = attempt.questionsTotal > 0
+    ? attempt.questionsCorrect / attempt.questionsTotal
+    : 0;
+  const passed = accuracy >= 0.75;
+  const nextLevel = passed ? attempt.levelNumber + 1 : attempt.levelNumber;
+
+  // Always update local progress immediately — this is the unlock source of truth
+  if (passed) {
+    await setLocalHighest(nextLevel);
+  }
+
+  // Build a local result so the caller always gets a valid response
+  const localResult: LevelAttemptResult = { passed, accuracy, next_level: nextLevel };
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
     await queueAttempt(attempt);
-    return null;
+    return localResult;
   }
 
   try {
@@ -278,10 +330,13 @@ export async function submitLevelAttempt(
     });
 
     if (error) throw error;
-    return data as LevelAttemptResult;
+    const dbResult = data as LevelAttemptResult;
+    // Sync local with DB result (DB might have a higher value from another device)
+    if (dbResult.passed) await setLocalHighest(dbResult.next_level);
+    return dbResult;
   } catch {
     await queueAttempt(attempt);
-    return null;
+    return localResult;
   }
 }
 

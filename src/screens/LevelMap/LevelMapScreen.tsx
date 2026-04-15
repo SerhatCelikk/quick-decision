@@ -177,8 +177,8 @@ export const LevelMapScreen: React.FC<Props> = ({ navigation, route }) => {
   const theme = getWorldTheme(worldId);
   const scrollRef = useRef<ScrollView>(null);
 
-  const globalCurrent = progress?.current_level ?? 1;
-  const globalHighest = progress?.highest_level_unlocked ?? 1;
+  const globalCurrent = progress.current_level;
+  const globalHighest = progress.highest_level_unlocked;
   const worldStart = (worldId - 1) * LEVELS_PER_WORLD + 1;
   const currentWorldLevel = Math.max(1, Math.min(globalCurrent - worldStart + 1, LEVELS_PER_WORLD + 1));
   const highestWorldUnlocked = Math.max(0, Math.min(globalHighest - worldStart + 1, LEVELS_PER_WORLD));

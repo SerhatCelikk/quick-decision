@@ -7,18 +7,20 @@ import {
 } from '../services/gameService';
 
 interface UseLevelProgressReturn {
-  progress: UserProgress | null;
+  progress: UserProgress;
   loading: boolean;
   submitAttempt: (
     levelNumber: number,
     correct: number,
     total: number
-  ) => Promise<LevelAttemptResult | null>;
+  ) => Promise<LevelAttemptResult>;
   refresh: () => Promise<void>;
 }
 
+const DEFAULT_PROGRESS: UserProgress = { current_level: 1, highest_level_unlocked: 1 };
+
 export function useLevelProgress(): UseLevelProgressReturn {
-  const [progress, setProgress] = useState<UserProgress | null>(null);
+  const [progress, setProgress] = useState<UserProgress>(DEFAULT_PROGRESS);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -37,17 +39,15 @@ export function useLevelProgress(): UseLevelProgressReturn {
       levelNumber: number,
       correct: number,
       total: number
-    ): Promise<LevelAttemptResult | null> => {
+    ): Promise<LevelAttemptResult> => {
       const result = await submitLevelAttempt({
         levelNumber,
         questionsCorrect: correct,
         questionsTotal: total,
       });
-      // Refresh local progress after a successful submission
-      if (result) {
-        const updated = await fetchUserProgress();
-        setProgress(updated);
-      }
+      // Always refresh progress after attempt (local store was updated)
+      const updated = await fetchUserProgress();
+      setProgress(updated);
       return result;
     },
     []

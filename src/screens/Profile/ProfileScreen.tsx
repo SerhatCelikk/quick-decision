@@ -120,8 +120,8 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
   const loading          = progressLoading || statsLoading;
-  const currentLevel     = progress?.current_level ?? 1;
-  const highestUnlocked  = progress?.highest_level_unlocked ?? 1;
+  const currentLevel     = progress.current_level;
+  const highestUnlocked  = progress.highest_level_unlocked;
   const passRate         = stats && stats.totalAttempts > 0
     ? Math.round((stats.totalPassed / stats.totalAttempts) * 100) : 0;
   const initials         = (username ?? 'P').slice(0, 2).toUpperCase();

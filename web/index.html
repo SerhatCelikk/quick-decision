@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Quick Decision</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Figtree:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  /* ─── Reset & Base ─────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:        #09071A;
+    --surface:   #130F2A;
+    --surface2:  #1D1840;
+    --surface3:  #271F58;
+    --border:    #2D2760;
+    --border-l:  #3D359C;
+    --primary:   #FF4C5E;
+    --primary-d: #CC2E3E;
+    --primary-g: rgba(255,76,94,0.2);
+    --accent:    #00D4CF;
+    --green:     #00E676;
+    --green-d:   #004D2E;
+    --gold:      #FFD700;
+    --gold-d:    #CC9F00;
+    --text:      #F4F3FF;
+    --text-sec:  #A09FCC;
+    --text-mute: #5C5A88;
+    --streak:    #FF6D00;
+    --blue:      #2979FF;
+    --r:         16px;
+    --r-lg:      20px;
+    --r-full:    999px;
+    --font-d:    'Syne', sans-serif;
+    --font-b:    'Figtree', sans-serif;
+  }
+
+  html { height: 100%; background: var(--bg); }
+  body {
+    font-family: var(--font-b);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    max-width: 430px;
+    margin: 0 auto;
+    position: relative;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── Particles canvas ─────────────────────────────────── */
+  #particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: .55;
+  }
+
+  /* ─── Grain overlay ────────────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-size: 160px;
+    opacity: .025;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* ─── Glow blobs ───────────────────────────────────────── */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+    animation: blobFloat 8s ease-in-out infinite alternate;
+  }
+  .blob-1 { width: 300px; height: 300px; background: var(--primary-g); top: -80px; left: -80px; }
+  .blob-2 { width: 250px; height: 250px; background: rgba(0,212,207,.12); bottom: 30%; right: -60px; animation-delay: -3s; animation-duration: 11s; }
+  .blob-3 { width: 200px; height: 200px; background: rgba(41,121,255,.1); bottom: -60px; left: 20%; animation-delay: -6s; animation-duration: 9s; }
+  @keyframes blobFloat {
+    from { transform: translate(0,0) scale(1); }
+    to   { transform: translate(20px,30px) scale(1.05); }
+  }
+
+  /* ─── Main layout ──────────────────────────────────────── */
+  #app { position: relative; z-index: 2; min-height: 100dvh; display: flex; flex-direction: column; }
+
+  /* ─── Header ───────────────────────────────────────────── */
+  .header {
+    padding: 52px 18px 14px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: linear-gradient(180deg, rgba(9,7,26,.98) 0%, rgba(9,7,26,.92) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 50;
+    animation: slideDown .4s cubic-bezier(.2,.8,.2,1) both;
+  }
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .brand { display: flex; flex-direction: column; gap: 1px; }
+  .brand-name {
+    font-family: var(--font-d);
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    color: var(--text);
+    line-height: 1;
+  }
+  .brand-name span { color: var(--primary); }
+  .brand-tag {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-mute);
+    letter-spacing: .2px;
+  }
+
+  .avatar-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), #c01e2e);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 0 0 2px var(--border), 0 4px 16px rgba(255,76,94,.35);
+    position: relative;
+  }
+  .avatar-btn:active { transform: scale(.92); }
+  .avatar-btn svg { width: 20px; height: 20px; fill: #fff; }
+  .notif-dot {
+    position: absolute;
+    top: 1px; right: 1px;
+    width: 9px; height: 9px;
+    background: var(--green);
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+  }
+
+  /* ─── Stats strip ──────────────────────────────────────── */
+  .stats-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 9px 14px;
+  }
+  .strip-div { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+
+  .streak-chip { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+  .flame-icon {
+    font-size: 18px;
+    line-height: 1;
+    display: inline-block;
+    animation: flamePulse 1.4s ease-in-out infinite;
+    filter: drop-shadow(0 0 6px var(--streak));
+  }
+  @keyframes flamePulse {
+    0%,100% { transform: scale(1) rotate(-4deg); }
+    50%      { transform: scale(1.18) rotate(4deg); }
+  }
+  .streak-num {
+    font-family: var(--font-d);
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--streak);
+  }
+
+  .hearts { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+  .heart {
+    font-size: 15px;
+    line-height: 1;
+    transition: transform .2s;
+    animation: heartBeat 2.4s ease-in-out infinite;
+  }
+  .heart:nth-child(2) { animation-delay: .3s; }
+  .heart:nth-child(3) { animation-delay: .6s; }
+  .heart.empty { filter: grayscale(1) opacity(.35); animation: none; }
+  @keyframes heartBeat {
+    0%,90%,100% { transform: scale(1); }
+    95%          { transform: scale(1.22); }
+  }
+
+  .xp-wrap { flex: 1; display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .lv-badge {
+    background: var(--primary);
+    border-radius: var(--r-full);
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #fff;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .xp-track {
+    flex: 1;
+    height: 7px;
+    background: var(--surface2);
+    border-radius: var(--r-full);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), #ff7a40);
+    border-radius: var(--r-full);
+    width: 0%;
+    transition: width 1.1s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 0 8px rgba(255,76,94,.6);
+  }
+  .xp-label { font-size: 9.5px; font-weight: 700; color: var(--text-mute); white-space: nowrap; }
+
+  /* ─── Scroll content ───────────────────────────────────── */
+  .scroll-content {
+    flex: 1;
+    padding: 18px 16px 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ─── Section header ───────────────────────────────────── */
+  .sec-header { margin-bottom: 6px; }
+  .sec-title {
+    font-family: var(--font-d);
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .sec-sub {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text-mute);
+    margin-top: 2px;
+  }
+
+  /* ─── World card ───────────────────────────────────────── */
+  .world-card {
+    border-radius: var(--r-lg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s;
+    transform-style: preserve-3d;
+    animation: cardIn .5s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .world-card:nth-child(1) { animation-delay: .05s; }
+  .world-card:nth-child(2) { animation-delay: .12s; }
+  .world-card:nth-child(3) { animation-delay: .19s; }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(24px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .world-card:active { transform: scale(.975); }
+  .world-card.locked { opacity: .52; cursor: default; }
+
+  .card-inner {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 15px 14px;
+    min-height: 92px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* orb glow in card corner */
+  .card-orb {
+    position: absolute;
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    top: -35px; right: -20px;
+    opacity: .14;
+    filter: blur(2px);
+  }
+
+  /* subtle scanline inside card */
+  .card-inner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(255,255,255,.012) 3px,
+      rgba(255,255,255,.012) 4px
+    );
+    pointer-events: none;
+  }
+
+  .world-icon-wrap {
+    width: 58px; height: 58px;
+    border-radius: 16px;
+    border: 1.5px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 26px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .world-body { flex: 1; position: relative; z-index: 1; min-width: 0; }
+  .world-name-row { display: flex; align-items: center; gap: 7px; margin-bottom: 3px; }
+  .world-name {
+    font-family: var(--font-d);
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    color: #fff;
+  }
+  .world-locked .world-name { color: var(--text-mute); }
+
+  .badge {
+    padding: 2px 7px;
+    border-radius: var(--r-full);
+    font-size: 9px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .world-progress-text { font-size: 11px; font-weight: 600; margin-bottom: 5px; }
+  .world-track {
+    height: 5px;
+    background: rgba(0,0,0,.35);
+    border-radius: var(--r-full);
+    overflow: hidden;
+  }
+  .world-fill {
+    height: 100%;
+    border-radius: var(--r-full);
+    width: 0%;
+    transition: width 1.2s cubic-bezier(.4,0,.2,1);
+  }
+  .world-lock-hint { font-size: 11px; color: var(--text-mute); }
+
+  .arrow-circle {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    transition: transform .15s;
+  }
+  .world-card:not(.locked):hover .arrow-circle { transform: translateX(3px); }
+  .arrow-circle svg { width: 18px; height: 18px; }
+
+  /* specific world themes */
+  .world-jungle .card-inner  { background: linear-gradient(120deg,#003D2E 0%,#006650 100%); }
+  .world-jungle .card-orb    { background: #00E676; }
+  .world-jungle .world-icon-wrap { background: rgba(0,230,118,.12); border-color: rgba(0,230,118,.4); }
+  .world-jungle .world-progress-text { color: rgba(0,230,118,.9); }
+  .world-jungle .world-fill  { background: linear-gradient(90deg,#00BF5A,#00E676); }
+  .world-jungle .arrow-circle { background: rgba(0,230,118,.12); border-color: rgba(0,230,118,.35); }
+  .world-jungle .arrow-circle svg { fill: #00E676; }
+  .world-jungle              { box-shadow: 0 6px 28px rgba(0,230,118,.12); }
+
+  .world-volcano .card-inner { background: linear-gradient(120deg,#5C1800 0%,#A02800 100%); }
+  .world-volcano .card-orb   { background: #FF6D00; }
+  .world-volcano .world-icon-wrap { background: rgba(255,109,0,.12); border-color: rgba(255,109,0,.4); }
+  .world-volcano .world-progress-text { color: rgba(255,109,0,.9); }
+  .world-volcano .world-fill { background: linear-gradient(90deg,#D04000,#FF6D00); }
+  .world-volcano .arrow-circle { background: rgba(255,109,0,.12); border-color: rgba(255,109,0,.35); }
+  .world-volcano .arrow-circle svg { fill: #FF6D00; }
+  .world-volcano             { box-shadow: 0 6px 28px rgba(255,109,0,.12); }
+
+  .world-ocean .card-inner   { background: linear-gradient(120deg,#0A1260 0%,#1035AA 100%); }
+  .world-ocean .card-orb     { background: #2979FF; }
+  .world-ocean .world-icon-wrap { background: rgba(41,121,255,.12); border-color: rgba(41,121,255,.4); }
+  .world-ocean .world-progress-text { color: rgba(41,121,255,.95); }
+  .world-ocean .world-fill   { background: linear-gradient(90deg,#1060CC,#2979FF); }
+  .world-ocean .arrow-circle { background: rgba(41,121,255,.12); border-color: rgba(41,121,255,.35); }
+  .world-ocean .arrow-circle svg { fill: #2979FF; }
+  .world-ocean               { box-shadow: 0 6px 28px rgba(41,121,255,.12); }
+
+  /* ─── Coming soon ──────────────────────────────────────── */
+  .coming-soon {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1.5px dashed var(--border);
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    animation: cardIn .5s .26s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .coming-soon:hover { border-color: var(--border-l); background: rgba(29,24,64,.4); }
+
+  .cs-dots { display: flex; flex-direction: column; gap: 4px; }
+  .cs-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+  .cs-dot:nth-child(1) { opacity: .3; }
+  .cs-dot:nth-child(2) { opacity: .55; }
+  .cs-dot:nth-child(3) { opacity: .8; }
+
+  .cs-body { flex: 1; }
+  .cs-title { font-size: 13px; font-weight: 700; color: var(--text-sec); }
+  .cs-sub   { font-size: 11px; color: var(--text-mute); margin-top: 2px; }
+  .cs-icon svg { width: 16px; height: 16px; fill: var(--text-mute); }
+
+  /* ─── Today section ────────────────────────────────────── */
+  .today-section { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+  .today-label {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-mute);
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+  }
+
+  /* ─── Seasonal event banner ────────────────────────────── */
+  .seasonal-banner {
+    border-radius: var(--r);
+    overflow: hidden;
+    border: 1px solid rgba(16,185,129,.35);
+    box-shadow: 0 4px 20px rgba(16,185,129,.12);
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    animation: cardIn .5s .3s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .seasonal-banner:active { transform: scale(.98); }
+
+  .sb-inner {
+    background: linear-gradient(120deg, #064E3B, #047857, #064E3B);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 80px;
+    background: rgba(255,255,255,.07);
+    transform: skewX(-20deg);
+    animation: shimmerSlide 2.4s linear infinite;
+    pointer-events: none;
+  }
+  @keyframes shimmerSlide {
+    from { left: -120px; }
+    to   { left: 120%; }
+  }
+
+  .sb-icon-wrap {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: rgba(52,211,153,.14);
+    border: 1px solid rgba(52,211,153,.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 22px;
+  }
+  .sb-text { flex: 1; }
+  .sb-evt-label { font-size: 10px; font-weight: 800; color: #34D399; letter-spacing: 1px; text-transform: uppercase; }
+  .sb-evt-title { font-size: 14px; font-weight: 700; color: #F0FDF4; margin-top: 1px; }
+  .sb-meta { display: flex; align-items: center; gap: 4px; margin-top: 3px; }
+  .sb-meta-icon { font-size: 11px; }
+  .sb-meta-text { font-size: 11px; color: #6EE7B7; }
+  .sb-arrow {
+    width: 33px; height: 33px;
+    border-radius: 50%;
+    background: rgba(52,211,153,.14);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+
+  /* ─── Daily challenge banner ───────────────────────────── */
+  .daily-banner {
+    border-radius: var(--r);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: transform .15s;
+    animation: cardIn .5s .38s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .daily-banner:active { transform: scale(.98); }
+
+  .db-inner {
+    background: linear-gradient(120deg, var(--surface), var(--surface2));
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    position: relative;
+  }
+
+  .daily-icon-wrap {
+    width: 46px; height: 46px;
+    border-radius: 14px;
+    background: rgba(255,215,0,.1);
+    border: 1px solid rgba(255,215,0,.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 22px;
+    position: relative;
+  }
+  .daily-pulse {
+    position: absolute;
+    inset: -4px;
+    border: 2px solid rgba(255,215,0,.3);
+    border-radius: 18px;
+    animation: dailyPulse 2s ease-in-out infinite;
+  }
+  @keyframes dailyPulse {
+    0%,100% { opacity: .8; transform: scale(1); }
+    50%      { opacity: 0; transform: scale(1.15); }
+  }
+
+  .db-text { flex: 1; }
+  .db-label { font-size: 10px; font-weight: 800; color: var(--gold-d); text-transform: uppercase; letter-spacing: 1px; }
+  .db-title { font-size: 14px; font-weight: 700; color: var(--text); margin-top: 2px; }
+  .db-meta { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+  .db-stat { display: flex; align-items: center; gap: 4px; }
+  .db-stat-dot { font-size: 10px; color: var(--text-mute); }
+  .db-stat-label { font-size: 11px; color: var(--text-sec); font-weight: 500; }
+  .db-stat-value { font-size: 11px; color: var(--text-sec); font-weight: 700; }
+  .db-arrow { font-size: 16px; color: var(--text-mute); }
+
+  /* progress within daily */
+  .db-progress-wrap { margin-top: 8px; }
+  .db-track {
+    height: 4px;
+    background: var(--surface3);
+    border-radius: var(--r-full);
+    overflow: hidden;
+  }
+  .db-fill {
+    height: 100%;
+    width: 42%;
+    background: linear-gradient(90deg, var(--gold-d), var(--gold));
+    border-radius: var(--r-full);
+    transition: width 1.2s cubic-bezier(.4,0,.2,1);
+    box-shadow: 0 0 6px rgba(255,215,0,.5);
+  }
+
+  /* ─── Bottom nav ───────────────────────────────────────── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    background: rgba(13,10,31,.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0 12px;
+    gap: 4px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: var(--text-mute);
+    font-family: var(--font-b);
+    font-size: 10px;
+    font-weight: 600;
+    transition: color .15s;
+    position: relative;
+  }
+  .nav-item.active { color: var(--primary); }
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 28px; height: 2.5px;
+    background: var(--primary);
+    border-radius: 0 0 var(--r-full) var(--r-full);
+    box-shadow: 0 0 8px var(--primary);
+  }
+  .nav-icon { font-size: 22px; line-height: 1; }
+  .nav-icon.active { filter: drop-shadow(0 0 6px var(--primary)); }
+
+  /* ─── Live counter chip ────────────────────────────────── */
+  .live-chip {
+    position: fixed;
+    top: 52px;
+    right: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-full);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    z-index: 60;
+    animation: slideLeft .5s .6s cubic-bezier(.2,.8,.2,1) both;
+    pointer-events: none;
+  }
+  @keyframes slideLeft {
+    from { opacity: 0; transform: translateX(20px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: livePulse 1.2s ease-in-out infinite;
+    box-shadow: 0 0 5px var(--green);
+  }
+  @keyframes livePulse {
+    0%,100% { opacity: 1; }
+    50%      { opacity: .4; }
+  }
+  .live-text { font-size: 10px; font-weight: 700; color: var(--text-sec); }
+
+  /* ─── Floating score popup ─────────────────────────────── */
+  .float-score {
+    position: fixed;
+    font-family: var(--font-d);
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--green);
+    pointer-events: none;
+    text-shadow: 0 0 12px var(--green);
+    z-index: 999;
+    animation: floatUp .85s cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  @keyframes floatUp {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    60%  { opacity: 1; transform: translateY(-50px) scale(1.15); }
+    100% { opacity: 0; transform: translateY(-90px) scale(.9); }
+  }
+
+  /* ─── Tilt effect on hover (desktop) ──────────────────── */
+  @media (hover:hover) {
+    .world-card:not(.locked):hover {
+      transform: perspective(800px) rotateY(-3deg) rotateX(1.5deg) scale(1.015);
+      box-shadow: 0 12px 40px rgba(0,0,0,.4);
+    }
+    .world-card:not(.locked):hover .card-orb { opacity: .22; }
+  }
+
+  /* ─── Responsive (tablets show 2-col) ─────────────────── */
+  @media (min-width: 600px) {
+    body { max-width: 480px; }
+    .brand-name { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Ambient blobs -->
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<!-- Particle canvas -->
+<canvas id="particles"></canvas>
+
+<div id="app">
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-name">Quick<span>Decision</span></div>
+        <div class="brand-tag">How weird is the world?</div>
+      </div>
+      <button class="avatar-btn" onclick="showFloatScore(this, '+50 XP')">
+        <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+        <div class="notif-dot"></div>
+      </button>
+    </div>
+
+    <div class="stats-strip">
+      <!-- Streak -->
+      <div class="streak-chip">
+        <span class="flame-icon">🔥</span>
+        <span class="streak-num">3</span>
+      </div>
+
+      <div class="strip-div"></div>
+
+      <!-- Hearts -->
+      <div class="hearts">
+        <span class="heart">❤️</span>
+        <span class="heart">❤️</span>
+        <span class="heart">❤️</span>
+        <span class="heart empty">🖤</span>
+        <span class="heart empty">🖤</span>
+      </div>
+
+      <div class="strip-div"></div>
+
+      <!-- XP -->
+      <div class="xp-wrap">
+        <span class="lv-badge">⚡ Lv 7</span>
+        <div class="xp-track">
+          <div class="xp-fill" id="xpFill" style="width:0%"></div>
+        </div>
+        <span class="xp-label">680/1000</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Scroll content ── -->
+  <main class="scroll-content">
+
+    <!-- Worlds section -->
+    <div class="sec-header">
+      <div class="sec-title">Choose Your World</div>
+      <div class="sec-sub">Tap to explore levels</div>
+    </div>
+
+    <!-- Jungle -->
+    <div class="world-card world-jungle" onclick="cardTap(this, '#00E676')">
+      <div class="card-inner">
+        <div class="card-orb"></div>
+        <div class="world-icon-wrap">🌿</div>
+        <div class="world-body">
+          <div class="world-name-row">
+            <span class="world-name">Jungle</span>
+            <span class="badge" style="background:#00E676">
+              <svg viewBox="0 0 24 24" width="8" height="8" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+              DONE
+            </span>
+          </div>
+          <div class="world-progress-text">20 / 20 levels</div>
+          <div class="world-track">
+            <div class="world-fill" id="jungleFill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="arrow-circle">
+          <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Volcano -->
+    <div class="world-card world-volcano" onclick="cardTap(this, '#FF6D00')">
+      <div class="card-inner">
+        <div class="card-orb"></div>
+        <div class="world-icon-wrap">🌋</div>
+        <div class="world-body">
+          <div class="world-name-row">
+            <span class="world-name">Volcano</span>
+            <span class="badge" style="background:#FF6D00">NEXT</span>
+          </div>
+          <div class="world-progress-text">8 / 20 levels</div>
+          <div class="world-track">
+            <div class="world-fill" id="volcanoFill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="arrow-circle">
+          <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ocean (locked) -->
+    <div class="world-card world-ocean locked" onclick="">
+      <div class="card-inner">
+        <div class="card-orb"></div>
+        <div class="world-icon-wrap" style="font-size:22px;">🔒</div>
+        <div class="world-body world-locked">
+          <div class="world-name-row">
+            <span class="world-name" style="color:var(--text-mute)">Ocean</span>
+          </div>
+          <div class="world-lock-hint">Complete Volcano to unlock</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coming soon -->
+    <div class="coming-soon">
+      <div class="cs-dots">
+        <div class="cs-dot"></div>
+        <div class="cs-dot"></div>
+        <div class="cs-dot"></div>
+      </div>
+      <div class="cs-body">
+        <div class="cs-title">More Worlds Coming</div>
+        <div class="cs-sub">Stay sharp — new challenges drop weekly</div>
+      </div>
+      <div class="cs-icon">
+        <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+      </div>
+    </div>
+
+    <!-- Today section -->
+    <div class="today-section">
+      <div class="today-label">Today</div>
+
+      <!-- Seasonal event -->
+      <div class="seasonal-banner" onclick="cardTap(this, '#00E676')">
+        <div class="sb-inner">
+          <div class="shimmer"></div>
+          <div class="sb-icon-wrap">🌱</div>
+          <div class="sb-text">
+            <div class="sb-evt-label">Special Event</div>
+            <div class="sb-evt-title">Spring Knowledge Sprint</div>
+            <div class="sb-meta">
+              <span class="sb-meta-icon">📅</span>
+              <span class="sb-meta-text">Ends Apr 30</span>
+            </div>
+          </div>
+          <div class="sb-arrow">›</div>
+        </div>
+      </div>
+
+      <!-- Daily challenge -->
+      <div class="daily-banner" onclick="cardTap(this, '#FFD700')">
+        <div class="db-inner">
+          <div class="daily-icon-wrap">
+            <div class="daily-pulse"></div>
+            ⚡
+          </div>
+          <div class="db-text">
+            <div class="db-label">Daily Challenge</div>
+            <div class="db-title">Science Blitz — 10 questions</div>
+            <div class="db-meta">
+              <div class="db-stat">
+                <span class="db-stat-dot">👥</span>
+                <span class="db-stat-label">Players</span>
+                <span class="db-stat-value">2,341</span>
+              </div>
+              <div class="db-stat">
+                <span class="db-stat-dot">🎯</span>
+                <span class="db-stat-label">Avg score</span>
+                <span class="db-stat-value">74%</span>
+              </div>
+            </div>
+            <div class="db-progress-wrap">
+              <div class="db-track">
+                <div class="db-fill" id="dbFill" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+          <div class="db-arrow">›</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── Bottom nav ── -->
+  <nav class="bottom-nav">
+    <button class="nav-item active">
+      <span class="nav-icon active">🗺️</span>
+      <span>Play</span>
+    </button>
+    <button class="nav-item" onclick="navTap(this)">
+      <span class="nav-icon">🏆</span>
+      <span>Ranks</span>
+    </button>
+    <button class="nav-item" onclick="navTap(this)">
+      <span class="nav-icon">👥</span>
+      <span>Social</span>
+    </button>
+    <button class="nav-item" onclick="navTap(this)">
+      <span class="nav-icon">😎</span>
+      <span>Profile</span>
+    </button>
+  </nav>
+
+</div>
+
+<script>
+/* ─── Particle system ──────────────────────────────────────────── */
+(function initParticles() {
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function mkParticle() {
+    const colors = ['#FF4C5E','#00D4CF','#FFD700','#9B6DFF','#00E676'];
+    return {
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 1.8 + .5,
+      vx: (Math.random() - .5) * .35,
+      vy: (Math.random() - .5) * .35,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      alpha: Math.random() * .55 + .15,
+    };
+  }
+
+  function init() {
+    resize();
+    particles = Array.from({length: 60}, mkParticle);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = p.alpha;
+      ctx.fill();
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0)  p.x = W;
+      if (p.x > W)  p.x = 0;
+      if (p.y < 0)  p.y = H;
+      if (p.y > H)  p.y = 0;
+    });
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(draw);
+  }
+
+  init();
+  draw();
+  window.addEventListener('resize', resize);
+})();
+
+/* ─── Animate fills on load ────────────────────────────────────── */
+window.addEventListener('load', () => {
+  setTimeout(() => { document.getElementById('xpFill').style.width   = '68%';  }, 300);
+  setTimeout(() => { document.getElementById('jungleFill').style.width  = '100%'; }, 450);
+  setTimeout(() => { document.getElementById('volcanoFill').style.width = '40%';  }, 550);
+  setTimeout(() => { document.getElementById('dbFill').style.width      = '42%';  }, 650);
+});
+
+/* ─── Float score popup ─────────────────────────────────────────── */
+function showFloatScore(el, text) {
+  const rect = el.getBoundingClientRect();
+  const div = document.createElement('div');
+  div.className = 'float-score';
+  div.textContent = text;
+  div.style.left = (rect.left + rect.width / 2 - 30) + 'px';
+  div.style.top  = (rect.top  - 10) + 'px';
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 900);
+}
+
+/* ─── Card tap ──────────────────────────────────────────────────── */
+function cardTap(el, color) {
+  if (el.classList.contains('locked')) return;
+  el.style.transition = 'transform .1s';
+  el.style.transform  = 'scale(.97)';
+  setTimeout(() => {
+    el.style.transform = '';
+    el.style.transition = '';
+  }, 120);
+  const rect = el.getBoundingClientRect();
+  const div = document.createElement('div');
+  div.className = 'float-score';
+  div.style.color = color;
+  div.style.textShadow = `0 0 12px ${color}`;
+  div.textContent = '▶ GO';
+  div.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+  div.style.top  = (rect.top  + 10) + 'px';
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 900);
+}
+
+/* ─── Nav tap ───────────────────────────────────────────────────── */
+function navTap(el) {
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.remove('active');
+    n.querySelector('.nav-icon').classList.remove('active');
+  });
+  el.classList.add('active');
+  el.querySelector('.nav-icon').classList.add('active');
+}
+
+/* ─── Live player counter ───────────────────────────────────────── */
+(function liveCounter() {
+  const chip = document.createElement('div');
+  chip.className = 'live-chip';
+  chip.innerHTML = '<div class="live-dot"></div><span class="live-text" id="liveCount">2,341 playing</span>';
+  document.body.appendChild(chip);
+
+  let base = 2341;
+  setInterval(() => {
+    base += Math.floor(Math.random() * 7) - 2;
+    document.getElementById('liveCount').textContent = base.toLocaleString() + ' playing';
+  }, 3500);
+})();
+</script>
+</body>
+</html>

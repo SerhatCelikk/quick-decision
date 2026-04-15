@@ -334,14 +334,20 @@ export const LevelCompletionScreen: React.FC<Props> = ({ navigation, route }) =>
           {/* CTAs */}
           <View style={styles.ctaStack}>
             {passed ? (
-              <DuoButton label={t('nextLevel')} variant="primary" onPress={handleNext}
-                icon={<Ionicons name="arrow-forward" size={18} color="#fff" />} />
+              <DuoButton
+                label={worldLevelNumber >= LEVELS_PER_WORLD ? t('worldMap') : t('nextLevel')}
+                variant="primary"
+                onPress={handleNext}
+                icon={<Ionicons name={worldLevelNumber >= LEVELS_PER_WORLD ? 'map' : 'arrow-forward'} size={18} color="#fff" />}
+              />
             ) : (
               <DuoButton label={t('tryAgain')} variant="danger" onPress={handleRetry}
                 icon={<Ionicons name="refresh" size={18} color="#fff" />} />
             )}
-            <DuoButton label={t('worldMap')} variant="secondary" onPress={handleMap}
-              icon={<Ionicons name="map-outline" size={18} color={COLORS.text} />} />
+            {worldLevelNumber < LEVELS_PER_WORLD && (
+              <DuoButton label={t('worldMap')} variant="secondary" onPress={handleMap}
+                icon={<Ionicons name="map-outline" size={18} color={COLORS.text} />} />
+            )}
           </View>
         </Animated.View>
       </ScrollView>
